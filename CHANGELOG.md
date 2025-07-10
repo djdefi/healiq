@@ -3,13 +3,15 @@
 ## [0.0.4] - 2025-07-10
 
 ### Added
-- 
+- Comprehensive in-game polish improvements merged from PR #16
 
 ### Changed
-- 
+- Updated WoW API calls to use newer C_Spell.GetSpellCooldown and C_Item.GetItemCooldown APIs
+- Maintained backward compatibility with enhanced error handling
 
 ### Fixed
-- 
+- Fixed WoW API deprecation warnings by updating to current API functions
+- Resolved merge conflicts while preserving all SafeCall error handling enhancements
 
 
 ## [0.0.3] - 2025-07-10
