@@ -235,16 +235,12 @@ function UI:CreateMinimapButton()
 end
 
 function UI:CreateQueueFrame()
-    if not HealIQ.db.ui.showQueue then
-        return
-    end
-    
     local queueSize = HealIQ.db.ui.queueSize or 3
     local queueLayout = HealIQ.db.ui.queueLayout or "horizontal"
     local queueSpacing = HealIQ.db.ui.queueSpacing or 8
     local queueIconSize = math.floor(ICON_SIZE * (HealIQ.db.ui.queueScale or 0.75)) -- Configurable queue icon size
     
-    -- Create queue container frame
+    -- Create queue container frame (always create, but conditionally show)
     queueFrame = CreateFrame("Frame", "HealIQQueueFrame", mainFrame)
     
     if queueLayout == "horizontal" then
@@ -301,6 +297,13 @@ function UI:CreateQueueFrame()
         queueIcon:Hide()
         
         table.insert(queueIcons, queueIcon)
+    end
+    
+    -- Show/hide queue frame based on settings
+    if HealIQ.db.ui.showQueue then
+        queueFrame:Show()
+    else
+        queueFrame:Hide()
     end
 end
 
@@ -869,8 +872,18 @@ function UI:UpdateSuggestion(suggestion)
 end
 
 function UI:UpdateQueue(queue)
-    if not HealIQ.db.ui.showQueue or not queueIcons then
+    if not queueIcons then
         return
+    end
+    
+    -- Show/hide queue frame based on settings
+    if queueFrame then
+        if HealIQ.db.ui.showQueue then
+            queueFrame:Show()
+        else
+            queueFrame:Hide()
+            return
+        end
     end
     
     -- Hide all queue icons first
@@ -1049,6 +1062,39 @@ function UI:TestDisplay()
     
     self:UpdateSuggestion(testSuggestion)
     HealIQ:Print("Test display activated")
+end
+
+function UI:TestQueue()
+    local testQueue = {
+        {
+            id = 774,
+            name = "Rejuvenation",
+            icon = "Interface\\Icons\\Spell_Nature_Rejuvenation",
+            priority = 5,
+        },
+        {
+            id = 48438,
+            name = "Wild Growth",
+            icon = "Interface\\Icons\\Ability_Druid_WildGrowth",
+            priority = 4,
+        },
+        {
+            id = 18562,
+            name = "Swiftmend",
+            icon = "Interface\\Icons\\INV_Relics_IdolofRejuvenation",
+            priority = 6,
+        },
+        {
+            id = 8936,
+            name = "Regrowth",
+            icon = "Interface\\Icons\\Spell_Nature_ResistNature",
+            priority = 7,
+        }
+    }
+    
+    self:UpdateSuggestion(testQueue[1])
+    self:UpdateQueue(testQueue)
+    HealIQ:Print("Test queue display activated with " .. #testQueue .. " suggestions")
 end
 
 function UI:GetFrameInfo()
