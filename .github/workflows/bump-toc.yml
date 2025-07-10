@@ -268,19 +268,27 @@ jobs:
         
     - name: Trigger release workflow
       if: ${{ github.event.inputs.create_release == 'true' }}
+      id: trigger_release
       uses: actions/github-script@v7
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          const result = await github.rest.actions.createWorkflowDispatch({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            workflow_id: 'release.yml',
-            ref: '${{ github.ref_name }}'
-          });
-          console.log('Release workflow triggered successfully');
+          try {
+            const result = await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'release.yml',
+              ref: '${{ github.ref_name }}'
+            });
+            console.log('Release workflow triggered successfully');
+            return 'success';
+          } catch (error) {
+            console.error('Failed to trigger release workflow:', error.message);
+            return 'failed';
+          }
         
     - name: Summary
+      if: always()
       run: |
         NEW_VERSION="${{ steps.new_version.outputs.new }}"
         CURRENT_VERSION="${{ steps.current_version.outputs.current }}"
@@ -294,7 +302,11 @@ jobs:
         echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         if [ "${{ github.event.inputs.create_release }}" = "true" ]; then
-          echo "The release workflow has been automatically triggered and will create a new release." >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.trigger_release.outcome }}" = "success" ]; then
+            echo "The release workflow has been successfully triggered and will create a new release." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Attempted to trigger the release workflow, but it may have failed. Please check the workflow logs or manually trigger a release." >> $GITHUB_STEP_SUMMARY
+          fi
         else
           echo "The release workflow will automatically create a new release when these changes are merged to main." >> $GITHUB_STEP_SUMMARY
         fi
