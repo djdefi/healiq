@@ -388,11 +388,13 @@ function Engine:SetSuggestion(suggestion)
             HealIQ.UI:UpdateSuggestion(suggestion)
         end
         
-        -- Debug output
-        if suggestion then
-            HealIQ:Print("Suggesting: " .. suggestion.name)
-        else
-            HealIQ:Print("No suggestion")
+        -- Debug output (only when debug mode is on)
+        if HealIQ.debug then
+            if suggestion then
+                HealIQ:Print("Suggesting: " .. suggestion.name)
+            else
+                HealIQ:Print("No suggestion")
+            end
         end
     end
 end
@@ -419,15 +421,17 @@ function Engine:SetQueue(queue)
             HealIQ.UI:UpdateQueue(queue)
         end
         
-        -- Debug output
-        if #queue > 0 then
-            local names = {}
-            for i, suggestion in ipairs(queue) do
-                table.insert(names, suggestion.name)
+        -- Debug output (only when debug mode is on)
+        if HealIQ.debug then
+            if #queue > 0 then
+                local names = {}
+                for i, suggestion in ipairs(queue) do
+                    table.insert(names, suggestion.name)
+                end
+                HealIQ:Print("Queue: " .. table.concat(names, " → "))
+            else
+                HealIQ:Print("Empty queue")
             end
-            HealIQ:Print("Queue: " .. table.concat(names, " → "))
-        else
-            HealIQ:Print("Empty queue")
         end
     end
 end

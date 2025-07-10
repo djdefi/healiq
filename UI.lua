@@ -278,17 +278,18 @@ function UI:CreateQueueFrame()
     local queueLayout = HealIQ.db.ui.queueLayout or "horizontal"
     local queueSpacing = HealIQ.db.ui.queueSpacing or 8
     local queueIconSize = math.floor(ICON_SIZE * (HealIQ.db.ui.queueScale or 0.75)) -- Configurable queue icon size
+    local padding = 8 -- Consistent with main frame padding
     
     -- Create queue container frame (always create, but conditionally show)
     queueFrame = CreateFrame("Frame", "HealIQQueueFrame", mainFrame)
     
     if queueLayout == "horizontal" then
         queueFrame:SetSize((queueSize - 1) * (queueIconSize + queueSpacing), queueIconSize)
-        queueFrame:SetPoint("LEFT", iconFrame, "RIGHT", queueSpacing, 0)
+        queueFrame:SetPoint("LEFT", iconFrame, "RIGHT", queueSpacing + padding, 0)
     else
         queueFrame:SetSize(queueIconSize, (queueSize - 1) * (queueIconSize + queueSpacing))
-        -- Fixed: Better vertical positioning that accounts for spell name text
-        local verticalOffset = HealIQ.db.ui.showSpellName and -(queueSpacing + 25) or -queueSpacing
+        -- Fixed: Better vertical positioning that accounts for spell name text and padding
+        local verticalOffset = HealIQ.db.ui.showSpellName and -(queueSpacing + 25) or -(queueSpacing + padding)
         queueFrame:SetPoint("TOP", iconFrame, "BOTTOM", 0, verticalOffset)
     end
     
@@ -328,7 +329,7 @@ function UI:CreateQueueFrame()
         -- Add position number overlay with better positioning for vertical layout
         local positionText = queueIcon:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         if queueLayout == "vertical" then
-            positionText:SetPoint("LEFT", queueIcon, "RIGHT", 4, 0)
+            positionText:SetPoint("LEFT", queueIcon, "RIGHT", 6, 0) -- Consistent spacing
         else
             positionText:SetPoint("BOTTOMRIGHT", queueIcon, "BOTTOMRIGHT", -2, 2)
         end
@@ -964,13 +965,25 @@ function UI:UpdateQueue(queue)
                 queueIcon.icon:SetTexture(suggestion.icon)
                 queueIcon:Show()
                 
-                -- Add enhanced tooltip for queue items
+                -- Update position text to show queue order more clearly
+                if queueIcon.positionText then
+                    queueIcon.positionText:SetText("" .. i) -- Show actual queue position
+                end
+                
+                -- Add enhanced tooltip for queue items with better information
                 queueIcon:SetScript("OnEnter", function(self)
                     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                     GameTooltip:AddLine(suggestion.name, 1, 1, 1)
-                    GameTooltip:AddLine("Position " .. (i) .. " in queue", 0.7, 0.7, 0.7)
-                    GameTooltip:AddLine("Priority: " .. suggestion.priority, 0.5, 0.8, 1)
+                    GameTooltip:AddLine("Queue Position: " .. i, 0.7, 0.7, 0.7)
+                    GameTooltip:AddLine("Priority: " .. (suggestion.priority or "Normal"), 0.5, 0.8, 1)
                     GameTooltip:AddLine(" ")
+                    
+                    -- Add contextual information about why this spell is suggested
+                    local context = self:GetSpellContext(suggestion)
+                    if context then
+                        GameTooltip:AddLine(context, 0.6, 0.6, 0.6)
+                    end
+                    
                     GameTooltip:AddLine("This suggestion will appear when higher", 0.6, 0.6, 0.6)
                     GameTooltip:AddLine("priority spells become unavailable.", 0.6, 0.6, 0.6)
                     GameTooltip:Show()
@@ -979,9 +992,35 @@ function UI:UpdateQueue(queue)
                 queueIcon:SetScript("OnLeave", function(self)
                     GameTooltip:Hide()
                 end)
+                
+                -- Store suggestion data for tooltip context
+                queueIcon.suggestion = suggestion
             end
         end
     end
+end
+
+-- Helper function to provide contextual information about spells
+function UI:GetSpellContext(suggestion)
+    if not suggestion then return nil end
+    
+    local contexts = {
+        ["Rejuvenation"] = "Basic HoT coverage for targets without heals",
+        ["Lifebloom"] = "Essential HoT for tank targets",
+        ["Wild Growth"] = "AoE healing when multiple allies take damage",
+        ["Regrowth"] = "Strong direct heal, especially with Clearcasting",
+        ["Swiftmend"] = "Instant heal when HoTs are active on target",
+        ["Efflorescence"] = "Ground-based AoE healing effect",
+        ["Ironbark"] = "Damage reduction for targets under heavy fire",
+        ["Tranquility"] = "Emergency raid-wide healing cooldown",
+        ["Incarnation"] = "Enhanced healing form for intensive phases",
+        ["Nature's Swiftness"] = "Makes next spell instant cast",
+        ["Barkskin"] = "Personal damage reduction",
+        ["Flourish"] = "Extends duration of active HoTs",
+        ["Use Trinket"] = "Activate healing trinket effect"
+    }
+    
+    return contexts[suggestion.name]
 end
 
 function UI:UpdateCooldownDisplay(suggestion)
