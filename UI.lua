@@ -146,6 +146,23 @@ function UI:CreateMainFrame()
     mainFrame:Hide()
 end
 
+-- Helper function for minimap button positioning
+function UI:CalculateMinimapButtonRadius()
+    if not minimapButton then
+        return 1
+    end
+    
+    local minimapRadius = Minimap:GetWidth() / 2
+    local buttonRadius = minimapButton:GetWidth() / 2
+    local radius = minimapRadius - buttonRadius - MINIMAP_BUTTON_PIXEL_BUFFER
+    
+    if radius <= 0 then
+        radius = 1 -- Ensure a minimum positive radius
+    end
+    
+    return radius
+end
+
 function UI:CreateMinimapButton()
     -- Create minimap button
     minimapButton = CreateFrame("Button", "HealIQMinimapButton", Minimap)
@@ -183,12 +200,7 @@ function UI:CreateMinimapButton()
     -- Position on minimap using angle-based positioning
     local savedAngle = HealIQ.db.ui.minimapAngle or -math.pi/4 -- Default to top-right
     local mx, my = Minimap:GetCenter()
-    local minimapRadius = Minimap:GetWidth() / 2
-    local buttonRadius = minimapButton:GetWidth() / 2
-    local radius = minimapRadius - buttonRadius - MINIMAP_BUTTON_PIXEL_BUFFER
-    if radius <= 0 then
-        radius = 1 -- Ensure a minimum positive radius
-    end
+    local radius = self:CalculateMinimapButtonRadius()
     
     local x = mx + radius * math.cos(savedAngle)
     local y = my + radius * math.sin(savedAngle)
@@ -210,10 +222,8 @@ function UI:CreateMinimapButton()
         local mapX, mapY = Minimap:GetCenter()
         local angle = math.atan2(dragY - mapY, dragX - mapX)
         
-        -- Calculate proper radius based on minimap size
-        local mapRadius = Minimap:GetWidth() / 2
-        local btnRadius = self:GetWidth() / 2
-        local finalRadius = mapRadius - btnRadius - MINIMAP_BUTTON_PIXEL_BUFFER
+        -- Use helper method for radius calculation
+        local finalRadius = UI:CalculateMinimapButtonRadius()
         
         local newX = mapX + finalRadius * math.cos(angle)
         local newY = mapY + finalRadius * math.sin(angle)
@@ -1054,9 +1064,7 @@ function UI:ResetMinimapPosition()
     HealIQ.db.ui.minimapAngle = -math.pi/4 -- Reset to default angle (top-right)
     if minimapButton then
         local mx, my = Minimap:GetCenter()
-        local minimapRadius = Minimap:GetWidth() / 2
-        local buttonRadius = minimapButton:GetWidth() / 2
-        local radius = minimapRadius - buttonRadius - MINIMAP_BUTTON_PIXEL_BUFFER
+        local radius = self:CalculateMinimapButtonRadius()
         
         local x = mx + radius * math.cos(HealIQ.db.ui.minimapAngle)
         local y = my + radius * math.sin(HealIQ.db.ui.minimapAngle)
@@ -1165,18 +1173,33 @@ function UI:RecreateFrames()
 end
 
 function UI:UpdatePositionBorder()
-    if mainFrame and mainFrame.border then
-        if HealIQ.db.ui.showPositionBorder then
-            mainFrame.border:SetColorTexture(unpack(BORDER_COLORS.positioning))
-            mainFrame.border:Show()
-        else
-            -- Hide border or show normal border based on lock state
-            if HealIQ.db.ui.locked then
-                mainFrame.border:SetColorTexture(unpack(BORDER_COLORS.locked))
-            else
-                mainFrame.border:SetColorTexture(unpack(BORDER_COLORS.unlocked))
-            end
-        end
+    if not mainFrame or not mainFrame.border then
+        return
+    end
+    
+    -- Determine border color and visibility
+    local borderColor
+    local showBorder = false
+    
+    if HealIQ.db.ui.showPositionBorder then
+        -- Show positioning aid border (cyan)
+        borderColor = BORDER_COLORS.positioning
+        showBorder = true
+    elseif HealIQ.db.ui.locked then
+        -- Show locked state border (red)
+        borderColor = BORDER_COLORS.locked
+        showBorder = true
+    else
+        -- Show unlocked state border (green)
+        borderColor = BORDER_COLORS.unlocked
+        showBorder = true
+    end
+    
+    if showBorder then
+        mainFrame.border:SetColorTexture(unpack(borderColor))
+        mainFrame.border:Show()
+    else
+        mainFrame.border:Hide()
     end
 end
 
