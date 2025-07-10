@@ -1,0 +1,14 @@
+## Interface: 110107
+## Title: HealIQ
+## Notes: Smart healing spell suggestion addon for Restoration Druids
+## Author: djdefi
+## Version: 0.0.1
+## SavedVariables: HealIQDB
+## DefaultState: enabled
+
+# Core files
+Core.lua
+Tracker.lua
+Engine.lua
+UI.lua
+Config.lua
