@@ -54,7 +54,7 @@ function HealIQ:InitializeDB()
     -- Validate HealIQDB structure
     if type(HealIQDB) ~= "table" then
         HealIQDB = {}
-        self:Message("HealIQ database was corrupted, resetting to defaults", true)
+        self:Message("HealIQ database was corrupted (type: " .. type(HealIQDB) .. "), resetting to defaults", true)
     end
     
     -- Check for version upgrade
