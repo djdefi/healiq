@@ -238,7 +238,7 @@ function Engine:EvaluateRules()
             table.insert(suggestions, SPELLS.REJUVENATION)
         end
         
-        -- Rule 11: No Lifebloom on tank target → High priority Lifebloom 
+        -- Rule 11: No Lifebloom on tank target → High priority Lifebloom
         if HealIQ.db.rules.lifebloom and not hasLifebloom then
             -- Check if target is a tank or important target
             local isTank = UnitGroupRolesAssigned("target") == "TANK"
@@ -340,7 +340,7 @@ function Engine:EvaluateRulesQueue()
             table.insert(suggestions, SPELLS.REJUVENATION)
         end
         
-        -- Rule 11: No Lifebloom on tank target → High priority Lifebloom 
+        -- Rule 11: No Lifebloom on tank target → High priority Lifebloom
         if HealIQ.db.rules.lifebloom and not hasLifebloom then
             -- Check if target is a tank or important target
             local isTank = UnitGroupRolesAssigned("target") == "TANK"

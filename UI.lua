@@ -408,7 +408,7 @@ function UI:CreateOptionsTabs(parent)
     local tabWidth = 95
     local tabs = {
         {name = "General", id = "general"},
-        {name = "Display", id = "display"}, 
+        {name = "Display", id = "display"},
         {name = "Rules", id = "rules"},
         {name = "Queue", id = "queue"}
     }
