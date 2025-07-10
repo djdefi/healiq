@@ -454,11 +454,13 @@ function Tracker:HasActiveTrinket()
             -- Check if trinket has a use effect and is not on cooldown
             if isEnabled and (not startTime or startTime == 0 or duration == 0) then
                 -- Additional check to see if item has a use effect
-                local item = Item:CreateFromItemID(itemId)
-                if item and item:IsItemDataCached() then
-                    local itemSpell = C_Item.GetItemSpell(itemId)
-                    if itemSpell then
-                        return true, slot
+                if type(itemId) == "number" and itemId > 0 then
+                    local item = Item:CreateFromItemID(itemId)
+                    if item and item:IsItemDataCached() then
+                        local itemSpell = C_Item.GetItemSpell(itemId)
+                        if itemSpell then
+                            return true, slot
+                        end
                     end
                 end
             end

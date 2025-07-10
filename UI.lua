@@ -20,6 +20,8 @@ local optionsFrame = nil
 -- Constants
 local FRAME_SIZE = 64
 local ICON_SIZE = 48
+local OPTIONS_FRAME_HEIGHT = 600
+local TOOLTIP_LINE_LENGTH = 45
 
 -- Minimap button positioning
 local MINIMAP_BUTTON_PIXEL_BUFFER = 2
@@ -157,8 +159,8 @@ function UI:CalculateMinimapButtonRadius()
     
     local minimapRadius = Minimap:GetWidth() / 2
     local buttonRadius = minimapButton:GetWidth() / 2
-    -- Fixed: Add buttonRadius to place button ON the edge, not inside
-    local radius = minimapRadius + buttonRadius + MINIMAP_BUTTON_PIXEL_BUFFER
+    -- Fixed: Use minimapRadius + MINIMAP_BUTTON_PIXEL_BUFFER to place button ON the edge
+    local radius = minimapRadius + MINIMAP_BUTTON_PIXEL_BUFFER
     
     if radius <= 0 then
         radius = 1 -- Ensure a minimum positive radius
@@ -356,7 +358,7 @@ end
 function UI:CreateOptionsFrame()
     -- Create main options frame with reduced height
     optionsFrame = CreateFrame("Frame", "HealIQOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
-    optionsFrame:SetSize(400, 600) -- Reduced height, content will be organized in tabs
+    optionsFrame:SetSize(400, OPTIONS_FRAME_HEIGHT) -- Reduced height, content will be organized in tabs
     optionsFrame:SetPoint("CENTER")
     optionsFrame:SetFrameStrata("DIALOG")
     optionsFrame:SetMovable(true)
@@ -827,7 +829,7 @@ function UI:AddTooltip(frame, title, description)
             local lines = {}
             local currentLine = ""
             for i, word in ipairs(words) do
-                if #currentLine + #word + 1 <= 45 then
+                if #currentLine + #word + 1 <= TOOLTIP_LINE_LENGTH then
                     currentLine = currentLine .. (currentLine == "" and "" or " ") .. word
                 else
                     table.insert(lines, currentLine)
@@ -967,7 +969,7 @@ function UI:UpdateQueue(queue)
                 
                 -- Update position text to show queue order more clearly
                 if queueIcon.positionText then
-                    queueIcon.positionText:SetText("" .. i) -- Show actual queue position
+                    queueIcon.positionText:SetText(tostring(i)) -- Show actual queue position
                 end
                 
                 -- Add enhanced tooltip for queue items with better information
