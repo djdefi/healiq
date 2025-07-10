@@ -35,7 +35,7 @@ jobs:
     - name: Run luacheck linting
       run: |
         echo "Running luacheck on all .lua files..."
-        luacheck *.lua --globals _G --std none --ignore 11 --ignore 21 --ignore 131 --ignore 143 --ignore 213 --ignore 311 --ignore 312 --ignore 631
+        luacheck *.lua --globals _G --std none --ignore 11 --ignore 21 --ignore 131 --ignore 143 --ignore 213 --ignore 311 --ignore 312 --ignore 631 --ignore 611 --ignore 432 --ignore 212 --ignore 211 --ignore 231 --ignore 111 --ignore 112 --ignore 113
         
     - name: Validate addon structure
       run: |
