@@ -286,7 +286,7 @@ function UI:CreateOptionsFrame()
     optionsFrame.title:SetText("HealIQ Options")
     
     -- Content area
-    local content = optionsFrame.Inset
+    local content = optionsFrame.Inset or optionsFrame
     
     -- Enable/Disable checkbox
     local enableCheck = CreateFrame("CheckButton", "HealIQEnableCheck", content, "UICheckButtonTemplate")
