@@ -154,8 +154,10 @@ function UI:CreateMinimapButton()
     icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
     minimapButton.icon = icon
     
-    -- Position on minimap
-    minimapButton:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 10, -10)
+    -- Position on minimap (check for saved position first)
+    local minimapX = HealIQ.db.ui.minimapX or 10
+    local minimapY = HealIQ.db.ui.minimapY or -10
+    minimapButton:SetPoint("TOPLEFT", Minimap, "TOPLEFT", minimapX, minimapY)
     
     -- Make it draggable around minimap
     minimapButton:SetMovable(true)
@@ -168,7 +170,7 @@ function UI:CreateMinimapButton()
     
     minimapButton:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
-        -- Keep button on minimap edge
+        -- Keep button on minimap edge and save position
         local x, y = self:GetCenter()
         local mx, my = Minimap:GetCenter()
         local angle = math.atan2(y - my, x - mx)
@@ -177,6 +179,11 @@ function UI:CreateMinimapButton()
         local newY = my + radius * math.sin(angle)
         self:ClearAllPoints()
         self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", newX, newY)
+        
+        -- Save minimap button position
+        local point, relativeTo, relativePoint, xOfs, yOfs = self:GetPoint()
+        HealIQ.db.ui.minimapX = xOfs
+        HealIQ.db.ui.minimapY = yOfs
     end)
     
     -- Click handler
@@ -278,7 +285,7 @@ end
 function UI:CreateOptionsFrame()
     -- Create main options frame
     optionsFrame = CreateFrame("Frame", "HealIQOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
-    optionsFrame:SetSize(400, 700) -- Increased height for new rules
+    optionsFrame:SetSize(400, 750) -- Increased height for new elements and tooltips
     optionsFrame:SetPoint("CENTER")
     optionsFrame:SetFrameStrata("DIALOG")
     optionsFrame:SetMovable(true)
@@ -320,6 +327,16 @@ function UI:CreateOptionsFrame()
             HealIQ.UI:SetEnabled(HealIQ.db.enabled)
         end
     end)
+    enableCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Enable HealIQ", 1, 1, 1)
+        GameTooltip:AddLine("Enable or disable the entire HealIQ addon.", 0.7, 0.7, 0.7)
+        GameTooltip:AddLine("When disabled, no suggestions will be shown.", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    enableCheck:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
     optionsFrame.enableCheck = enableCheck
     
     -- UI Scale slider
@@ -337,6 +354,15 @@ function UI:CreateOptionsFrame()
             HealIQ.UI:SetScale(value)
         end
     end)
+    scaleSlider:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("UI Scale", 1, 1, 1)
+        GameTooltip:AddLine("Adjust the scale of the main HealIQ display (0.5-2.0).", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    scaleSlider:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
     optionsFrame.scaleSlider = scaleSlider
     
     -- UI Position buttons
@@ -353,6 +379,15 @@ function UI:CreateOptionsFrame()
             HealIQ.UI:ResetPosition()
         end
     end)
+    resetPosButton:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Reset UI Position", 1, 1, 1)
+        GameTooltip:AddLine("Moves the main HealIQ display back to the center of the screen.", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    resetPosButton:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
     
     local lockButton = CreateFrame("Button", "HealIQLockButton", content, "UIPanelButtonTemplate")
     lockButton:SetSize(80, 22)
@@ -364,12 +399,52 @@ function UI:CreateOptionsFrame()
             UI:UpdateOptionsFrame()
         end
     end)
+    lockButton:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Lock/Unlock UI Position", 1, 1, 1)
+        GameTooltip:AddLine("When unlocked, you can drag the main UI to move it.", 0.7, 0.7, 0.7)
+        GameTooltip:AddLine("Right-click the main UI to toggle lock state.", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    lockButton:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
     optionsFrame.lockButton = lockButton
+    
+    -- Minimap button reset
+    local minimapResetButton = CreateFrame("Button", "HealIQMinimapResetButton", content, "UIPanelButtonTemplate")
+    minimapResetButton:SetSize(120, 22)
+    minimapResetButton:SetPoint("TOPLEFT", resetPosButton, "BOTTOMLEFT", 0, -5)
+    minimapResetButton:SetText("Reset Minimap Icon")
+    minimapResetButton:SetScript("OnClick", function()
+        if HealIQ.UI then
+            HealIQ.UI:ResetMinimapPosition()
+        end
+    end)
+    minimapResetButton:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Reset Minimap Icon Position", 1, 1, 1)
+        GameTooltip:AddLine("Moves the minimap icon back to its default position.", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    minimapResetButton:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
     
     -- Rules section
     local rulesLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    rulesLabel:SetPoint("TOPLEFT", positionLabel, "BOTTOMLEFT", 0, -40)
+    rulesLabel:SetPoint("TOPLEFT", minimapResetButton, "BOTTOMLEFT", 0, -20)
     rulesLabel:SetText("Suggestion Rules:")
+    rulesLabel:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Suggestion Rules", 1, 1, 1)
+        GameTooltip:AddLine("Enable or disable specific healing suggestions.", 0.7, 0.7, 0.7)
+        GameTooltip:AddLine("Disabled rules will not appear in the suggestion queue.", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    rulesLabel:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
     
     -- Rule checkboxes
     local rules = {
@@ -401,12 +476,56 @@ function UI:CreateOptionsFrame()
         check:SetScript("OnClick", function(self)
             HealIQ.db.rules[rule.key] = self:GetChecked()
         end)
+        
+        -- Add tooltip for each rule
+        check:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:AddLine(rule.name, 1, 1, 1)
+            local tooltip = self:GetTooltipText()
+            if tooltip then
+                GameTooltip:AddLine(tooltip, 0.7, 0.7, 0.7)
+            end
+            GameTooltip:Show()
+        end)
+        check:SetScript("OnLeave", function(self)
+            GameTooltip:Hide()
+        end)
+        
+        -- Add custom tooltip text for each rule
+        if rule.key == "wildGrowth" then
+            check.GetTooltipText = function() return "Suggests Wild Growth when multiple party members have taken recent damage." end
+        elseif rule.key == "clearcasting" then
+            check.GetTooltipText = function() return "Suggests using Regrowth when you have a Clearcasting proc." end
+        elseif rule.key == "lifebloom" then
+            check.GetTooltipText = function() return "Suggests refreshing Lifebloom on your target when it's about to expire." end
+        elseif rule.key == "swiftmend" then
+            check.GetTooltipText = function() return "Suggests Swiftmend when target has HoTs and needs immediate healing." end
+        elseif rule.key == "rejuvenation" then
+            check.GetTooltipText = function() return "Suggests applying Rejuvenation for basic HoT coverage." end
+        elseif rule.key == "ironbark" then
+            check.GetTooltipText = function() return "Suggests Ironbark for damage reduction on targets taking heavy damage." end
+        elseif rule.key == "efflorescence" then
+            check.GetTooltipText = function() return "Suggests Efflorescence for AoE ground healing when group is stacked." end
+        elseif rule.key == "tranquility" then
+            check.GetTooltipText = function() return "Suggests Tranquility during high group-wide damage situations." end
+        elseif rule.key == "incarnationTree" then
+            check.GetTooltipText = function() return "Suggests Incarnation for enhanced healing during intensive phases." end
+        elseif rule.key == "naturesSwiftness" then
+            check.GetTooltipText = function() return "Suggests Nature's Swiftness for instant cast emergency healing." end
+        elseif rule.key == "barkskin" then
+            check.GetTooltipText = function() return "Suggests Barkskin for personal damage reduction in combat." end
+        elseif rule.key == "flourish" then
+            check.GetTooltipText = function() return "Suggests Flourish to extend multiple expiring HoTs." end
+        elseif rule.key == "trinket" then
+            check.GetTooltipText = function() return "Suggests using available healing trinkets." end
+        end
+        
         optionsFrame.ruleChecks[rule.key] = check
     end
     
     -- Display options
     local displayLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    displayLabel:SetPoint("TOPLEFT", rulesLabel, "BOTTOMLEFT", 0, -340) -- Adjusted for more rules
+    displayLabel:SetPoint("TOPLEFT", rulesLabel, "BOTTOMLEFT", 0, -365) -- Adjusted for more rules
     displayLabel:SetText("Display Options:")
     
     local showNameCheck = CreateFrame("CheckButton", "HealIQShowNameCheck", content, "UICheckButtonTemplate")
@@ -420,6 +539,15 @@ function UI:CreateOptionsFrame()
             HealIQ.UI:SetShowSpellName(self:GetChecked())
         end
     end)
+    showNameCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Show Spell Names", 1, 1, 1)
+        GameTooltip:AddLine("Display the name of the suggested spell below the icon.", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    showNameCheck:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
     optionsFrame.showNameCheck = showNameCheck
     
     local showCooldownCheck = CreateFrame("CheckButton", "HealIQShowCooldownCheck", content, "UICheckButtonTemplate")
@@ -432,6 +560,15 @@ function UI:CreateOptionsFrame()
         if HealIQ.UI then
             HealIQ.UI:SetShowCooldown(self:GetChecked())
         end
+    end)
+    showCooldownCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Show Cooldown Spirals", 1, 1, 1)
+        GameTooltip:AddLine("Display cooldown sweep animations on suggestion icons.", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    showCooldownCheck:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
     end)
     optionsFrame.showCooldownCheck = showCooldownCheck
     
@@ -451,6 +588,15 @@ function UI:CreateOptionsFrame()
             HealIQ.UI:RecreateFrames()
         end
     end)
+    showQueueCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Show Suggestion Queue", 1, 1, 1)
+        GameTooltip:AddLine("Display upcoming spell suggestions in a queue next to the main icon.", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    showQueueCheck:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
     optionsFrame.showQueueCheck = showQueueCheck
     
     -- Queue size slider
@@ -468,6 +614,15 @@ function UI:CreateOptionsFrame()
         if HealIQ.UI then
             HealIQ.UI:RecreateFrames()
         end
+    end)
+    queueSizeSlider:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Queue Size", 1, 1, 1)
+        GameTooltip:AddLine("Number of spell suggestions to show in the queue (2-5).", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    queueSizeSlider:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
     end)
     optionsFrame.queueSizeSlider = queueSizeSlider
     
@@ -487,6 +642,15 @@ function UI:CreateOptionsFrame()
         if HealIQ.UI then
             HealIQ.UI:RecreateFrames()
         end
+    end)
+    queueLayoutButton:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Queue Layout", 1, 1, 1)
+        GameTooltip:AddLine("Choose whether to display the queue horizontally or vertically.", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    queueLayoutButton:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
     end)
     optionsFrame.queueLayoutButton = queueLayoutButton
     
@@ -746,6 +910,16 @@ function UI:ResetPosition()
     HealIQ.db.ui.y = 0
     self:UpdatePosition()
     HealIQ:Print("UI position reset to center")
+end
+
+function UI:ResetMinimapPosition()
+    HealIQ.db.ui.minimapX = 10
+    HealIQ.db.ui.minimapY = -10
+    if minimapButton then
+        minimapButton:ClearAllPoints()
+        minimapButton:SetPoint("TOPLEFT", Minimap, "TOPLEFT", HealIQ.db.ui.minimapX, HealIQ.db.ui.minimapY)
+    end
+    HealIQ:Print("Minimap icon position reset")
 end
 
 -- Debug/testing functions

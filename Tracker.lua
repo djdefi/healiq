@@ -87,14 +87,32 @@ function Tracker:UpdateCooldowns()
     -- Helper function to update cooldown data
     local function updateCooldown(spellId, spellName)
         local cooldownInfo = C_Spell.GetSpellCooldown(spellId)
-        -- Defensive check: ensure we got valid values
-        if cooldownInfo and cooldownInfo.isEnabled then
-            local remaining = (cooldownInfo.startTime + cooldownInfo.duration) - currentTime
+        -- Defensive check: handle different API return formats
+        local startTime, duration, isEnabled = nil, nil, nil
+        
+        if type(cooldownInfo) == "table" then
+            -- New API format: returns a table
+            startTime = cooldownInfo.startTime
+            duration = cooldownInfo.duration
+            isEnabled = cooldownInfo.isEnabled
+        elseif type(cooldownInfo) == "number" then
+            -- Legacy API format: returns start, duration, isEnabled as separate values
+            startTime = cooldownInfo
+            duration = select(2, C_Spell.GetSpellCooldown(spellId))
+            isEnabled = select(3, C_Spell.GetSpellCooldown(spellId))
+        else
+            -- Fallback: try getting individual values
+            startTime, duration, isEnabled = C_Spell.GetSpellCooldown(spellId)
+        end
+        
+        -- Ensure we got valid values
+        if startTime and duration and isEnabled and startTime > 0 and duration > 0 then
+            local remaining = (startTime + duration) - currentTime
             trackedData.cooldowns[spellName] = {
                 remaining = math.max(0, remaining),
                 ready = remaining <= 0,
-                start = cooldownInfo.startTime,
-                duration = cooldownInfo.duration
+                start = startTime,
+                duration = duration
             }
         else
             -- Clear any existing data when spell is not on cooldown
@@ -119,17 +137,20 @@ function Tracker:UpdateCooldowns()
     for slot = 13, 14 do
         local itemId = GetInventoryItemID("player", slot)
         if itemId then
-            local cooldownInfo = C_Item.GetItemCooldown(itemId)
-            -- Defensive check: ensure we got valid values
-            if cooldownInfo and cooldownInfo.isEnabled then
-                local remaining = (cooldownInfo.startTime + cooldownInfo.duration) - currentTime
+            local startTime, duration, isEnabled = C_Item.GetItemCooldown(itemId)
+            -- Defensive check: ensure we got valid values and item is on cooldown
+            if startTime and duration and isEnabled and startTime > 0 and duration > 0 then
+                local remaining = (startTime + duration) - currentTime
                 trackedData.trinketCooldowns[slot] = {
                     remaining = math.max(0, remaining),
                     ready = remaining <= 0,
-                    start = cooldownInfo.startTime,
-                    duration = cooldownInfo.duration,
+                    start = startTime,
+                    duration = duration,
                     itemId = itemId
                 }
+            else
+                -- Clear trinket cooldown data when not on cooldown
+                trackedData.trinketCooldowns[slot] = nil
             end
         end
     end

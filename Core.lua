@@ -23,6 +23,8 @@ local defaults = {
         queueSize = 3,
         queueLayout = "horizontal", -- horizontal or vertical
         queueSpacing = 8,
+        minimapX = 10,
+        minimapY = -10,
     },
     rules = {
         -- Existing rules
