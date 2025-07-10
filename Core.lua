@@ -129,10 +129,20 @@ end
 function HealIQ:SafeCall(func, ...)
     local success, result = pcall(func, ...)
     if not success then
-        print("|cFFFF0000HealIQ Error:|r " .. tostring(result))
+        local errorMsg = tostring(result)
+        print("|cFFFF0000HealIQ Error:|r " .. errorMsg)
         if self.debug then
             print("|cFFFF0000Stack trace:|r " .. debugstack())
         end
+        
+        -- Also report to WoW's error system for copyable errors
+        -- This ensures errors appear in the default error frame
+        if self.debug then
+            -- Construct a complete error message with context and stack trace
+            local completeError = "HealIQ SafeCall Error: " .. errorMsg .. "\n" .. debugstack()
+            geterrorhandler()(completeError)
+        end
+        
         return false, result
     end
     return true, result
