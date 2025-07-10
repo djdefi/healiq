@@ -1,5 +1,47 @@
 # HealIQ Changelog
 
+## [0.0.2] - 2024-07-10
+
+### Added - Major Rule Expansion
+- **8 new restoration druid rules** addressing commonly overlooked abilities:
+  - **Ironbark**: Damage reduction cooldown suggestions
+  - **Efflorescence**: Ground-targeted persistent AoE healing
+  - **Tranquility**: Major emergency healing cooldown
+  - **Incarnation: Tree of Life**: Transformation cooldown for high damage phases
+  - **Nature's Swiftness**: Instant cast spell proc
+  - **Barkskin**: Self-defense damage reduction
+  - **Flourish**: HoT duration extension for multiple expiring effects
+  - **Trinket Usage**: Active healing trinket detection and suggestions
+
+### Enhanced Features
+- **Priority System**: Updated with 13 total rules in optimal priority order
+- **Trinket Tracking**: Monitors both trinket slots (13 & 14) for active healing effects
+- **Combat Log Integration**: Enhanced tracking for Efflorescence placement and duration
+- **Buff Monitoring**: Expanded player buff tracking for all new defensive/healing procs
+- **Intelligent Suggestions**: Context-aware rules (e.g., Tranquility for 4+ damaged allies)
+
+### Technical Improvements
+- **Tracker.lua**: Added comprehensive spell ID definitions for all new abilities
+- **Engine.lua**: Restructured priority evaluation with proper ordering
+- **Core.lua**: Extended default rule configuration
+- **UI.lua**: Enhanced options frame to accommodate new rules (increased height)
+- **Config.lua**: Updated help text and rule management for new abilities
+
+### Rule Logic Details
+- **Tranquility**: Triggered when 4+ allies recently took damage (emergency healing)
+- **Incarnation**: Suggested during high damage phases (3+ recent damage)
+- **Ironbark**: Suggested when target needs damage reduction and doesn't have it
+- **Efflorescence**: Suggested when not active and 2+ allies took damage
+- **Flourish**: Suggested when 2+ HoTs are expiring soon (within 6 seconds)
+- **Nature's Swiftness**: Suggested when available for instant cast needs
+- **Barkskin**: Suggested when player is in combat for self-defense
+- **Trinket**: Suggested when healing trinkets are off cooldown
+
+### Compatibility
+- All new features maintain backward compatibility
+- Existing rule configurations preserved
+- No breaking changes to existing functionality
+
 ## [0.0.1] - 2024-07-10
 
 ### Added
