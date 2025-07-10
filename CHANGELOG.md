@@ -3,25 +3,52 @@
 ## [0.0.4] - 2025-07-10
 
 ### Added
-- 
+- Comprehensive in-game polish improvements merged from PR #16
 
 ### Changed
-- 
+- Updated WoW API calls to use newer C_Spell.GetSpellCooldown and C_Item.GetItemCooldown APIs
+- Maintained backward compatibility with enhanced error handling
 
 ### Fixed
-- 
+- Fixed WoW API deprecation warnings by updating to current API functions
+- Resolved merge conflicts while preserving all SafeCall error handling enhancements
 
 
 ## [0.0.3] - 2025-07-10
 
-### Added
-- 
+### Added - In-Game Polish Improvements
+- **Version Display**: Version number now prominently displayed in options frame and minimap button tooltip
+- **Enhanced Error Handling**: Comprehensive error handling throughout all modules with SafeCall wrapper
+- **Reload Functionality**: Added `/healiq reload` command for soft addon reloading
+- **Improved Status Command**: Enhanced `/healiq status` with colored output and memory usage display
+- **Better User Feedback**: Improved success/error messages with proper color coding
+- **Icon Enhancements**: Added proper icon to options frame title bar
+- **Cleanup System**: Added proper addon cleanup for disable/reload scenarios
 
-### Changed
-- 
+### Enhanced Features
+- **Error Recovery**: All major functions now wrapped in error handling with debug stack traces
+- **User Messages**: Clear distinction between debug messages and user-facing messages
+- **Memory Tracking**: Status command now shows addon memory usage
+- **Tooltip Improvements**: Minimap button tooltip shows version and description
+- **Options Frame**: Better visual presentation with icons and version display
 
-### Fixed
-- 
+### Technical Improvements
+- **SafeCall Wrapper**: All critical functions protected with pcall error handling
+- **Update Loop Management**: Proper start/stop functionality for engine update loop
+- **Event Cleanup**: Better event management and cleanup procedures
+- **Debug Mode**: Enhanced debug output with stack traces when enabled
+- **Code Standards**: Following WoW addon best practices for error handling
+
+### Bug Fixes
+- **Stability**: Improved overall addon stability with comprehensive error handling
+- **UI Robustness**: Better handling of UI edge cases and error conditions
+- **Memory Management**: Proper cleanup of frames and event handlers
+
+### User Experience
+- **Professional Polish**: Version numbers and proper branding throughout UI
+- **Clear Feedback**: Better user communication with colored status messages
+- **Reload Support**: Ability to reload configuration without full addon restart
+- **Status Information**: Comprehensive status display including memory usage
 
 
 ## [0.0.2] - 2024-07-10

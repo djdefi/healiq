@@ -22,11 +22,13 @@ local FRAME_SIZE = 64
 local ICON_SIZE = 48
 
 function UI:Initialize()
-    self:CreateMainFrame()
-    self:CreateMinimapButton()
-    self:CreateOptionsFrame()
-    self:SetupEventHandlers()
-    HealIQ:Print("UI initialized")
+    HealIQ:SafeCall(function()
+        self:CreateMainFrame()
+        self:CreateMinimapButton()
+        self:CreateOptionsFrame()
+        self:SetupEventHandlers()
+        HealIQ:Print("UI initialized")
+    end)
 end
 
 function UI:CreateMainFrame()
@@ -186,7 +188,9 @@ function UI:CreateMinimapButton()
     -- Tooltip
     minimapButton:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-        GameTooltip:AddLine("HealIQ", 1, 1, 1)
+        GameTooltip:AddLine("HealIQ v" .. HealIQ.version, 1, 1, 1)
+        GameTooltip:AddLine("Smart healing suggestions for Restoration Druids", 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(" ")
         GameTooltip:AddLine("Left-click: Open Options", 0.7, 0.7, 0.7)
         GameTooltip:AddLine("Right-click: Toggle Display", 0.7, 0.7, 0.7)
         GameTooltip:AddLine("Drag: Move Button", 0.7, 0.7, 0.7)
@@ -280,10 +284,23 @@ function UI:CreateOptionsFrame()
     optionsFrame:SetScript("OnDragStart", optionsFrame.StartMoving)
     optionsFrame:SetScript("OnDragStop", optionsFrame.StopMovingOrSizing)
     
+    -- Add icon to title bar
+    local titleIcon = optionsFrame:CreateTexture(nil, "ARTWORK")
+    titleIcon:SetSize(16, 16)
+    titleIcon:SetPoint("LEFT", optionsFrame.TitleBg, "LEFT", 8, 0)
+    titleIcon:SetTexture("Interface\\Icons\\Spell_Nature_Rejuvenation")
+    titleIcon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+    
     -- Title
     optionsFrame.title = optionsFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    optionsFrame.title:SetPoint("LEFT", optionsFrame.TitleBg, "LEFT", 5, 0)
+    optionsFrame.title:SetPoint("LEFT", titleIcon, "RIGHT", 5, 0)
     optionsFrame.title:SetText("HealIQ Options")
+    
+    -- Version display
+    optionsFrame.version = optionsFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    optionsFrame.version:SetPoint("RIGHT", optionsFrame.TitleBg, "RIGHT", -5, 0)
+    optionsFrame.version:SetText("v" .. HealIQ.version)
+    optionsFrame.version:SetTextColor(0.7, 0.7, 0.7, 1)
     
     -- Content area
     local content = optionsFrame.Inset or optionsFrame
@@ -527,44 +544,48 @@ function UI:SetupEventHandlers()
 end
 
 function UI:UpdateSuggestion(suggestion)
-    if not mainFrame then
-        return
-    end
-    
-    if not suggestion then
-        mainFrame:Hide()
-        return
-    end
-    
-    -- Show the frame
-    mainFrame:Show()
-    
-    -- Update primary icon
-    if iconFrame and iconFrame.icon then
-        iconFrame.icon:SetTexture(suggestion.icon)
-        iconFrame.icon:SetDesaturated(false)
+    HealIQ:SafeCall(function()
+        if not mainFrame then
+            return
+        end
         
-        -- Show glow effect for primary suggestion
-        if iconFrame.glow then
-            iconFrame.glow:Show()
-            if iconFrame.glowAnimation then
-                iconFrame.glowAnimation:Play()
+        if not suggestion then
+            mainFrame:Hide()
+            return
+        end
+        
+        -- Show the frame
+        mainFrame:Show()
+        
+        -- Update primary icon
+        if iconFrame and iconFrame.icon then
+            iconFrame.icon:SetTexture(suggestion.icon)
+            iconFrame.icon:SetDesaturated(false)
+            
+            -- Show glow effect for primary suggestion
+            if iconFrame.glow then
+                iconFrame.glow:Show()
+                if iconFrame.glowAnimation then
+                    iconFrame.glowAnimation:Play()
+                end
             end
         end
-    end
-    
-    -- Update spell name
-    if spellNameText and HealIQ.db.ui.showSpellName then
-        spellNameText:SetText(suggestion.name)
-        spellNameText:Show()
-    else
-        spellNameText:Hide()
-    end
-    
-    -- Update cooldown display
-    if cooldownFrame and HealIQ.db.ui.showCooldown then
-        self:UpdateCooldownDisplay(suggestion)
-    end
+        
+        -- Update spell name
+        if spellNameText and HealIQ.db.ui.showSpellName then
+            spellNameText:SetText(suggestion.name)
+            spellNameText:Show()
+        else
+            if spellNameText then
+                spellNameText:Hide()
+            end
+        end
+        
+        -- Update cooldown display
+        if cooldownFrame and HealIQ.db.ui.showCooldown then
+            self:UpdateCooldownDisplay(suggestion)
+        end
+    end)
 end
 
 function UI:UpdateQueue(queue)

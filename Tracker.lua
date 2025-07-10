@@ -47,8 +47,10 @@ local trackedData = {
 }
 
 function Tracker:Initialize()
-    self:RegisterEvents()
-    HealIQ:Print("Tracker initialized")
+    HealIQ:SafeCall(function()
+        self:RegisterEvents()
+        HealIQ:Print("Tracker initialized")
+    end)
 end
 
 function Tracker:RegisterEvents()
@@ -64,16 +66,19 @@ function Tracker:RegisterEvents()
 end
 
 function Tracker:OnEvent(event, ...)
-    if event == "SPELL_UPDATE_COOLDOWN" then
-        self:UpdateCooldowns()
-    elseif event == "UNIT_AURA" then
-        local unit = ...
-        self:UpdateUnitAuras(unit)
-    elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
-        self:ParseCombatLog()
-    elseif event == "PLAYER_TARGET_CHANGED" then
-        self:UpdateTargetHots()
-    end
+    local args = {...}  -- Capture varargs for use in SafeCall
+    HealIQ:SafeCall(function()
+        if event == "SPELL_UPDATE_COOLDOWN" then
+            self:UpdateCooldowns()
+        elseif event == "UNIT_AURA" then
+            local unit = args[1]
+            self:UpdateUnitAuras(unit)
+        elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
+            self:ParseCombatLog()
+        elseif event == "PLAYER_TARGET_CHANGED" then
+            self:UpdateTargetHots()
+        end
+    end)
 end
 
 function Tracker:UpdateCooldowns()
@@ -82,6 +87,7 @@ function Tracker:UpdateCooldowns()
     -- Helper function to update cooldown data
     local function updateCooldown(spellId, spellName)
         local cooldownInfo = C_Spell.GetSpellCooldown(spellId)
+        -- Defensive check: ensure we got valid values
         if cooldownInfo and cooldownInfo.isEnabled then
             local remaining = (cooldownInfo.startTime + cooldownInfo.duration) - currentTime
             trackedData.cooldowns[spellName] = {
@@ -90,6 +96,9 @@ function Tracker:UpdateCooldowns()
                 start = cooldownInfo.startTime,
                 duration = cooldownInfo.duration
             }
+        else
+            -- Clear any existing data when spell is not on cooldown
+            trackedData.cooldowns[spellName] = nil
         end
     end
     
@@ -111,6 +120,7 @@ function Tracker:UpdateCooldowns()
         local itemId = GetInventoryItemID("player", slot)
         if itemId then
             local cooldownInfo = C_Item.GetItemCooldown(itemId)
+            -- Defensive check: ensure we got valid values
             if cooldownInfo and cooldownInfo.isEnabled then
                 local remaining = (cooldownInfo.startTime + cooldownInfo.duration) - currentTime
                 trackedData.trinketCooldowns[slot] = {
@@ -246,10 +256,16 @@ function Tracker:ParseCombatLog()
             trackedData.recentDamage[destGUID] = currentTime
             
             -- Clean up old damage records (older than 5 seconds)
+            -- Use separate cleanup pass to avoid performance issues
+            local toRemove = {}
             for guid, time in pairs(trackedData.recentDamage) do
                 if currentTime - time > 5 then
-                    trackedData.recentDamage[guid] = nil
+                    table.insert(toRemove, guid)
                 end
+            end
+            
+            for _, guid in ipairs(toRemove) do
+                trackedData.recentDamage[guid] = nil
             end
         end
     end
@@ -271,7 +287,12 @@ end
 
 -- Public getter functions
 function Tracker:GetCooldownInfo(spellName)
-    return trackedData.cooldowns[spellName]
+    local cooldown = trackedData.cooldowns[spellName]
+    -- Defensive check: ensure we return either nil or a valid table
+    if cooldown and type(cooldown) == "table" then
+        return cooldown
+    end
+    return nil
 end
 
 function Tracker:GetBuffInfo(buffName)
