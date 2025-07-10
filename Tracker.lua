@@ -256,10 +256,16 @@ function Tracker:ParseCombatLog()
             trackedData.recentDamage[destGUID] = currentTime
             
             -- Clean up old damage records (older than 5 seconds)
+            -- Use separate cleanup pass to avoid performance issues
+            local toRemove = {}
             for guid, time in pairs(trackedData.recentDamage) do
                 if currentTime - time > 5 then
-                    trackedData.recentDamage[guid] = nil
+                    table.insert(toRemove, guid)
                 end
+            end
+            
+            for _, guid in ipairs(toRemove) do
+                trackedData.recentDamage[guid] = nil
             end
         end
     end
