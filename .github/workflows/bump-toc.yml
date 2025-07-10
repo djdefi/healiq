@@ -1,0 +1,276 @@
+name: Bump TOC Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - custom
+      custom_version:
+        description: 'Custom version (only used if version_type is custom)'
+        required: false
+        type: string
+      create_changelog_entry:
+        description: 'Create changelog entry'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Extract current version
+      id: current_version
+      run: |
+        CURRENT_VERSION=$(grep "^## Version:" HealIQ.toc | cut -d' ' -f3)
+        echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+        echo "Current version: $CURRENT_VERSION"
+        
+    - name: Calculate new version
+      id: new_version
+      run: |
+        CURRENT="${{ steps.current_version.outputs.current }}"
+        TYPE="${{ github.event.inputs.version_type }}"
+        CUSTOM="${{ github.event.inputs.custom_version }}"
+        
+        # Validate current version format
+        if [[ ! "$CURRENT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "ERROR: Current version '$CURRENT' is not in semantic version format (x.y.z)"
+          exit 1
+        fi
+        
+        if [ "$TYPE" = "custom" ]; then
+          if [ -z "$CUSTOM" ]; then
+            echo "ERROR: Custom version not provided"
+            exit 1
+          fi
+          
+          # Validate custom version format
+          if [[ ! "$CUSTOM" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: Custom version '$CUSTOM' is not in semantic version format (x.y.z)"
+            exit 1
+          fi
+          
+          NEW_VERSION="$CUSTOM"
+        else
+          # Parse semantic version
+          IFS='.' read -r major minor patch <<< "$CURRENT"
+          
+          # Validate parsed components are numbers
+          if [[ ! "$major" =~ ^[0-9]+$ ]] || [[ ! "$minor" =~ ^[0-9]+$ ]] || [[ ! "$patch" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: Failed to parse version components from '$CURRENT'"
+            exit 1
+          fi
+          
+          case "$TYPE" in
+            "major")
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            "minor")
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            "patch")
+              patch=$((patch + 1))
+              ;;
+          esac
+          
+          NEW_VERSION="$major.$minor.$patch"
+        fi
+        
+        echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "New version: $NEW_VERSION"
+        
+    - name: Check if version already exists
+      id: check_version
+      run: |
+        NEW_VERSION="${{ steps.new_version.outputs.new }}"
+        
+        # Check if tag exists
+        if git tag -l | grep -q "^v$NEW_VERSION$"; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "ERROR: Version v$NEW_VERSION already exists as a git tag"
+          exit 1
+        fi
+        
+        # Check if version exists in changelog
+        if grep -q "## \[$NEW_VERSION\]" CHANGELOG.md; then
+          echo "changelog_exists=true" >> $GITHUB_OUTPUT
+          echo "WARNING: Version $NEW_VERSION already exists in changelog"
+        else
+          echo "changelog_exists=false" >> $GITHUB_OUTPUT
+        fi
+        
+        echo "exists=false" >> $GITHUB_OUTPUT
+        echo "Version $NEW_VERSION is available"
+        
+    - name: Update TOC file
+      run: |
+        NEW_VERSION="${{ steps.new_version.outputs.new }}"
+        
+        # Backup original file
+        cp HealIQ.toc HealIQ.toc.backup
+        
+        # Update version in HealIQ.toc
+        sed -i "s/^## Version:.*/## Version: $NEW_VERSION/" HealIQ.toc
+        
+        # Verify the update worked
+        UPDATED_VERSION=$(grep "^## Version:" HealIQ.toc | cut -d' ' -f3)
+        if [ "$UPDATED_VERSION" != "$NEW_VERSION" ]; then
+          echo "ERROR: Failed to update version in HealIQ.toc"
+          echo "Expected: $NEW_VERSION"
+          echo "Got: $UPDATED_VERSION"
+          # Restore backup
+          mv HealIQ.toc.backup HealIQ.toc
+          exit 1
+        fi
+        
+        # Remove backup
+        rm HealIQ.toc.backup
+        
+        echo "Updated HealIQ.toc version to $NEW_VERSION"
+        
+    - name: Update Core.lua file
+      run: |
+        NEW_VERSION="${{ steps.new_version.outputs.new }}"
+        
+        # Backup original file
+        cp Core.lua Core.lua.backup
+        
+        # Update version in Core.lua
+        sed -i "s/HealIQ.version = \".*\"/HealIQ.version = \"$NEW_VERSION\"/" Core.lua
+        
+        # Verify the update worked
+        UPDATED_VERSION=$(grep "HealIQ.version = " Core.lua | cut -d'"' -f2)
+        if [ "$UPDATED_VERSION" != "$NEW_VERSION" ]; then
+          echo "ERROR: Failed to update version in Core.lua"
+          echo "Expected: $NEW_VERSION"
+          echo "Got: $UPDATED_VERSION"
+          # Restore backup
+          mv Core.lua.backup Core.lua
+          exit 1
+        fi
+        
+        # Remove backup
+        rm Core.lua.backup
+        
+        echo "Updated Core.lua version to $NEW_VERSION"
+        
+    - name: Create changelog entry
+      if: ${{ github.event.inputs.create_changelog_entry == 'true' && steps.check_version.outputs.changelog_exists == 'false' }}
+      run: |
+        NEW_VERSION="${{ steps.new_version.outputs.new }}"
+        CURRENT_DATE=$(date +"%Y-%m-%d")
+        
+        # Create temporary file with new changelog entry
+        cat > temp_changelog.md << EOF
+# HealIQ Changelog
+
+## [$NEW_VERSION] - $CURRENT_DATE
+
+### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
+EOF
+        
+        # Add rest of changelog after the first line
+        tail -n +2 CHANGELOG.md >> temp_changelog.md
+        
+        # Replace original changelog
+        mv temp_changelog.md CHANGELOG.md
+        
+        echo "Created changelog entry for version $NEW_VERSION"
+        
+    - name: Validate version consistency
+      run: |
+        NEW_VERSION="${{ steps.new_version.outputs.new }}"
+        
+        # Extract versions from both files
+        TOC_VERSION=$(grep "^## Version:" HealIQ.toc | cut -d' ' -f3)
+        CORE_VERSION=$(grep "HealIQ.version = " Core.lua | cut -d'"' -f2)
+        
+        echo "Validating version consistency..."
+        echo "TOC version: $TOC_VERSION"
+        echo "Core.lua version: $CORE_VERSION"
+        echo "Expected version: $NEW_VERSION"
+        
+        # Check both files have the correct version
+        if [ "$TOC_VERSION" != "$NEW_VERSION" ]; then
+          echo "ERROR: HealIQ.toc version ($TOC_VERSION) does not match expected version ($NEW_VERSION)"
+          exit 1
+        fi
+        
+        if [ "$CORE_VERSION" != "$NEW_VERSION" ]; then
+          echo "ERROR: Core.lua version ($CORE_VERSION) does not match expected version ($NEW_VERSION)"
+          exit 1
+        fi
+        
+        # Check both files have the same version
+        if [ "$TOC_VERSION" != "$CORE_VERSION" ]; then
+          echo "ERROR: Version mismatch between HealIQ.toc ($TOC_VERSION) and Core.lua ($CORE_VERSION)"
+          exit 1
+        fi
+        
+        echo "Version consistency validation passed!"
+        
+    - name: Commit changes
+      run: |
+        NEW_VERSION="${{ steps.new_version.outputs.new }}"
+        CURRENT_VERSION="${{ steps.current_version.outputs.current }}"
+        
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        git add HealIQ.toc Core.lua
+        
+        # Add changelog if it was updated
+        if [ "${{ github.event.inputs.create_changelog_entry }}" = "true" ] && [ "${{ steps.check_version.outputs.changelog_exists }}" = "false" ]; then
+          git add CHANGELOG.md
+        fi
+        
+        git commit -m "Bump version from $CURRENT_VERSION to $NEW_VERSION"
+        
+        echo "Committed version bump changes"
+        
+    - name: Push changes
+      run: |
+        git push origin ${{ github.ref_name }}
+        echo "Pushed version bump to ${{ github.ref_name }}"
+        
+    - name: Summary
+      run: |
+        NEW_VERSION="${{ steps.new_version.outputs.new }}"
+        CURRENT_VERSION="${{ steps.current_version.outputs.current }}"
+        
+        echo "## Version Bump Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- Previous version: $CURRENT_VERSION" >> $GITHUB_STEP_SUMMARY
+        echo "- New version: $NEW_VERSION" >> $GITHUB_STEP_SUMMARY
+        echo "- Bump type: ${{ github.event.inputs.version_type }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Changelog entry created: ${{ github.event.inputs.create_changelog_entry }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "The release workflow will automatically create a new release when these changes are merged to main." >> $GITHUB_STEP_SUMMARY
