@@ -182,20 +182,20 @@ jobs:
         
         # Create temporary file with new changelog entry
         cat > temp_changelog.md << EOF
-# HealIQ Changelog
-
-## [$NEW_VERSION] - $CURRENT_DATE
-
-### Added
-- 
-
-### Changed
-- 
-
-### Fixed
-- 
-
-EOF
+        # HealIQ Changelog
+        
+        ## [$NEW_VERSION] - $CURRENT_DATE
+        
+        ### Added
+        - 
+        
+        ### Changed
+        - 
+        
+        ### Fixed
+        - 
+        
+        EOF
         
         # Add rest of changelog after the first line
         tail -n +2 CHANGELOG.md >> temp_changelog.md
