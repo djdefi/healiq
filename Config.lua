@@ -42,6 +42,7 @@ end
 commands.help = function()
     print("|cFF00FF00HealIQ v" .. HealIQ.version .. " Commands:|r")
     print("|cFFFFFF00/healiq|r - Show this help")
+    print("|cFFFFFF00/healiq config|r - Open options window")
     print("|cFFFFFF00/healiq toggle|r - Toggle addon on/off")
     print("|cFFFFFF00/healiq enable|r - Enable addon")
     print("|cFFFFFF00/healiq disable|r - Disable addon")
@@ -60,6 +61,12 @@ commands.toggle = function()
     
     if HealIQ.UI then
         HealIQ.UI:SetEnabled(HealIQ.db.enabled)
+    end
+end
+
+commands.config = function()
+    if HealIQ.UI then
+        HealIQ.UI:ToggleOptionsFrame()
     end
 end
 

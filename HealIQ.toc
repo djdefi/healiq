@@ -1,7 +1,7 @@
 ## Interface: 110107
 ## Title: HealIQ
 ## Notes: Smart healing spell suggestion addon for Restoration Druids
-## Author: Ryan Trauntvein (DJ DeFi)
+## Author: djdefi
 ## Version: 0.0.1
 ## SavedVariables: HealIQDB
 ## DefaultState: enabled
