@@ -290,7 +290,7 @@ jobs:
         echo "- New version: $NEW_VERSION" >> $GITHUB_STEP_SUMMARY
         echo "- Bump type: ${{ github.event.inputs.version_type }}" >> $GITHUB_STEP_SUMMARY
         echo "- Changelog entry created: ${{ github.event.inputs.create_changelog_entry }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Release triggered: ${{ github.event.inputs.create_release }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Auto-release enabled: ${{ github.event.inputs.create_release }}" >> $GITHUB_STEP_SUMMARY
         echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         if [ "${{ github.event.inputs.create_release }}" = "true" ]; then
