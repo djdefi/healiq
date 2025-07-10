@@ -49,15 +49,34 @@ jobs:
         TYPE="${{ github.event.inputs.version_type }}"
         CUSTOM="${{ github.event.inputs.custom_version }}"
         
+        # Validate current version format
+        if [[ ! "$CURRENT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "ERROR: Current version '$CURRENT' is not in semantic version format (x.y.z)"
+          exit 1
+        fi
+        
         if [ "$TYPE" = "custom" ]; then
           if [ -z "$CUSTOM" ]; then
             echo "ERROR: Custom version not provided"
             exit 1
           fi
+          
+          # Validate custom version format
+          if [[ ! "$CUSTOM" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: Custom version '$CUSTOM' is not in semantic version format (x.y.z)"
+            exit 1
+          fi
+          
           NEW_VERSION="$CUSTOM"
         else
           # Parse semantic version
           IFS='.' read -r major minor patch <<< "$CURRENT"
+          
+          # Validate parsed components are numbers
+          if [[ ! "$major" =~ ^[0-9]+$ ]] || [[ ! "$minor" =~ ^[0-9]+$ ]] || [[ ! "$patch" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: Failed to parse version components from '$CURRENT'"
+            exit 1
+          fi
           
           case "$TYPE" in
             "major")
@@ -107,8 +126,25 @@ jobs:
       run: |
         NEW_VERSION="${{ steps.new_version.outputs.new }}"
         
+        # Backup original file
+        cp HealIQ.toc HealIQ.toc.backup
+        
         # Update version in HealIQ.toc
         sed -i "s/^## Version:.*/## Version: $NEW_VERSION/" HealIQ.toc
+        
+        # Verify the update worked
+        UPDATED_VERSION=$(grep "^## Version:" HealIQ.toc | cut -d' ' -f3)
+        if [ "$UPDATED_VERSION" != "$NEW_VERSION" ]; then
+          echo "ERROR: Failed to update version in HealIQ.toc"
+          echo "Expected: $NEW_VERSION"
+          echo "Got: $UPDATED_VERSION"
+          # Restore backup
+          mv HealIQ.toc.backup HealIQ.toc
+          exit 1
+        fi
+        
+        # Remove backup
+        rm HealIQ.toc.backup
         
         echo "Updated HealIQ.toc version to $NEW_VERSION"
         
@@ -116,8 +152,25 @@ jobs:
       run: |
         NEW_VERSION="${{ steps.new_version.outputs.new }}"
         
+        # Backup original file
+        cp Core.lua Core.lua.backup
+        
         # Update version in Core.lua
         sed -i "s/HealIQ.version = \".*\"/HealIQ.version = \"$NEW_VERSION\"/" Core.lua
+        
+        # Verify the update worked
+        UPDATED_VERSION=$(grep "HealIQ.version = " Core.lua | cut -d'"' -f2)
+        if [ "$UPDATED_VERSION" != "$NEW_VERSION" ]; then
+          echo "ERROR: Failed to update version in Core.lua"
+          echo "Expected: $NEW_VERSION"
+          echo "Got: $UPDATED_VERSION"
+          # Restore backup
+          mv Core.lua.backup Core.lua
+          exit 1
+        fi
+        
+        # Remove backup
+        rm Core.lua.backup
         
         echo "Updated Core.lua version to $NEW_VERSION"
         
@@ -151,6 +204,38 @@ EOF
         mv temp_changelog.md CHANGELOG.md
         
         echo "Created changelog entry for version $NEW_VERSION"
+        
+    - name: Validate version consistency
+      run: |
+        NEW_VERSION="${{ steps.new_version.outputs.new }}"
+        
+        # Extract versions from both files
+        TOC_VERSION=$(grep "^## Version:" HealIQ.toc | cut -d' ' -f3)
+        CORE_VERSION=$(grep "HealIQ.version = " Core.lua | cut -d'"' -f2)
+        
+        echo "Validating version consistency..."
+        echo "TOC version: $TOC_VERSION"
+        echo "Core.lua version: $CORE_VERSION"
+        echo "Expected version: $NEW_VERSION"
+        
+        # Check both files have the correct version
+        if [ "$TOC_VERSION" != "$NEW_VERSION" ]; then
+          echo "ERROR: HealIQ.toc version ($TOC_VERSION) does not match expected version ($NEW_VERSION)"
+          exit 1
+        fi
+        
+        if [ "$CORE_VERSION" != "$NEW_VERSION" ]; then
+          echo "ERROR: Core.lua version ($CORE_VERSION) does not match expected version ($NEW_VERSION)"
+          exit 1
+        fi
+        
+        # Check both files have the same version
+        if [ "$TOC_VERSION" != "$CORE_VERSION" ]; then
+          echo "ERROR: Version mismatch between HealIQ.toc ($TOC_VERSION) and Core.lua ($CORE_VERSION)"
+          exit 1
+        fi
+        
+        echo "Version consistency validation passed!"
         
     - name: Commit changes
       run: |
