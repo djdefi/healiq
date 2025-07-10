@@ -46,8 +46,21 @@ local defaults = {
 
 -- Initialize saved variables
 function HealIQ:InitializeDB()
+    -- Ensure HealIQDB exists
     if not HealIQDB then
         HealIQDB = {}
+    end
+    
+    -- Validate HealIQDB structure
+    if type(HealIQDB) ~= "table" then
+        HealIQDB = {}
+        self:Message("HealIQ database was corrupted, resetting to defaults", true)
+    end
+    
+    -- Check for version upgrade
+    if HealIQDB.version ~= self.version then
+        self:OnVersionUpgrade(HealIQDB.version, self.version)
+        HealIQDB.version = self.version
     end
     
     -- Merge defaults with saved settings
@@ -61,10 +74,48 @@ function HealIQ:InitializeDB()
             else
                 HealIQDB[key] = value
             end
+        elseif type(value) == "table" and type(HealIQDB[key]) == "table" then
+            -- Merge nested tables
+            for subkey, subvalue in pairs(value) do
+                if HealIQDB[key][subkey] == nil then
+                    HealIQDB[key][subkey] = subvalue
+                end
+            end
         end
     end
     
     self.db = HealIQDB
+    self:Print("Database initialized with " .. self:CountSettings() .. " settings")
+end
+
+-- Handle version upgrades
+function HealIQ:OnVersionUpgrade(oldVersion, newVersion)
+    if oldVersion then
+        self:Message("HealIQ upgraded from v" .. oldVersion .. " to v" .. newVersion)
+    else
+        self:Message("HealIQ v" .. newVersion .. " - First time installation")
+    end
+end
+
+-- Count settings for diagnostics
+function HealIQ:CountSettings()
+    local count = 0
+    local function countTable(t)
+        local c = 0
+        for k, v in pairs(t) do
+            c = c + 1
+            if type(v) == "table" then
+                c = c + countTable(v)
+            end
+        end
+        return c
+    end
+    
+    if self.db then
+        count = countTable(self.db)
+    end
+    
+    return count
 end
 
 -- Debug print function
@@ -74,65 +125,97 @@ function HealIQ:Print(message)
     end
 end
 
+-- Error handling wrapper
+function HealIQ:SafeCall(func, ...)
+    local success, result = pcall(func, ...)
+    if not success then
+        print("|cFFFF0000HealIQ Error:|r " .. tostring(result))
+        if self.debug then
+            print("|cFFFF0000Stack trace:|r " .. debugstack())
+        end
+        return false, result
+    end
+    return true, result
+end
+
+-- User message function
+function HealIQ:Message(message, isError)
+    local prefix = isError and "|cFFFF0000HealIQ Error:|r " or "|cFF00FF00HealIQ:|r "
+    print(prefix .. tostring(message))
+end
+
 -- Main addon initialization
 function HealIQ:OnInitialize()
-    self:InitializeDB()
-    self:Print("HealIQ " .. self.version .. " loaded")
-    
-    -- Initialize modules
-    if self.Tracker then
-        self.Tracker:Initialize()
-    end
-    
-    if self.Engine then
-        self.Engine:Initialize()
-    end
-    
-    if self.UI then
-        self.UI:Initialize()
-    end
-    
-    if self.Config then
-        self.Config:Initialize()
-    end
+    self:SafeCall(function()
+        self:InitializeDB()
+        self:Print("HealIQ " .. self.version .. " loaded")
+        
+        -- Initialize modules
+        if self.Tracker then
+            self.Tracker:Initialize()
+        end
+        
+        if self.Engine then
+            self.Engine:Initialize()
+        end
+        
+        if self.UI then
+            self.UI:Initialize()
+        end
+        
+        if self.Config then
+            self.Config:Initialize()
+        end
+        
+        self:Message("HealIQ " .. self.version .. " initialized successfully")
+    end)
 end
 
 -- Event handling
 function HealIQ:OnEvent(event, ...)
-    if event == "ADDON_LOADED" then
-        local loadedAddon = ...
-        if loadedAddon == addonName then
-            self:OnInitialize()
+    self:SafeCall(function()
+        if event == "ADDON_LOADED" then
+            local loadedAddon = ...
+            if loadedAddon == addonName then
+                self:OnInitialize()
+            end
+        elseif event == "PLAYER_LOGIN" then
+            self:OnPlayerLogin()
+        elseif event == "PLAYER_ENTERING_WORLD" then
+            self:OnPlayerEnteringWorld()
         end
-    elseif event == "PLAYER_LOGIN" then
-        self:OnPlayerLogin()
-    elseif event == "PLAYER_ENTERING_WORLD" then
-        self:OnPlayerEnteringWorld()
-    end
+    end)
 end
 
 function HealIQ:OnPlayerLogin()
-    self:Print("Player logged in")
+    self:SafeCall(function()
+        self:Print("Player logged in")
+    end)
 end
 
 function HealIQ:OnPlayerEnteringWorld()
-    self:Print("Player entering world")
-    
-    -- Check if player is a Restoration Druid
-    local _, class = UnitClass("player")
-    if class == "DRUID" then
-        local specIndex = GetSpecialization()
-        if specIndex == 4 then -- Restoration spec
-            self:Print("Restoration Druid detected")
-            self.db.enabled = true
+    self:SafeCall(function()
+        self:Print("Player entering world")
+        
+        -- Check if player is a Restoration Druid
+        local _, class = UnitClass("player")
+        if class == "DRUID" then
+            local specIndex = GetSpecialization()
+            if specIndex == 4 then -- Restoration spec
+                self:Print("Restoration Druid detected")
+                self.db.enabled = true
+                self:Message("HealIQ enabled for Restoration Druid")
+            else
+                self:Print("Not Restoration spec, addon disabled")
+                self.db.enabled = false
+                self:Message("HealIQ disabled (not Restoration spec)")
+            end
         else
-            self:Print("Not Restoration spec, addon disabled")
+            self:Print("Not a Druid, addon disabled")
             self.db.enabled = false
+            self:Message("HealIQ disabled (not a Druid)")
         end
-    else
-        self:Print("Not a Druid, addon disabled")
-        self.db.enabled = false
-    end
+    end)
 end
 
 -- Create event frame
@@ -146,3 +229,19 @@ end)
 
 -- Make HealIQ globally accessible
 _G[addonName] = HealIQ
+
+-- Cleanup function for addon disable/reload
+function HealIQ:Cleanup()
+    self:SafeCall(function()
+        if self.UI then
+            self.UI:Hide()
+        end
+        
+        if self.Engine then
+            -- Stop update loop
+            self.Engine:StopUpdateLoop()
+        end
+        
+        self:Print("HealIQ cleanup completed")
+    end)
+end

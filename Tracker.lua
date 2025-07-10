@@ -47,8 +47,10 @@ local trackedData = {
 }
 
 function Tracker:Initialize()
-    self:RegisterEvents()
-    HealIQ:Print("Tracker initialized")
+    HealIQ:SafeCall(function()
+        self:RegisterEvents()
+        HealIQ:Print("Tracker initialized")
+    end)
 end
 
 function Tracker:RegisterEvents()
@@ -64,16 +66,18 @@ function Tracker:RegisterEvents()
 end
 
 function Tracker:OnEvent(event, ...)
-    if event == "SPELL_UPDATE_COOLDOWN" then
-        self:UpdateCooldowns()
-    elseif event == "UNIT_AURA" then
-        local unit = ...
-        self:UpdateUnitAuras(unit)
-    elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
-        self:ParseCombatLog()
-    elseif event == "PLAYER_TARGET_CHANGED" then
-        self:UpdateTargetHots()
-    end
+    HealIQ:SafeCall(function()
+        if event == "SPELL_UPDATE_COOLDOWN" then
+            self:UpdateCooldowns()
+        elseif event == "UNIT_AURA" then
+            local unit = ...
+            self:UpdateUnitAuras(unit)
+        elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
+            self:ParseCombatLog()
+        elseif event == "PLAYER_TARGET_CHANGED" then
+            self:UpdateTargetHots()
+        end
+    end)
 end
 
 function Tracker:UpdateCooldowns()

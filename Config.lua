@@ -10,8 +10,10 @@ local Config = HealIQ.Config
 local commands = {}
 
 function Config:Initialize()
-    self:RegisterSlashCommands()
-    HealIQ:Print("Config initialized")
+    HealIQ:SafeCall(function()
+        self:RegisterSlashCommands()
+        HealIQ:Print("Config initialized")
+    end)
 end
 
 function Config:RegisterSlashCommands()
@@ -24,24 +26,27 @@ function Config:RegisterSlashCommands()
 end
 
 function Config:HandleSlashCommand(msg)
-    local args = {}
-    for word in msg:gmatch("%S+") do
-        table.insert(args, word:lower())
-    end
-    
-    local command = args[1] or "help"
-    
-    if commands[command] then
-        commands[command](unpack(args, 2))
-    else
-        self:ShowHelp()
-    end
+    HealIQ:SafeCall(function()
+        local args = {}
+        for word in msg:gmatch("%S+") do
+            table.insert(args, word:lower())
+        end
+        
+        local command = args[1] or "help"
+        
+        if commands[command] then
+            commands[command](unpack(args, 2))
+        else
+            self:ShowHelp()
+        end
+    end)
 end
 
 -- Command implementations
 commands.help = function()
     print("|cFF00FF00HealIQ v" .. HealIQ.version .. " Commands:|r")
     print("|cFFFFFF00/healiq|r - Show this help")
+    print("|cFFFFFF00/healiq version|r - Show version information")
     print("|cFFFFFF00/healiq config|r - Open options window")
     print("|cFFFFFF00/healiq toggle|r - Toggle addon on/off")
     print("|cFFFFFF00/healiq enable|r - Enable addon")
@@ -52,7 +57,18 @@ commands.help = function()
     print("|cFFFFFF00/healiq test queue|r - Test queue display")
     print("|cFFFFFF00/healiq debug|r - Toggle debug mode")
     print("|cFFFFFF00/healiq reset|r - Reset all settings")
+    print("|cFFFFFF00/healiq reload|r - Reload addon configuration")
+    print("|cFFFFFF00/healiq backup|r - Create settings backup")
+    print("|cFFFFFF00/healiq restore|r - Restore settings from backup")
     print("|cFFFFFF00/healiq status|r - Show current status")
+end
+
+commands.version = function()
+    print("|cFF00FF00HealIQ|r Version " .. HealIQ.version)
+    print("  Interface: 110107 (The War Within)")
+    print("  Author: djdefi")
+    print("  Description: Smart healing spell suggestion addon for Restoration Druids")
+    print("  GitHub: https://github.com/djdefi/healiq")
 end
 
 commands.toggle = function()
@@ -265,6 +281,96 @@ commands.reset = function()
     print("|cFF00FF00HealIQ|r Settings reset to defaults")
 end
 
+commands.reload = function()
+    print("|cFF00FF00HealIQ|r Reloading addon configuration...")
+    
+    -- Reinitialize all modules
+    if HealIQ.Tracker then
+        HealIQ.Tracker:Initialize()
+    end
+    
+    if HealIQ.Engine then
+        HealIQ.Engine:Initialize()
+    end
+    
+    if HealIQ.UI then
+        HealIQ.UI:RecreateFrames()
+    end
+    
+    -- Force an update
+    if HealIQ.Engine then
+        HealIQ.Engine:ForceUpdate()
+    end
+    
+    print("|cFF00FF00HealIQ|r Addon reloaded successfully")
+end
+
+commands.backup = function()
+    -- Create a backup of current settings
+    if not HealIQDB.backups then
+        HealIQDB.backups = {}
+    end
+    
+    local backupKey = "backup_" .. date("%Y%m%d_%H%M%S")
+    HealIQDB.backups[backupKey] = {
+        enabled = HealIQ.db.enabled,
+        ui = {},
+        rules = {}
+    }
+    
+    -- Copy UI settings
+    for key, value in pairs(HealIQ.db.ui) do
+        HealIQDB.backups[backupKey].ui[key] = value
+    end
+    
+    -- Copy rule settings
+    for key, value in pairs(HealIQ.db.rules) do
+        HealIQDB.backups[backupKey].rules[key] = value
+    end
+    
+    print("|cFF00FF00HealIQ|r Settings backed up as: " .. backupKey)
+end
+
+commands.restore = function()
+    if not HealIQDB.backups then
+        print("|cFF00FF00HealIQ|r No backups found")
+        return
+    end
+    
+    -- Find the most recent backup
+    local mostRecent = nil
+    local mostRecentKey = nil
+    
+    for key, backup in pairs(HealIQDB.backups) do
+        if not mostRecent or key > mostRecentKey then
+            mostRecent = backup
+            mostRecentKey = key
+        end
+    end
+    
+    if mostRecent then
+        -- Restore settings
+        HealIQ.db.enabled = mostRecent.enabled
+        
+        for key, value in pairs(mostRecent.ui) do
+            HealIQ.db.ui[key] = value
+        end
+        
+        for key, value in pairs(mostRecent.rules) do
+            HealIQ.db.rules[key] = value
+        end
+        
+        -- Recreate UI with restored settings
+        if HealIQ.UI then
+            HealIQ.UI:RecreateFrames()
+        end
+        
+        print("|cFF00FF00HealIQ|r Settings restored from: " .. mostRecentKey)
+    else
+        print("|cFF00FF00HealIQ|r No valid backups found")
+    end
+end
+
 commands.status = function()
     print("|cFF00FF00HealIQ v" .. HealIQ.version .. " Status:|r")
     print("  Enabled: " .. (HealIQ.db.enabled and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
@@ -280,9 +386,9 @@ commands.status = function()
     if HealIQ.Engine then
         local suggestion = HealIQ.Engine:GetCurrentSuggestion()
         if suggestion then
-            print("  Current Suggestion: " .. suggestion.name)
+            print("  Current Suggestion: |cFF00FF00" .. suggestion.name .. "|r")
         else
-            print("  Current Suggestion: None")
+            print("  Current Suggestion: |cFFFF0000None|r")
         end
         
         -- Show current queue
@@ -292,9 +398,9 @@ commands.status = function()
             for i, queueSuggestion in ipairs(queue) do
                 table.insert(names, queueSuggestion.name)
             end
-            print("  Current Queue: " .. table.concat(names, " → "))
+            print("  Current Queue: |cFF00FF00" .. table.concat(names, " → ") .. "|r")
         else
-            print("  Current Queue: Empty")
+            print("  Current Queue: |cFFFF0000Empty|r")
         end
     end
     
@@ -305,15 +411,20 @@ commands.status = function()
             table.insert(activeRules, rule)
         end
     end
-    print("  Active Rules: " .. (#activeRules > 0 and table.concat(activeRules, ", ") or "None"))
+    print("  Active Rules: " .. (#activeRules > 0 and "|cFF00FF00" .. table.concat(activeRules, ", ") .. "|r" or "|cFFFF0000None|r"))
     
     -- Show spec info
     local _, class = UnitClass("player")
     local specIndex = GetSpecialization()
     local specName = specIndex and GetSpecializationInfo(specIndex) or "Unknown"
-    print("  Class: " .. class)
-    print("  Spec: " .. specName)
+    print("  Class: |cFF00FF00" .. class .. "|r")
+    print("  Spec: |cFF00FF00" .. specName .. "|r")
     print("  In Combat: " .. (InCombatLockdown() and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
+    
+    -- Show addon status
+    local addonLoaded = select(4, GetAddOnMetadata("HealIQ", "Version"))
+    print("  Addon Status: |cFF00FF00Loaded|r")
+    print("  Memory Usage: |cFF00FF00" .. GetAddOnMemoryUsage("HealIQ") .. " KB|r")
 end
 
 -- Public configuration methods

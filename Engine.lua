@@ -95,47 +95,59 @@ local lastUpdate = 0
 local updateInterval = 0.1 -- Update every 100ms
 
 function Engine:Initialize()
-    self:StartUpdateLoop()
-    HealIQ:Print("Engine initialized")
-end
-
-function Engine:StartUpdateLoop()
-    local frame = CreateFrame("Frame")
-    frame:SetScript("OnUpdate", function(self, elapsed)
-        Engine:OnUpdate(elapsed)
+    HealIQ:SafeCall(function()
+        self:StartUpdateLoop()
+        HealIQ:Print("Engine initialized")
     end)
 end
 
+function Engine:StartUpdateLoop()
+    local frame = CreateFrame("Frame", "HealIQUpdateFrame")
+    frame:SetScript("OnUpdate", function(self, elapsed)
+        Engine:OnUpdate(elapsed)
+    end)
+    self.updateFrame = frame
+end
+
+function Engine:StopUpdateLoop()
+    if self.updateFrame then
+        self.updateFrame:SetScript("OnUpdate", nil)
+        self.updateFrame = nil
+    end
+end
+
 function Engine:OnUpdate(elapsed)
-    local currentTime = GetTime()
-    
-    -- Throttle updates
-    if currentTime - lastUpdate < updateInterval then
-        return
-    end
-    
-    lastUpdate = currentTime
-    
-    -- Only suggest spells if addon is enabled and player is in combat or has a target
-    if not HealIQ.db.enabled then
-        self:SetSuggestion(nil)
-        self:SetQueue({})
-        return
-    end
-    
-    -- Check if we should be suggesting anything
-    if not self:ShouldSuggest() then
-        self:SetSuggestion(nil)
-        self:SetQueue({})
-        return
-    end
-    
-    -- Evaluate priority rules
-    local suggestion = self:EvaluateRules()
-    local queue = self:EvaluateRulesQueue()
-    
-    self:SetSuggestion(suggestion)
-    self:SetQueue(queue)
+    HealIQ:SafeCall(function()
+        local currentTime = GetTime()
+        
+        -- Throttle updates
+        if currentTime - lastUpdate < updateInterval then
+            return
+        end
+        
+        lastUpdate = currentTime
+        
+        -- Only suggest spells if addon is enabled and player is in combat or has a target
+        if not HealIQ.db.enabled then
+            self:SetSuggestion(nil)
+            self:SetQueue({})
+            return
+        end
+        
+        -- Check if we should be suggesting anything
+        if not self:ShouldSuggest() then
+            self:SetSuggestion(nil)
+            self:SetQueue({})
+            return
+        end
+        
+        -- Evaluate priority rules
+        local suggestion = self:EvaluateRules()
+        local queue = self:EvaluateRulesQueue()
+        
+        self:SetSuggestion(suggestion)
+        self:SetQueue(queue)
+    end)
 end
 
 function Engine:ShouldSuggest()
