@@ -87,7 +87,8 @@ function Tracker:UpdateCooldowns()
     -- Helper function to update cooldown data
     local function updateCooldown(spellId, spellName)
         local start, duration, enabled = GetSpellCooldown(spellId)
-        if enabled == 1 then
+        -- Defensive check: ensure we got valid values
+        if start and duration and enabled and enabled == 1 then
             local remaining = (start + duration) - currentTime
             trackedData.cooldowns[spellName] = {
                 remaining = math.max(0, remaining),
@@ -95,6 +96,9 @@ function Tracker:UpdateCooldowns()
                 start = start,
                 duration = duration
             }
+        else
+            -- Clear any existing data when spell is not on cooldown
+            trackedData.cooldowns[spellName] = nil
         end
     end
     
@@ -116,7 +120,8 @@ function Tracker:UpdateCooldowns()
         local itemId = GetInventoryItemID("player", slot)
         if itemId then
             local start, duration, enabled = GetItemCooldown(itemId)
-            if enabled == 1 then
+            -- Defensive check: ensure we got valid values
+            if start and duration and enabled and enabled == 1 then
                 local remaining = (start + duration) - currentTime
                 trackedData.trinketCooldowns[slot] = {
                     remaining = math.max(0, remaining),
@@ -264,7 +269,12 @@ end
 
 -- Public getter functions
 function Tracker:GetCooldownInfo(spellName)
-    return trackedData.cooldowns[spellName]
+    local cooldown = trackedData.cooldowns[spellName]
+    -- Defensive check: ensure we return either nil or a valid table
+    if cooldown and type(cooldown) == "table" then
+        return cooldown
+    end
+    return nil
 end
 
 function Tracker:GetBuffInfo(buffName)
