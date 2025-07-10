@@ -157,7 +157,9 @@ commands.rules = function(subcommand, ...)
         print("|cFFFFFF00/healiq rules list|r - List all rules and their status")
         print("|cFFFFFF00/healiq rules enable <rule>|r - Enable a specific rule")
         print("|cFFFFFF00/healiq rules disable <rule>|r - Disable a specific rule")
-        print("|cFFFFFF00Rules:|r wildGrowth, clearcasting, lifebloom, swiftmend, rejuvenation")
+        print("|cFFFFFF00Rules:|r wildGrowth, clearcasting, lifebloom, swiftmend, rejuvenation,")
+        print("  ironbark, efflorescence, tranquility, incarnationTree, naturesSwiftness,")
+        print("  barkskin, flourish, trinket")
     end
 end
 

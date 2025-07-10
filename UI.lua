@@ -144,7 +144,7 @@ end
 function UI:CreateOptionsFrame()
     -- Create main options frame
     optionsFrame = CreateFrame("Frame", "HealIQOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
-    optionsFrame:SetSize(400, 500)
+    optionsFrame:SetSize(400, 700) -- Increased height for new rules
     optionsFrame:SetPoint("CENTER")
     optionsFrame:SetFrameStrata("DIALOG")
     optionsFrame:SetMovable(true)
@@ -226,11 +226,22 @@ function UI:CreateOptionsFrame()
     
     -- Rule checkboxes
     local rules = {
+        -- Existing rules
         {key = "wildGrowth", name = "Wild Growth (AoE healing)"},
         {key = "clearcasting", name = "Clearcasting (Regrowth proc)"},
         {key = "lifebloom", name = "Lifebloom (refresh)"},
         {key = "swiftmend", name = "Swiftmend (combo)"},
-        {key = "rejuvenation", name = "Rejuvenation (coverage)"}
+        {key = "rejuvenation", name = "Rejuvenation (coverage)"},
+        
+        -- New rules
+        {key = "ironbark", name = "Ironbark (damage reduction)"},
+        {key = "efflorescence", name = "Efflorescence (ground AoE)"},
+        {key = "tranquility", name = "Tranquility (major cooldown)"},
+        {key = "incarnationTree", name = "Incarnation (transformation)"},
+        {key = "naturesSwiftness", name = "Nature's Swiftness (instant)"},
+        {key = "barkskin", name = "Barkskin (self-defense)"},
+        {key = "flourish", name = "Flourish (extend HoTs)"},
+        {key = "trinket", name = "Trinket usage"},
     }
     
     optionsFrame.ruleChecks = {}
@@ -248,7 +259,7 @@ function UI:CreateOptionsFrame()
     
     -- Display options
     local displayLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    displayLabel:SetPoint("TOPLEFT", rulesLabel, "BOTTOMLEFT", 0, -160)
+    displayLabel:SetPoint("TOPLEFT", rulesLabel, "BOTTOMLEFT", 0, -340) -- Adjusted for more rules
     displayLabel:SetText("Display Options:")
     
     local showNameCheck = CreateFrame("CheckButton", "HealIQShowNameCheck", content, "UICheckButtonTemplate")

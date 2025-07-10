@@ -5,7 +5,7 @@ local addonName, HealIQ = ...
 
 -- Create the main addon object
 HealIQ = HealIQ or {}
-HealIQ.version = "0.0.1"
+HealIQ.version = "0.0.2"
 HealIQ.debug = false
 
 -- Default settings
@@ -21,11 +21,22 @@ local defaults = {
         showCooldown = true,
     },
     rules = {
+        -- Existing rules
         wildGrowth = true,
         clearcasting = true,
         lifebloom = true,
         swiftmend = true,
         rejuvenation = true,
+        
+        -- New rules
+        ironbark = true,
+        efflorescence = true,
+        tranquility = true,
+        incarnationTree = true,
+        naturesSwiftness = true,
+        barkskin = true,
+        flourish = true,
+        trinket = true,
     }
 }
 
