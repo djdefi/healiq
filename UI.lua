@@ -186,6 +186,9 @@ function UI:CreateMinimapButton()
     local minimapRadius = Minimap:GetWidth() / 2
     local buttonRadius = minimapButton:GetWidth() / 2
     local radius = minimapRadius - buttonRadius - MINIMAP_BUTTON_PIXEL_BUFFER
+    if radius <= 0 then
+        radius = 1 -- Ensure a minimum positive radius
+    end
     
     local x = mx + radius * math.cos(savedAngle)
     local y = my + radius * math.sin(savedAngle)
