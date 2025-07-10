@@ -68,6 +68,9 @@ function UI:CreateMainFrame()
     border:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 1, -1)
     border:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -1, 1)
     
+    -- Store border reference for ToggleLock function
+    mainFrame.border = border
+    
     -- Create primary spell icon frame (current suggestion)
     iconFrame = CreateFrame("Frame", "HealIQIconFrame", mainFrame)
     iconFrame:SetSize(ICON_SIZE, ICON_SIZE)
@@ -666,10 +669,14 @@ function UI:ToggleLock()
     
     if HealIQ.db.ui.locked then
         HealIQ:Print("UI locked")
-        mainFrame:SetBackdropBorderColor(1, 0, 0, 0.5) -- Red border when locked
+        if mainFrame and mainFrame.border then
+            mainFrame.border:SetColorTexture(1, 0, 0, 0.5) -- Red border when locked
+        end
     else
         HealIQ:Print("UI unlocked (drag to move, right-click to lock)")
-        mainFrame:SetBackdropBorderColor(0, 1, 0, 0.5) -- Green border when unlocked
+        if mainFrame and mainFrame.border then
+            mainFrame.border:SetColorTexture(0, 1, 0, 0.5) -- Green border when unlocked
+        end
     end
 end
 
