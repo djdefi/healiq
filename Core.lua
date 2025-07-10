@@ -21,11 +21,22 @@ local defaults = {
         showCooldown = true,
     },
     rules = {
+        -- Existing rules
         wildGrowth = true,
         clearcasting = true,
         lifebloom = true,
         swiftmend = true,
         rejuvenation = true,
+        
+        -- New rules
+        ironbark = true,
+        efflorescence = true,
+        tranquility = true,
+        incarnationTree = true,
+        naturesSwiftness = true,
+        barkskin = true,
+        flourish = true,
+        trinket = true,
     }
 }
 

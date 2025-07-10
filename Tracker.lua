@@ -16,8 +16,21 @@ local SPELL_IDS = {
     SWIFTMEND = 18562,
     CLEARCASTING = 16870,
     
+    -- Major cooldowns
+    IRONBARK = 102342,
+    EFFLORESCENCE = 145205,
+    TRANQUILITY = 740,
+    INCARNATION_TREE = 33891,
+    NATURES_SWIFTNESS = 132158,
+    BARKSKIN = 22812,
+    FLOURISH = 197721,
+    
     -- Buffs
     CLEARCASTING_BUFF = 16870,
+    IRONBARK_BUFF = 102342,
+    BARKSKIN_BUFF = 22812,
+    NATURES_SWIFTNESS_BUFF = 132158,
+    INCARNATION_TREE_BUFF = 33891,
 }
 
 -- Track state
@@ -27,6 +40,10 @@ local trackedData = {
     lastCombatLogTime = 0,
     recentDamage = {},
     targetHots = {},
+    playerBuffs = {},
+    trinketCooldowns = {},
+    efflorescenceActive = false,
+    efflorescenceExpires = 0,
 }
 
 function Tracker:Initialize()
@@ -62,28 +79,49 @@ end
 function Tracker:UpdateCooldowns()
     local currentTime = GetTime()
     
-    -- Track Wild Growth
-    local start, duration, enabled = GetSpellCooldown(SPELL_IDS.WILD_GROWTH)
-    if enabled == 1 then
-        local remaining = (start + duration) - currentTime
-        trackedData.cooldowns.wildGrowth = {
-            remaining = math.max(0, remaining),
-            ready = remaining <= 0,
-            start = start,
-            duration = duration
-        }
+    -- Helper function to update cooldown data
+    local function updateCooldown(spellId, spellName)
+        local start, duration, enabled = GetSpellCooldown(spellId)
+        if enabled == 1 then
+            local remaining = (start + duration) - currentTime
+            trackedData.cooldowns[spellName] = {
+                remaining = math.max(0, remaining),
+                ready = remaining <= 0,
+                start = start,
+                duration = duration
+            }
+        end
     end
     
-    -- Track Swiftmend
-    start, duration, enabled = GetSpellCooldown(SPELL_IDS.SWIFTMEND)
-    if enabled == 1 then
-        local remaining = (start + duration) - currentTime
-        trackedData.cooldowns.swiftmend = {
-            remaining = math.max(0, remaining),
-            ready = remaining <= 0,
-            start = start,
-            duration = duration
-        }
+    -- Track existing spells
+    updateCooldown(SPELL_IDS.WILD_GROWTH, "wildGrowth")
+    updateCooldown(SPELL_IDS.SWIFTMEND, "swiftmend")
+    
+    -- Track new major cooldowns
+    updateCooldown(SPELL_IDS.IRONBARK, "ironbark")
+    updateCooldown(SPELL_IDS.EFFLORESCENCE, "efflorescence")
+    updateCooldown(SPELL_IDS.TRANQUILITY, "tranquility")
+    updateCooldown(SPELL_IDS.INCARNATION_TREE, "incarnationTree")
+    updateCooldown(SPELL_IDS.NATURES_SWIFTNESS, "naturesSwiftness")
+    updateCooldown(SPELL_IDS.BARKSKIN, "barkskin")
+    updateCooldown(SPELL_IDS.FLOURISH, "flourish")
+    
+    -- Track trinket cooldowns (slot 13 and 14)
+    for slot = 13, 14 do
+        local itemId = GetInventoryItemID("player", slot)
+        if itemId then
+            local start, duration, enabled = GetItemCooldown(itemId)
+            if enabled == 1 then
+                local remaining = (start + duration) - currentTime
+                trackedData.trinketCooldowns[slot] = {
+                    remaining = math.max(0, remaining),
+                    ready = remaining <= 0,
+                    start = start,
+                    duration = duration,
+                    itemId = itemId
+                }
+            end
+        end
     end
 end
 
@@ -96,22 +134,37 @@ function Tracker:UpdateUnitAuras(unit)
 end
 
 function Tracker:UpdatePlayerBuffs()
-    -- Check for Clearcasting
-    local name, icon, count, debuffType, duration, expirationTime = AuraUtil.FindAuraBySpellID(SPELL_IDS.CLEARCASTING_BUFF, "player", "HELPFUL")
+    local currentTime = GetTime()
     
-    if name then
-        trackedData.buffs.clearcasting = {
-            active = true,
-            remaining = expirationTime - GetTime(),
-            stacks = count or 1
-        }
-    else
-        trackedData.buffs.clearcasting = {
-            active = false,
-            remaining = 0,
-            stacks = 0
-        }
+    -- Helper function to check for buff
+    local function checkBuff(spellId, buffName)
+        local name, icon, count, debuffType, duration, expirationTime = AuraUtil.FindAuraBySpellID(spellId, "player", "HELPFUL")
+        if name then
+            trackedData.playerBuffs[buffName] = {
+                active = true,
+                remaining = expirationTime - currentTime,
+                stacks = count or 1
+            }
+        else
+            trackedData.playerBuffs[buffName] = {
+                active = false,
+                remaining = 0,
+                stacks = 0
+            }
+        end
     end
+    
+    -- Check for existing buffs
+    checkBuff(SPELL_IDS.CLEARCASTING_BUFF, "clearcasting")
+    
+    -- Check for new buffs
+    checkBuff(SPELL_IDS.IRONBARK_BUFF, "ironbark")
+    checkBuff(SPELL_IDS.BARKSKIN_BUFF, "barkskin")
+    checkBuff(SPELL_IDS.NATURES_SWIFTNESS_BUFF, "naturesSwiftness")
+    checkBuff(SPELL_IDS.INCARNATION_TREE_BUFF, "incarnationTree")
+    
+    -- Maintain backward compatibility
+    trackedData.buffs.clearcasting = trackedData.playerBuffs.clearcasting
 end
 
 function Tracker:UpdateTargetHots()
@@ -188,6 +241,20 @@ function Tracker:ParseCombatLog()
             end
         end
     end
+    
+    -- Track Efflorescence casting
+    if subevent == "SPELL_CAST_SUCCESS" then
+        local spellId = select(12, CombatLogGetCurrentEventInfo())
+        if spellId == SPELL_IDS.EFFLORESCENCE and sourceGUID == UnitGUID("player") then
+            trackedData.efflorescenceActive = true
+            trackedData.efflorescenceExpires = GetTime() + 30 -- Efflorescence lasts 30 seconds
+        end
+    end
+    
+    -- Update efflorescence status
+    if trackedData.efflorescenceActive and GetTime() > trackedData.efflorescenceExpires then
+        trackedData.efflorescenceActive = false
+    end
 end
 
 -- Public getter functions
@@ -231,6 +298,125 @@ function Tracker:CanSwiftmend()
     local hasRegrowth = trackedData.targetHots.regrowth and trackedData.targetHots.regrowth.active
     
     return swiftmendReady and (hasRejuv or hasRegrowth)
+end
+
+-- New getter functions for additional spells
+function Tracker:GetPlayerBuffInfo(buffName)
+    return trackedData.playerBuffs[buffName]
+end
+
+function Tracker:HasPlayerBuff(buffName)
+    local buff = trackedData.playerBuffs[buffName]
+    return buff and buff.active
+end
+
+function Tracker:GetTrinketCooldown(slot)
+    return trackedData.trinketCooldowns[slot]
+end
+
+function Tracker:IsEfflorescenceActive()
+    return trackedData.efflorescenceActive
+end
+
+function Tracker:GetEfflorescenceTimeRemaining()
+    if trackedData.efflorescenceActive then
+        return math.max(0, trackedData.efflorescenceExpires - GetTime())
+    end
+    return 0
+end
+
+function Tracker:ShouldUseIronbark()
+    -- Suggest Ironbark if available and target is taking damage
+    local ironbarkReady = self:IsSpellReady("ironbark")
+    local targetExists = UnitExists("target")
+    local targetIsFriendly = targetExists and UnitIsFriend("player", "target")
+    
+    -- Check if target doesn't already have Ironbark
+    local hasIronbark = false
+    if targetExists then
+        local name = AuraUtil.FindAuraBySpellID(SPELL_IDS.IRONBARK_BUFF, "target", "HELPFUL")
+        hasIronbark = name ~= nil
+    end
+    
+    return ironbarkReady and targetIsFriendly and not hasIronbark
+end
+
+function Tracker:ShouldUseEfflorescence()
+    -- Suggest Efflorescence if available, not currently active, and multiple people took damage
+    local efflorescenceReady = self:IsSpellReady("efflorescence")
+    local notActive = not trackedData.efflorescenceActive
+    local recentDamageCount = self:GetRecentDamageCount()
+    
+    return efflorescenceReady and notActive and recentDamageCount >= 2
+end
+
+function Tracker:ShouldUseTranquility()
+    -- Suggest Tranquility if available and high group damage
+    local tranquilityReady = self:IsSpellReady("tranquility")
+    local recentDamageCount = self:GetRecentDamageCount()
+    
+    return tranquilityReady and recentDamageCount >= 4
+end
+
+function Tracker:ShouldUseFlourish()
+    -- Suggest Flourish if available and multiple HoTs are about to expire
+    local flourishReady = self:IsSpellReady("flourish")
+    local expiringHots = 0
+    
+    -- Check for expiring HoTs on target
+    if UnitExists("target") then
+        local rejuv = trackedData.targetHots.rejuvenation
+        local regrowth = trackedData.targetHots.regrowth
+        local lifebloom = trackedData.targetHots.lifebloom
+        
+        if rejuv and rejuv.active and rejuv.remaining < 6 then
+            expiringHots = expiringHots + 1
+        end
+        if regrowth and regrowth.active and regrowth.remaining < 6 then
+            expiringHots = expiringHots + 1
+        end
+        if lifebloom and lifebloom.active and lifebloom.remaining < 6 then
+            expiringHots = expiringHots + 1
+        end
+    end
+    
+    return flourishReady and expiringHots >= 2
+end
+
+function Tracker:ShouldUseIncarnation()
+    -- Suggest Incarnation during high damage phases
+    local incarnationReady = self:IsSpellReady("incarnationTree")
+    local recentDamageCount = self:GetRecentDamageCount()
+    
+    return incarnationReady and recentDamageCount >= 3
+end
+
+function Tracker:ShouldUseNaturesSwiftness()
+    -- Suggest Nature's Swiftness if available and target needs immediate healing
+    local naturesSwiftnessReady = self:IsSpellReady("naturesSwiftness")
+    local targetExists = UnitExists("target")
+    local targetIsFriendly = targetExists and UnitIsFriend("player", "target")
+    
+    return naturesSwiftnessReady and targetIsFriendly
+end
+
+function Tracker:ShouldUseBarkskin()
+    -- Suggest Barkskin if available and player is taking damage
+    local barkskinReady = self:IsSpellReady("barkskin")
+    local inCombat = InCombatLockdown()
+    
+    return barkskinReady and inCombat
+end
+
+function Tracker:HasActiveTrinket()
+    -- Check if any trinket is ready to use
+    for slot = 13, 14 do
+        local trinket = trackedData.trinketCooldowns[slot]
+        if trinket and trinket.ready then
+            return true, slot
+        end
+    end
+    return false, nil
 end
 
 HealIQ.Tracker = Tracker
