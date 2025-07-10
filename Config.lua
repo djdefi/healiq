@@ -422,8 +422,8 @@ commands.status = function()
     print("  In Combat: " .. (InCombatLockdown() and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
     
     -- Show addon status
-    local addonLoaded = select(4, GetAddOnMetadata("HealIQ", "Version"))
-    print("  Addon Status: |cFF00FF00Loaded|r")
+    local addonVersion = GetAddOnMetadata("HealIQ", "Version")
+    print("  Addon Version: |cFF00FF00" .. addonVersion .. "|r")
     print("  Memory Usage: |cFF00FF00" .. GetAddOnMemoryUsage("HealIQ") .. " KB|r")
 end
 
