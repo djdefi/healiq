@@ -79,11 +79,30 @@ function UI:CreateMainFrame()
     
     -- Create glow effect for primary icon
     local glow = iconFrame:CreateTexture(nil, "OVERLAY")
-    glow:SetSize(ICON_SIZE + 4, ICON_SIZE + 4)
+    glow:SetSize(ICON_SIZE + 8, ICON_SIZE + 8)
     glow:SetPoint("CENTER")
-    glow:SetColorTexture(1, 1, 0, 0.3) -- Yellow glow
+    glow:SetColorTexture(1, 1, 0, 0.4) -- Yellow glow
     glow:SetBlendMode("ADD")
     iconFrame.glow = glow
+    
+    -- Create pulsing animation for the glow
+    local glowAnimation = glow:CreateAnimationGroup()
+    glowAnimation:SetLooping("BOUNCE")
+    
+    local fadeIn = glowAnimation:CreateAnimation("Alpha")
+    fadeIn:SetFromAlpha(0.2)
+    fadeIn:SetToAlpha(0.6)
+    fadeIn:SetDuration(1.0)
+    fadeIn:SetSmoothing("IN_OUT")
+    
+    local fadeOut = glowAnimation:CreateAnimation("Alpha")
+    fadeOut:SetFromAlpha(0.6)
+    fadeOut:SetToAlpha(0.2)
+    fadeOut:SetDuration(1.0)
+    fadeOut:SetSmoothing("IN_OUT")
+    
+    glowAnimation:Play()
+    iconFrame.glowAnimation = glowAnimation
     
     -- Create spell name text
     spellNameText = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -221,11 +240,26 @@ function UI:CreateQueueFrame()
         
         -- Create border for queue items
         local border = queueIcon:CreateTexture(nil, "BORDER")
-        border:SetAllPoints()
-        border:SetColorTexture(0.5, 0.5, 0.5, 0.6)
-        border:SetPoint("TOPLEFT", queueIcon, "TOPLEFT", 1, -1)
-        border:SetPoint("BOTTOMRIGHT", queueIcon, "BOTTOMRIGHT", -1, 1)
+        border:SetSize(queueIconSize + 2, queueIconSize + 2)
+        border:SetPoint("CENTER")
+        border:SetColorTexture(0.3, 0.6, 1, 0.8) -- Blue border for queue items
         queueIcon.border = border
+        
+        -- Add subtle shadow effect
+        local shadow = queueIcon:CreateTexture(nil, "BACKGROUND")
+        shadow:SetSize(queueIconSize + 4, queueIconSize + 4)
+        shadow:SetPoint("CENTER", queueIcon, "CENTER", 2, -2)
+        shadow:SetColorTexture(0, 0, 0, 0.5)
+        queueIcon.shadow = shadow
+        
+        -- Add position number overlay
+        local positionText = queueIcon:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        positionText:SetPoint("BOTTOMRIGHT", queueIcon, "BOTTOMRIGHT", -2, 2)
+        positionText:SetTextColor(1, 1, 1, 0.9)
+        positionText:SetText(tostring(i + 1)) -- +1 because primary is position 1
+        positionText:SetShadowColor(0, 0, 0, 1)
+        positionText:SetShadowOffset(1, -1)
+        queueIcon.positionText = positionText
         
         -- Initially hide queue icons
         queueIcon:Hide()
@@ -513,6 +547,9 @@ function UI:UpdateSuggestion(suggestion)
         -- Show glow effect for primary suggestion
         if iconFrame.glow then
             iconFrame.glow:Show()
+            if iconFrame.glowAnimation then
+                iconFrame.glowAnimation:Play()
+            end
         end
     end
     
@@ -548,45 +585,15 @@ function UI:UpdateQueue(queue)
                 queueIcon.icon:SetTexture(suggestion.icon)
                 queueIcon:Show()
                 
-                -- Add tooltip for queue items
+                -- Add enhanced tooltip for queue items
                 queueIcon:SetScript("OnEnter", function(self)
                     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                     GameTooltip:AddLine(suggestion.name, 1, 1, 1)
-                    GameTooltip:AddLine("Upcoming suggestion", 0.7, 0.7, 0.7)
-                    GameTooltip:Show()
-                end)
-                
-                queueIcon:SetScript("OnLeave", function(self)
-                    GameTooltip:Hide()
-                end)
-            end
-        end
-    end
-end
-
-function UI:UpdateQueue(queue)
-    if not HealIQ.db.ui.showQueue or not queueIcons then
-        return
-    end
-    
-    -- Hide all queue icons first
-    for _, queueIcon in ipairs(queueIcons) do
-        queueIcon:Hide()
-    end
-    
-    -- Update queue icons with new suggestions
-    for i, suggestion in ipairs(queue) do
-        if i > 1 and i <= #queueIcons + 1 then -- Skip first suggestion (it's the primary)
-            local queueIcon = queueIcons[i - 1]
-            if queueIcon then
-                queueIcon.icon:SetTexture(suggestion.icon)
-                queueIcon:Show()
-                
-                -- Add tooltip for queue items
-                queueIcon:SetScript("OnEnter", function(self)
-                    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                    GameTooltip:AddLine(suggestion.name, 1, 1, 1)
-                    GameTooltip:AddLine("Upcoming suggestion", 0.7, 0.7, 0.7)
+                    GameTooltip:AddLine("Position " .. (i) .. " in queue", 0.7, 0.7, 0.7)
+                    GameTooltip:AddLine("Priority: " .. suggestion.priority, 0.5, 0.8, 1)
+                    GameTooltip:AddLine(" ")
+                    GameTooltip:AddLine("This suggestion will appear when higher", 0.6, 0.6, 0.6)
+                    GameTooltip:AddLine("priority spells become unavailable.", 0.6, 0.6, 0.6)
                     GameTooltip:Show()
                 end)
                 
