@@ -86,26 +86,8 @@ function Tracker:UpdateCooldowns()
     
     -- Helper function to update cooldown data
     local function updateCooldown(spellId, spellName)
-        local cooldownInfo = C_Spell.GetSpellCooldown(spellId)
-        -- Defensive check: handle different API return formats
-        local startTime, duration, isEnabled = nil, nil, nil
-        
-        if type(cooldownInfo) == "table" then
-            -- New API format: returns a table
-            startTime = cooldownInfo.startTime
-            duration = cooldownInfo.duration
-            isEnabled = cooldownInfo.isEnabled
-        elseif type(cooldownInfo) == "number" then
-            -- Legacy API format: returns start, duration, isEnabled as separate values
-            startTime = cooldownInfo
-            duration = select(2, C_Spell.GetSpellCooldown(spellId))
-            isEnabled = select(3, C_Spell.GetSpellCooldown(spellId))
-        else
-            -- Fallback: try getting individual values
-            startTime, duration, isEnabled = C_Spell.GetSpellCooldown(spellId)
-        end
-        
-        -- Ensure we got valid values
+        local startTime, duration, isEnabled = C_Spell.GetSpellCooldown(spellId)
+        -- Defensive check: ensure we got valid values and spell is on cooldown
         if startTime and duration and isEnabled and startTime > 0 and duration > 0 then
             local remaining = (startTime + duration) - currentTime
             trackedData.cooldowns[spellName] = {
