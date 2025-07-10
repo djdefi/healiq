@@ -138,7 +138,9 @@ function HealIQ:SafeCall(func, ...)
         -- Also report to WoW's error system for copyable errors
         -- This ensures errors appear in the default error frame
         if self.debug then
-            geterrorhandler()(errorMsg)
+            -- Construct a complete error message with context and stack trace
+            local completeError = "HealIQ SafeCall Error: " .. errorMsg .. "\n" .. debugstack()
+            geterrorhandler()(completeError)
         end
         
         return false, result
