@@ -173,9 +173,10 @@ end
 
 -- Event handling
 function HealIQ:OnEvent(event, ...)
+    local args = {...}  -- Capture varargs for use in SafeCall
     self:SafeCall(function()
         if event == "ADDON_LOADED" then
-            local loadedAddon = ...
+            local loadedAddon = args[1]
             if loadedAddon == addonName then
                 self:OnInitialize()
             end

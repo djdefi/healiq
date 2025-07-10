@@ -66,11 +66,12 @@ function Tracker:RegisterEvents()
 end
 
 function Tracker:OnEvent(event, ...)
+    local args = {...}  -- Capture varargs for use in SafeCall
     HealIQ:SafeCall(function()
         if event == "SPELL_UPDATE_COOLDOWN" then
             self:UpdateCooldowns()
         elseif event == "UNIT_AURA" then
-            local unit = ...
+            local unit = args[1]
             self:UpdateUnitAuras(unit)
         elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
             self:ParseCombatLog()
