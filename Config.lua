@@ -55,6 +55,7 @@ commands.help = function()
     print("|cFFFFFF00/healiq rules|r - Show rule commands")
     print("|cFFFFFF00/healiq test|r - Test suggestion display")
     print("|cFFFFFF00/healiq test queue|r - Test queue display")
+    print("|cFFFFFF00/healiq test ui|r - Test UI with sample queue")
     print("|cFFFFFF00/healiq debug|r - Toggle debug mode")
     print("|cFFFFFF00/healiq reset|r - Reset all settings")
     print("|cFFFFFF00/healiq reload|r - Reload addon configuration")
@@ -240,6 +241,10 @@ commands.test = function(subcommand)
                 HealIQ.UI:UpdateQueue(queue)
             end
         end
+    elseif subcommand == "ui" then
+        if HealIQ.UI then
+            HealIQ.UI:TestQueue()
+        end
     else
         if HealIQ.UI then
             HealIQ.UI:TestDisplay()
@@ -258,6 +263,7 @@ commands.reset = function()
     
     -- Reset to defaults
     HealIQ.db.enabled = true
+    HealIQ.db.debug = false
     HealIQ.db.ui.scale = 1.0
     HealIQ.db.ui.x = 0
     HealIQ.db.ui.y = 0
@@ -269,6 +275,9 @@ commands.reset = function()
     HealIQ.db.ui.queueSize = 3
     HealIQ.db.ui.queueLayout = "horizontal"
     HealIQ.db.ui.queueSpacing = 8
+    HealIQ.db.ui.queueScale = 0.75
+    HealIQ.db.ui.minimapAngle = -math.pi/4
+    HealIQ.db.ui.showPositionBorder = false
     
     for rule in pairs(HealIQ.db.rules) do
         HealIQ.db.rules[rule] = true

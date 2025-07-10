@@ -21,6 +21,19 @@ local optionsFrame = nil
 local FRAME_SIZE = 64
 local ICON_SIZE = 48
 
+-- Minimap button positioning
+local MINIMAP_BUTTON_PIXEL_BUFFER = 2
+
+-- UI Border colors (configurable for accessibility)
+local BORDER_COLORS = {
+    positioning = {0, 1, 1, 0.8},     -- Cyan for positioning aid
+    locked = {1, 0, 0, 0.5},          -- Red when UI is locked
+    unlocked = {0, 1, 0, 0.5}         -- Green when UI is unlocked
+}
+
+-- Texture paths
+local MINIMAP_BACKGROUND_TEXTURE = "Interface\\MINIMAP\\UI-Minimap-Background"
+
 function UI:Initialize()
     HealIQ:SafeCall(function()
         self:CreateMainFrame()
@@ -133,6 +146,23 @@ function UI:CreateMainFrame()
     mainFrame:Hide()
 end
 
+-- Helper function for minimap button positioning
+function UI:CalculateMinimapButtonRadius()
+    if not minimapButton then
+        return 1
+    end
+    
+    local minimapRadius = Minimap:GetWidth() / 2
+    local buttonRadius = minimapButton:GetWidth() / 2
+    local radius = minimapRadius - buttonRadius - MINIMAP_BUTTON_PIXEL_BUFFER
+    
+    if radius <= 0 then
+        radius = 1 -- Ensure a minimum positive radius
+    end
+    
+    return radius
+end
+
 function UI:CreateMinimapButton()
     -- Create minimap button
     minimapButton = CreateFrame("Button", "HealIQMinimapButton", Minimap)
@@ -140,24 +170,41 @@ function UI:CreateMinimapButton()
     minimapButton:SetFrameStrata("MEDIUM")
     minimapButton:SetFrameLevel(8)
     
-    -- Create button background
+    -- Create button background with circular masking
     local bg = minimapButton:CreateTexture(nil, "BACKGROUND")
     bg:SetSize(20, 20)
     bg:SetPoint("CENTER")
     bg:SetColorTexture(0, 0, 0, 0.7)
     
-    -- Create button icon
+    -- Create circular mask for the background
+    local mask = minimapButton:CreateMaskTexture()
+    mask:SetAllPoints(bg)
+    mask:SetTexture(MINIMAP_BACKGROUND_TEXTURE, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    bg:AddMaskTexture(mask)
+    
+    -- Create button icon with circular masking
     local icon = minimapButton:CreateTexture(nil, "ARTWORK")
     icon:SetSize(16, 16)
     icon:SetPoint("CENTER")
     icon:SetTexture("Interface\\Icons\\Spell_Nature_Rejuvenation")
     icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+    
+    -- Apply circular mask to the icon as well
+    local iconMask = minimapButton:CreateMaskTexture()
+    iconMask:SetAllPoints(icon)
+    iconMask:SetTexture(MINIMAP_BACKGROUND_TEXTURE, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    icon:AddMaskTexture(iconMask)
+    
     minimapButton.icon = icon
     
-    -- Position on minimap (check for saved position first)
-    local minimapX = HealIQ.db.ui.minimapX or 10
-    local minimapY = HealIQ.db.ui.minimapY or -10
-    minimapButton:SetPoint("TOPLEFT", Minimap, "TOPLEFT", minimapX, minimapY)
+    -- Position on minimap using angle-based positioning
+    local savedAngle = HealIQ.db.ui.minimapAngle or -math.pi/4 -- Default to top-right
+    local mx, my = Minimap:GetCenter()
+    local radius = self:CalculateMinimapButtonRadius()
+    
+    local x = mx + radius * math.cos(savedAngle)
+    local y = my + radius * math.sin(savedAngle)
+    minimapButton:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
     
     -- Make it draggable around minimap
     minimapButton:SetMovable(true)
@@ -171,19 +218,20 @@ function UI:CreateMinimapButton()
     minimapButton:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         -- Keep button on minimap edge and save position
-        local x, y = self:GetCenter()
-        local mx, my = Minimap:GetCenter()
-        local angle = math.atan2(y - my, x - mx)
-        local radius = 80
-        local newX = mx + radius * math.cos(angle)
-        local newY = my + radius * math.sin(angle)
+        local dragX, dragY = self:GetCenter()
+        local mapX, mapY = Minimap:GetCenter()
+        local angle = math.atan2(dragY - mapY, dragX - mapX)
+        
+        -- Use helper method for radius calculation
+        local finalRadius = UI:CalculateMinimapButtonRadius()
+        
+        local newX = mapX + finalRadius * math.cos(angle)
+        local newY = mapY + finalRadius * math.sin(angle)
         self:ClearAllPoints()
         self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", newX, newY)
         
-        -- Save minimap button position
-        local point, relativeTo, relativePoint, xOfs, yOfs = self:GetPoint()
-        HealIQ.db.ui.minimapX = xOfs
-        HealIQ.db.ui.minimapY = yOfs
+        -- Save minimap button position as angle for consistency
+        HealIQ.db.ui.minimapAngle = angle
     end)
     
     -- Click handler
@@ -213,16 +261,12 @@ function UI:CreateMinimapButton()
 end
 
 function UI:CreateQueueFrame()
-    if not HealIQ.db.ui.showQueue then
-        return
-    end
-    
     local queueSize = HealIQ.db.ui.queueSize or 3
     local queueLayout = HealIQ.db.ui.queueLayout or "horizontal"
     local queueSpacing = HealIQ.db.ui.queueSpacing or 8
-    local queueIconSize = math.floor(ICON_SIZE * 0.75) -- Smaller icons for queue
+    local queueIconSize = math.floor(ICON_SIZE * (HealIQ.db.ui.queueScale or 0.75)) -- Configurable queue icon size
     
-    -- Create queue container frame
+    -- Create queue container frame (always create, but conditionally show)
     queueFrame = CreateFrame("Frame", "HealIQQueueFrame", mainFrame)
     
     if queueLayout == "horizontal" then
@@ -280,6 +324,13 @@ function UI:CreateQueueFrame()
         
         table.insert(queueIcons, queueIcon)
     end
+    
+    -- Show/hide queue frame based on settings
+    if HealIQ.db.ui.showQueue then
+        queueFrame:Show()
+    else
+        queueFrame:Hide()
+    end
 end
 
 function UI:CreateOptionsFrame()
@@ -315,9 +366,15 @@ function UI:CreateOptionsFrame()
     -- Content area
     local content = optionsFrame.Inset or optionsFrame
     
+    -- General Settings Section
+    local generalHeader = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    generalHeader:SetPoint("TOPLEFT", content, "TOPLEFT", 10, -10)
+    generalHeader:SetText("General Settings")
+    generalHeader:SetTextColor(1, 0.8, 0, 1) -- Gold color for headers
+    
     -- Enable/Disable checkbox
     local enableCheck = CreateFrame("CheckButton", "HealIQEnableCheck", content, "UICheckButtonTemplate")
-    enableCheck:SetPoint("TOPLEFT", content, "TOPLEFT", 10, -10)
+    enableCheck:SetPoint("TOPLEFT", generalHeader, "BOTTOMLEFT", 0, -10)
     enableCheck.text = enableCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     enableCheck.text:SetPoint("LEFT", enableCheck, "RIGHT", 5, 0)
     enableCheck.text:SetText("Enable HealIQ")
@@ -339,16 +396,49 @@ function UI:CreateOptionsFrame()
     end)
     optionsFrame.enableCheck = enableCheck
     
-    -- UI Scale slider
+    -- Debug mode checkbox
+    local debugCheck = CreateFrame("CheckButton", "HealIQDebugCheck", content, "UICheckButtonTemplate")
+    debugCheck:SetPoint("TOPLEFT", enableCheck, "BOTTOMLEFT", 0, -5)
+    debugCheck.text = debugCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    debugCheck.text:SetPoint("LEFT", debugCheck, "RIGHT", 5, 0)
+    debugCheck.text:SetText("Enable Debug Mode")
+    debugCheck:SetScript("OnClick", function(self)
+        HealIQ.db.debug = self:GetChecked()
+        HealIQ.debug = HealIQ.db.debug
+        if HealIQ.debug then
+            HealIQ:Print("Debug mode enabled")
+        else
+            HealIQ:Print("Debug mode disabled")
+        end
+    end)
+    debugCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Enable Debug Mode", 1, 1, 1)
+        GameTooltip:AddLine("Enable additional debug output and test features.", 0.7, 0.7, 0.7)
+        GameTooltip:AddLine("Useful for troubleshooting issues.", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    debugCheck:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
+    optionsFrame.debugCheck = debugCheck
+    
+    -- UI Settings Section
+    local uiHeader = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    uiHeader:SetPoint("TOPLEFT", debugCheck, "BOTTOMLEFT", 0, -20)
+    uiHeader:SetText("UI Settings")
+    uiHeader:SetTextColor(1, 0.8, 0, 1) -- Gold color for headers
+    
+    -- UI Scale slider (Main UI)
     local scaleSlider = CreateFrame("Slider", "HealIQScaleSlider", content, "OptionsSliderTemplate")
-    scaleSlider:SetPoint("TOPLEFT", enableCheck, "BOTTOMLEFT", 0, -30)
+    scaleSlider:SetPoint("TOPLEFT", uiHeader, "BOTTOMLEFT", 0, -10)
     scaleSlider:SetMinMaxValues(0.5, 2.0)
     scaleSlider:SetValueStep(0.1)
     scaleSlider:SetObeyStepOnDrag(true)
-    scaleSlider.tooltipText = "Adjust the scale of the suggestion display"
+    scaleSlider.tooltipText = "Adjust the scale of the main suggestion display"
     _G[scaleSlider:GetName() .. "Low"]:SetText("0.5")
     _G[scaleSlider:GetName() .. "High"]:SetText("2.0")
-    _G[scaleSlider:GetName() .. "Text"]:SetText("UI Scale")
+    _G[scaleSlider:GetName() .. "Text"]:SetText("Main UI Scale")
     scaleSlider:SetScript("OnValueChanged", function(self, value)
         if HealIQ.UI then
             HealIQ.UI:SetScale(value)
@@ -356,7 +446,7 @@ function UI:CreateOptionsFrame()
     end)
     scaleSlider:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine("UI Scale", 1, 1, 1)
+        GameTooltip:AddLine("Main UI Scale", 1, 1, 1)
         GameTooltip:AddLine("Adjust the scale of the main HealIQ display (0.5-2.0).", 0.7, 0.7, 0.7)
         GameTooltip:Show()
     end)
@@ -365,9 +455,36 @@ function UI:CreateOptionsFrame()
     end)
     optionsFrame.scaleSlider = scaleSlider
     
+    -- Queue Scale slider
+    local queueScaleSlider = CreateFrame("Slider", "HealIQQueueScaleSlider", content, "OptionsSliderTemplate")
+    queueScaleSlider:SetPoint("TOPLEFT", scaleSlider, "BOTTOMLEFT", 0, -30)
+    queueScaleSlider:SetMinMaxValues(0.5, 1.5)
+    queueScaleSlider:SetValueStep(0.1)
+    queueScaleSlider:SetObeyStepOnDrag(true)
+    queueScaleSlider.tooltipText = "Adjust the scale of the queue icons relative to main icon"
+    _G[queueScaleSlider:GetName() .. "Low"]:SetText("0.5")
+    _G[queueScaleSlider:GetName() .. "High"]:SetText("1.5")
+    _G[queueScaleSlider:GetName() .. "Text"]:SetText("Queue Scale")
+    queueScaleSlider:SetScript("OnValueChanged", function(self, value)
+        HealIQ.db.ui.queueScale = value
+        if HealIQ.UI then
+            HealIQ.UI:RecreateFrames()
+        end
+    end)
+    queueScaleSlider:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Queue Scale", 1, 1, 1)
+        GameTooltip:AddLine("Adjust the scale of queue icons relative to the main icon (0.5-1.5).", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    queueScaleSlider:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
+    optionsFrame.queueScaleSlider = queueScaleSlider
+    
     -- UI Position buttons
     local positionLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    positionLabel:SetPoint("TOPLEFT", scaleSlider, "BOTTOMLEFT", 0, -30)
+    positionLabel:SetPoint("TOPLEFT", queueScaleSlider, "BOTTOMLEFT", 0, -30)
     positionLabel:SetText("UI Position:")
     
     local resetPosButton = CreateFrame("Button", "HealIQResetPosButton", content, "UIPanelButtonTemplate")
@@ -411,10 +528,34 @@ function UI:CreateOptionsFrame()
     end)
     optionsFrame.lockButton = lockButton
     
+    -- Frame positioning indicator checkbox
+    local showFrameCheck = CreateFrame("CheckButton", "HealIQShowFrameCheck", content, "UICheckButtonTemplate")
+    showFrameCheck:SetPoint("TOPLEFT", resetPosButton, "BOTTOMLEFT", 0, -25)
+    showFrameCheck.text = showFrameCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    showFrameCheck.text:SetPoint("LEFT", showFrameCheck, "RIGHT", 5, 0)
+    showFrameCheck.text:SetText("Show frame positioning border")
+    showFrameCheck:SetScript("OnClick", function(self)
+        HealIQ.db.ui.showPositionBorder = self:GetChecked()
+        if HealIQ.UI then
+            HealIQ.UI:UpdatePositionBorder()
+        end
+    end)
+    showFrameCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Show Frame Position Border", 1, 1, 1)
+        GameTooltip:AddLine("Shows a visible border around the main frame for easier positioning.", 0.7, 0.7, 0.7)
+        GameTooltip:AddLine("Helpful when arranging the UI layout.", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    showFrameCheck:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
+    optionsFrame.showFrameCheck = showFrameCheck
+    
     -- Minimap button reset
     local minimapResetButton = CreateFrame("Button", "HealIQMinimapResetButton", content, "UIPanelButtonTemplate")
     minimapResetButton:SetSize(120, 22)
-    minimapResetButton:SetPoint("TOPLEFT", resetPosButton, "BOTTOMLEFT", 0, -5)
+    minimapResetButton:SetPoint("TOPLEFT", showFrameCheck, "BOTTOMLEFT", 0, -5)
     minimapResetButton:SetText("Reset Minimap Icon")
     minimapResetButton:SetScript("OnClick", function()
         if HealIQ.UI then
@@ -756,8 +897,18 @@ function UI:UpdateSuggestion(suggestion)
 end
 
 function UI:UpdateQueue(queue)
-    if not HealIQ.db.ui.showQueue or not queueIcons then
+    if not queueIcons then
         return
+    end
+    
+    -- Show/hide queue frame based on settings
+    if queueFrame then
+        if HealIQ.db.ui.showQueue then
+            queueFrame:Show()
+        else
+            queueFrame:Hide()
+            return
+        end
     end
     
     -- Hide all queue icons first
@@ -833,15 +984,12 @@ function UI:ToggleLock()
     
     if HealIQ.db.ui.locked then
         HealIQ:Print("UI locked")
-        if mainFrame and mainFrame.border then
-            mainFrame.border:SetColorTexture(1, 0, 0, 0.5) -- Red border when locked
-        end
     else
         HealIQ:Print("UI unlocked (drag to move, right-click to lock)")
-        if mainFrame and mainFrame.border then
-            mainFrame.border:SetColorTexture(0, 1, 0, 0.5) -- Green border when unlocked
-        end
     end
+    
+    -- Update border based on new state
+    self:UpdatePositionBorder()
 end
 
 function UI:Show()
@@ -913,11 +1061,15 @@ function UI:ResetPosition()
 end
 
 function UI:ResetMinimapPosition()
-    HealIQ.db.ui.minimapX = 10
-    HealIQ.db.ui.minimapY = -10
+    HealIQ.db.ui.minimapAngle = -math.pi/4 -- Reset to default angle (top-right)
     if minimapButton then
+        local mx, my = Minimap:GetCenter()
+        local radius = self:CalculateMinimapButtonRadius()
+        
+        local x = mx + radius * math.cos(HealIQ.db.ui.minimapAngle)
+        local y = my + radius * math.sin(HealIQ.db.ui.minimapAngle)
         minimapButton:ClearAllPoints()
-        minimapButton:SetPoint("TOPLEFT", Minimap, "TOPLEFT", HealIQ.db.ui.minimapX, HealIQ.db.ui.minimapY)
+        minimapButton:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
     end
     HealIQ:Print("Minimap icon position reset")
 end
@@ -933,6 +1085,39 @@ function UI:TestDisplay()
     
     self:UpdateSuggestion(testSuggestion)
     HealIQ:Print("Test display activated")
+end
+
+function UI:TestQueue()
+    local testQueue = {
+        {
+            id = 774,
+            name = "Rejuvenation",
+            icon = "Interface\\Icons\\Spell_Nature_Rejuvenation",
+            priority = 5,
+        },
+        {
+            id = 48438,
+            name = "Wild Growth",
+            icon = "Interface\\Icons\\Ability_Druid_WildGrowth",
+            priority = 4,
+        },
+        {
+            id = 18562,
+            name = "Swiftmend",
+            icon = "Interface\\Icons\\INV_Relics_IdolofRejuvenation",
+            priority = 6,
+        },
+        {
+            id = 8936,
+            name = "Regrowth",
+            icon = "Interface\\Icons\\Spell_Nature_ResistNature",
+            priority = 7,
+        }
+    }
+    
+    self:UpdateSuggestion(testQueue[1])
+    self:UpdateQueue(testQueue)
+    HealIQ:Print("Test queue display activated with " .. #testQueue .. " queue items")
 end
 
 function UI:GetFrameInfo()
@@ -987,6 +1172,37 @@ function UI:RecreateFrames()
     HealIQ:Print("UI frames recreated with new settings")
 end
 
+function UI:UpdatePositionBorder()
+    if not mainFrame or not mainFrame.border then
+        return
+    end
+    
+    -- Determine border color and visibility
+    local borderColor
+    local showBorder = false
+    
+    if HealIQ.db.ui.showPositionBorder then
+        -- Show positioning aid border (cyan)
+        borderColor = BORDER_COLORS.positioning
+        showBorder = true
+    elseif HealIQ.db.ui.locked then
+        -- Show locked state border (red)
+        borderColor = BORDER_COLORS.locked
+        showBorder = true
+    else
+        -- Show unlocked state border (green)
+        borderColor = BORDER_COLORS.unlocked
+        showBorder = true
+    end
+    
+    if showBorder then
+        mainFrame.border:SetColorTexture(unpack(borderColor))
+        mainFrame.border:Show()
+    else
+        mainFrame.border:Hide()
+    end
+end
+
 function UI:UpdateOptionsFrame()
     if not optionsFrame then
         return
@@ -997,9 +1213,19 @@ function UI:UpdateOptionsFrame()
         optionsFrame.enableCheck:SetChecked(HealIQ.db.enabled)
     end
     
+    -- Update debug checkbox
+    if optionsFrame.debugCheck then
+        optionsFrame.debugCheck:SetChecked(HealIQ.db.debug)
+    end
+    
     -- Update scale slider
     if optionsFrame.scaleSlider then
         optionsFrame.scaleSlider:SetValue(HealIQ.db.ui.scale)
+    end
+    
+    -- Update queue scale slider
+    if optionsFrame.queueScaleSlider then
+        optionsFrame.queueScaleSlider:SetValue(HealIQ.db.ui.queueScale or 0.75)
     end
     
     -- Update lock button text
@@ -1021,6 +1247,11 @@ function UI:UpdateOptionsFrame()
     
     if optionsFrame.showCooldownCheck then
         optionsFrame.showCooldownCheck:SetChecked(HealIQ.db.ui.showCooldown)
+    end
+    
+    -- Update frame positioning checkbox
+    if optionsFrame.showFrameCheck then
+        optionsFrame.showFrameCheck:SetChecked(HealIQ.db.ui.showPositionBorder)
     end
     
     -- Update queue options

@@ -11,6 +11,7 @@ HealIQ.debug = false
 -- Default settings
 local defaults = {
     enabled = true,
+    debug = false, -- Debug mode setting
     ui = {
         scale = 1.0,
         x = 0,
@@ -23,8 +24,11 @@ local defaults = {
         queueSize = 3,
         queueLayout = "horizontal", -- horizontal or vertical
         queueSpacing = 8,
+        queueScale = 0.75, -- Scale of queue icons relative to main icon
         minimapX = 10,
         minimapY = -10,
+        minimapAngle = -math.pi/4, -- Default angle for minimap positioning
+        showPositionBorder = false, -- Show frame positioning border
     },
     rules = {
         -- Existing rules
