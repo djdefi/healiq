@@ -1,5 +1,17 @@
 # HealIQ Changelog
 
+## [0.0.3] - 2025-07-10
+
+### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
+
 ## [0.0.2] - 2024-07-10
 
 ### Added - Major Rule Expansion
