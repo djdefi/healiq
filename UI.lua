@@ -1094,7 +1094,7 @@ function UI:TestQueue()
     
     self:UpdateSuggestion(testQueue[1])
     self:UpdateQueue(testQueue)
-    HealIQ:Print("Test queue display activated with " .. #testQueue .. " suggestions")
+    HealIQ:Print("Test queue display activated with " .. #testQueue .. " queue items")
 end
 
 function UI:GetFrameInfo()
