@@ -575,8 +575,10 @@ function UI:UpdateSuggestion(suggestion)
         if spellNameText and HealIQ.db.ui.showSpellName then
             spellNameText:SetText(suggestion.name)
             spellNameText:Show()
-        elseif spellNameText then
-            spellNameText:Hide()
+        else
+            if spellNameText then
+                spellNameText:Hide()
+            end
         end
         
         -- Update cooldown display
