@@ -21,6 +21,19 @@ local optionsFrame = nil
 local FRAME_SIZE = 64
 local ICON_SIZE = 48
 
+-- Minimap button positioning
+local MINIMAP_BUTTON_PIXEL_BUFFER = 2
+
+-- UI Border colors (configurable for accessibility)
+local BORDER_COLORS = {
+    positioning = {0, 1, 1, 0.8},     -- Cyan for positioning aid
+    locked = {1, 0, 0, 0.5},          -- Red when UI is locked
+    unlocked = {0, 1, 0, 0.5}         -- Green when UI is unlocked
+}
+
+-- Texture paths
+local MINIMAP_BACKGROUND_TEXTURE = "Interface\\MINIMAP\\UI-Minimap-Background"
+
 function UI:Initialize()
     HealIQ:SafeCall(function()
         self:CreateMainFrame()
@@ -149,7 +162,7 @@ function UI:CreateMinimapButton()
     -- Create circular mask for the background
     local mask = minimapButton:CreateMaskTexture()
     mask:SetAllPoints(bg)
-    mask:SetTexture("Interface\\MINIMAP\\UI-Minimap-Background", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    mask:SetTexture(MINIMAP_BACKGROUND_TEXTURE, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
     bg:AddMaskTexture(mask)
     
     -- Create button icon with circular masking
@@ -162,7 +175,7 @@ function UI:CreateMinimapButton()
     -- Apply circular mask to the icon as well
     local iconMask = minimapButton:CreateMaskTexture()
     iconMask:SetAllPoints(icon)
-    iconMask:SetTexture("Interface\\MINIMAP\\UI-Minimap-Background", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    iconMask:SetTexture(MINIMAP_BACKGROUND_TEXTURE, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
     icon:AddMaskTexture(iconMask)
     
     minimapButton.icon = icon
@@ -172,7 +185,7 @@ function UI:CreateMinimapButton()
     local mx, my = Minimap:GetCenter()
     local minimapRadius = Minimap:GetWidth() / 2
     local buttonRadius = minimapButton:GetWidth() / 2
-    local radius = minimapRadius - buttonRadius - 2
+    local radius = minimapRadius - buttonRadius - MINIMAP_BUTTON_PIXEL_BUFFER
     
     local x = mx + radius * math.cos(savedAngle)
     local y = my + radius * math.sin(savedAngle)
@@ -197,7 +210,7 @@ function UI:CreateMinimapButton()
         -- Calculate proper radius based on minimap size
         local mapRadius = Minimap:GetWidth() / 2
         local btnRadius = self:GetWidth() / 2
-        local finalRadius = mapRadius - btnRadius - 2 -- 2 pixel buffer
+        local finalRadius = mapRadius - btnRadius - MINIMAP_BUTTON_PIXEL_BUFFER
         
         local newX = mapX + finalRadius * math.cos(angle)
         local newY = mapY + finalRadius * math.sin(angle)
@@ -414,7 +427,6 @@ function UI:CreateOptionsFrame()
     _G[scaleSlider:GetName() .. "High"]:SetText("2.0")
     _G[scaleSlider:GetName() .. "Text"]:SetText("Main UI Scale")
     scaleSlider:SetScript("OnValueChanged", function(self, value)
-        HealIQ.db.ui.scale = value
         if HealIQ.UI then
             HealIQ.UI:SetScale(value)
         end
@@ -1041,7 +1053,7 @@ function UI:ResetMinimapPosition()
         local mx, my = Minimap:GetCenter()
         local minimapRadius = Minimap:GetWidth() / 2
         local buttonRadius = minimapButton:GetWidth() / 2
-        local radius = minimapRadius - buttonRadius - 2
+        local radius = minimapRadius - buttonRadius - MINIMAP_BUTTON_PIXEL_BUFFER
         
         local x = mx + radius * math.cos(HealIQ.db.ui.minimapAngle)
         local y = my + radius * math.sin(HealIQ.db.ui.minimapAngle)
@@ -1152,14 +1164,14 @@ end
 function UI:UpdatePositionBorder()
     if mainFrame and mainFrame.border then
         if HealIQ.db.ui.showPositionBorder then
-            mainFrame.border:SetColorTexture(0, 1, 1, 0.8) -- Cyan border for positioning
+            mainFrame.border:SetColorTexture(unpack(BORDER_COLORS.positioning))
             mainFrame.border:Show()
         else
             -- Hide border or show normal border based on lock state
             if HealIQ.db.ui.locked then
-                mainFrame.border:SetColorTexture(1, 0, 0, 0.5) -- Red border when locked
+                mainFrame.border:SetColorTexture(unpack(BORDER_COLORS.locked))
             else
-                mainFrame.border:SetColorTexture(0, 1, 0, 0.5) -- Green border when unlocked
+                mainFrame.border:SetColorTexture(unpack(BORDER_COLORS.unlocked))
             end
         end
     end
