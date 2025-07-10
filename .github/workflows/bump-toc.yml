@@ -1,6 +1,6 @@
 name: Bump TOC Version
 
-"on":
+on:
   workflow_dispatch:
     inputs:
       version_type:
