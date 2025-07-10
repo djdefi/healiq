@@ -81,14 +81,14 @@ function Tracker:UpdateCooldowns()
     
     -- Helper function to update cooldown data
     local function updateCooldown(spellId, spellName)
-        local start, duration, enabled = GetSpellCooldown(spellId)
-        if enabled == 1 then
-            local remaining = (start + duration) - currentTime
+        local cooldownInfo = C_Spell.GetSpellCooldown(spellId)
+        if cooldownInfo and cooldownInfo.isEnabled then
+            local remaining = (cooldownInfo.startTime + cooldownInfo.duration) - currentTime
             trackedData.cooldowns[spellName] = {
                 remaining = math.max(0, remaining),
                 ready = remaining <= 0,
-                start = start,
-                duration = duration
+                start = cooldownInfo.startTime,
+                duration = cooldownInfo.duration
             }
         end
     end
@@ -110,14 +110,14 @@ function Tracker:UpdateCooldowns()
     for slot = 13, 14 do
         local itemId = GetInventoryItemID("player", slot)
         if itemId then
-            local start, duration, enabled = GetItemCooldown(itemId)
-            if enabled == 1 then
-                local remaining = (start + duration) - currentTime
+            local cooldownInfo = C_Item.GetItemCooldown(itemId)
+            if cooldownInfo and cooldownInfo.isEnabled then
+                local remaining = (cooldownInfo.startTime + cooldownInfo.duration) - currentTime
                 trackedData.trinketCooldowns[slot] = {
                     remaining = math.max(0, remaining),
                     ready = remaining <= 0,
-                    start = start,
-                    duration = duration,
+                    start = cooldownInfo.startTime,
+                    duration = cooldownInfo.duration,
                     itemId = itemId
                 }
             end
@@ -138,13 +138,22 @@ function Tracker:UpdatePlayerBuffs()
     
     -- Helper function to check for buff
     local function checkBuff(spellId, buffName)
-        local name, icon, count, debuffType, duration, expirationTime = AuraUtil.FindAuraBySpellID(spellId, "player", "HELPFUL")
-        if name then
-            trackedData.playerBuffs[buffName] = {
-                active = true,
-                remaining = expirationTime - currentTime,
-                stacks = count or 1
-            }
+        local spellName = C_Spell.GetSpellName(spellId)
+        if spellName then
+            local auraData = C_UnitAuras.GetAuraDataBySpellName("player", spellName, "HELPFUL")
+            if auraData then
+                trackedData.playerBuffs[buffName] = {
+                    active = true,
+                    remaining = auraData.expirationTime - currentTime,
+                    stacks = auraData.applications or 1
+                }
+            else
+                trackedData.playerBuffs[buffName] = {
+                    active = false,
+                    remaining = 0,
+                    stacks = 0
+                }
+            end
         else
             trackedData.playerBuffs[buffName] = {
                 active = false,
@@ -176,12 +185,13 @@ function Tracker:UpdateTargetHots()
     local currentTime = GetTime()
     
     -- Check for Lifebloom on target
-    local name, icon, count, debuffType, duration, expirationTime = AuraUtil.FindAuraBySpellID(SPELL_IDS.LIFEBLOOM, "target", "HELPFUL")
-    if name then
+    local spellName = C_Spell.GetSpellName(SPELL_IDS.LIFEBLOOM)
+    local auraData = spellName and C_UnitAuras.GetAuraDataBySpellName("target", spellName, "HELPFUL")
+    if auraData then
         trackedData.targetHots.lifebloom = {
             active = true,
-            remaining = expirationTime - currentTime,
-            stacks = count or 1
+            remaining = auraData.expirationTime - currentTime,
+            stacks = auraData.applications or 1
         }
     else
         trackedData.targetHots.lifebloom = {
@@ -192,12 +202,13 @@ function Tracker:UpdateTargetHots()
     end
     
     -- Check for Rejuvenation on target
-    name, icon, count, debuffType, duration, expirationTime = AuraUtil.FindAuraBySpellID(SPELL_IDS.REJUVENATION, "target", "HELPFUL")
-    if name then
+    spellName = C_Spell.GetSpellName(SPELL_IDS.REJUVENATION)
+    auraData = spellName and C_UnitAuras.GetAuraDataBySpellName("target", spellName, "HELPFUL")
+    if auraData then
         trackedData.targetHots.rejuvenation = {
             active = true,
-            remaining = expirationTime - currentTime,
-            stacks = count or 1
+            remaining = auraData.expirationTime - currentTime,
+            stacks = auraData.applications or 1
         }
     else
         trackedData.targetHots.rejuvenation = {
@@ -208,12 +219,13 @@ function Tracker:UpdateTargetHots()
     end
     
     -- Check for Regrowth on target
-    name, icon, count, debuffType, duration, expirationTime = AuraUtil.FindAuraBySpellID(SPELL_IDS.REGROWTH, "target", "HELPFUL")
-    if name then
+    spellName = C_Spell.GetSpellName(SPELL_IDS.REGROWTH)
+    auraData = spellName and C_UnitAuras.GetAuraDataBySpellName("target", spellName, "HELPFUL")
+    if auraData then
         trackedData.targetHots.regrowth = {
             active = true,
-            remaining = expirationTime - currentTime,
-            stacks = count or 1
+            remaining = auraData.expirationTime - currentTime,
+            stacks = auraData.applications or 1
         }
     else
         trackedData.targetHots.regrowth = {
@@ -334,8 +346,9 @@ function Tracker:ShouldUseIronbark()
     -- Check if target doesn't already have Ironbark
     local hasIronbark = false
     if targetExists then
-        local name = AuraUtil.FindAuraBySpellID(SPELL_IDS.IRONBARK_BUFF, "target", "HELPFUL")
-        hasIronbark = name ~= nil
+        local spellName = C_Spell.GetSpellName(SPELL_IDS.IRONBARK_BUFF)
+        local auraData = spellName and C_UnitAuras.GetAuraDataBySpellName("target", spellName, "HELPFUL")
+        hasIronbark = auraData ~= nil
     end
     
     return ironbarkReady and targetIsFriendly and not hasIronbark
