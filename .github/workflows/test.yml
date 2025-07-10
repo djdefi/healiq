@@ -1,0 +1,108 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Lua
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y lua5.4 luarocks
+        
+    - name: Install luacheck
+      run: |
+        sudo luarocks install luacheck
+        
+    - name: Run Lua syntax check
+      run: |
+        echo "Checking Lua syntax for all .lua files..."
+        for file in *.lua; do
+          if [ -f "$file" ]; then
+            echo "Checking $file..."
+            luac -p "$file" || (echo "Syntax error in $file" && exit 1)
+          fi
+        done
+        
+    - name: Run luacheck linting
+      run: |
+        echo "Running luacheck on all .lua files..."
+        luacheck *.lua --globals _G --std none --ignore 11 --ignore 21 --ignore 131 --ignore 143 --ignore 213 --ignore 311 --ignore 312 --ignore 631
+        
+    - name: Validate addon structure
+      run: |
+        echo "Validating HealIQ addon structure..."
+        
+        # Check that .toc file exists
+        if [ ! -f "HealIQ.toc" ]; then
+          echo "ERROR: HealIQ.toc file is missing"
+          exit 1
+        fi
+        
+        # Check that core Lua files exist
+        missing_files=()
+        for file in Core.lua Engine.lua UI.lua Tracker.lua Config.lua; do
+          if [ ! -f "$file" ]; then
+            missing_files+=("$file")
+          fi
+        done
+        
+        if [ ${#missing_files[@]} -ne 0 ]; then
+          echo "ERROR: Missing required files: ${missing_files[*]}"
+          exit 1
+        fi
+        
+        # Validate .toc file format
+        echo "Validating .toc file format..."
+        if ! grep -q "^## Interface:" HealIQ.toc; then
+          echo "ERROR: Missing Interface version in .toc file"
+          exit 1
+        fi
+        
+        if ! grep -q "^## Title:" HealIQ.toc; then
+          echo "ERROR: Missing Title in .toc file"
+          exit 1
+        fi
+        
+        if ! grep -q "^## Version:" HealIQ.toc; then
+          echo "ERROR: Missing Version in .toc file"
+          exit 1
+        fi
+        
+        # Check that all files listed in .toc exist
+        echo "Checking that all files listed in .toc exist..."
+        grep -v "^#" HealIQ.toc | grep -v "^$" | while read -r file; do
+          if [ ! -f "$file" ]; then
+            echo "ERROR: File $file listed in .toc but not found"
+            exit 1
+          fi
+        done
+        
+        echo "All addon structure validations passed!"
+        
+    - name: Check addon version consistency
+      run: |
+        echo "Checking version consistency..."
+        
+        # Extract version from .toc file
+        TOC_VERSION=$(grep "^## Version:" HealIQ.toc | cut -d' ' -f3)
+        echo "Version in HealIQ.toc: $TOC_VERSION"
+        
+        # Extract version from Core.lua
+        CORE_VERSION=$(grep "HealIQ.version = " Core.lua | cut -d'"' -f2)
+        echo "Version in Core.lua: $CORE_VERSION"
+        
+        if [ "$TOC_VERSION" != "$CORE_VERSION" ]; then
+          echo "ERROR: Version mismatch between HealIQ.toc ($TOC_VERSION) and Core.lua ($CORE_VERSION)"
+          exit 1
+        fi
+        
+        echo "Version consistency check passed!"
