@@ -19,6 +19,10 @@ local defaults = {
         showIcon = true,
         showSpellName = true,
         showCooldown = true,
+        showQueue = true,
+        queueSize = 3,
+        queueLayout = "horizontal", -- horizontal or vertical
+        queueSpacing = 8,
     },
     rules = {
         -- Existing rules

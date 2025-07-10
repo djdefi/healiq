@@ -11,6 +11,8 @@ local mainFrame = nil
 local iconFrame = nil
 local spellNameText = nil
 local cooldownFrame = nil
+local queueFrame = nil
+local queueIcons = {}
 local isDragging = false
 local minimapButton = nil
 local optionsFrame = nil
@@ -28,34 +30,67 @@ function UI:Initialize()
 end
 
 function UI:CreateMainFrame()
+    -- Determine total frame size based on queue settings
+    local queueSize = HealIQ.db.ui.queueSize or 3
+    local queueLayout = HealIQ.db.ui.queueLayout or "horizontal"
+    local queueSpacing = HealIQ.db.ui.queueSpacing or 8
+    
+    local frameWidth = FRAME_SIZE
+    local frameHeight = FRAME_SIZE
+    
+    if HealIQ.db.ui.showQueue then
+        if queueLayout == "horizontal" then
+            frameWidth = frameWidth + (queueSize - 1) * (ICON_SIZE + queueSpacing)
+        else
+            frameHeight = frameHeight + (queueSize - 1) * (ICON_SIZE + queueSpacing)
+        end
+    end
+    
     -- Create main container frame
     mainFrame = CreateFrame("Frame", "HealIQMainFrame", UIParent)
-    mainFrame:SetSize(FRAME_SIZE, FRAME_SIZE)
+    mainFrame:SetSize(frameWidth, frameHeight)
     mainFrame:SetPoint("CENTER", UIParent, "CENTER", HealIQ.db.ui.x, HealIQ.db.ui.y)
     mainFrame:SetFrameStrata("MEDIUM")
     mainFrame:SetFrameLevel(100)
     
-    -- Create background
+    -- Create background with improved styling
     local bg = mainFrame:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints()
-    bg:SetColorTexture(0, 0, 0, 0.3)
-    bg:SetAlpha(0.5)
+    bg:SetColorTexture(0, 0, 0, 0.4)
+    bg:SetAlpha(0.6)
     
-    -- Create spell icon frame
+    -- Create border for better visual definition
+    local border = mainFrame:CreateTexture(nil, "BORDER")
+    border:SetAllPoints()
+    border:SetColorTexture(0.3, 0.3, 0.3, 0.8)
+    border:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 1, -1)
+    border:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -1, 1)
+    
+    -- Create primary spell icon frame (current suggestion)
     iconFrame = CreateFrame("Frame", "HealIQIconFrame", mainFrame)
     iconFrame:SetSize(ICON_SIZE, ICON_SIZE)
-    iconFrame:SetPoint("CENTER")
+    iconFrame:SetPoint("LEFT", mainFrame, "LEFT", (FRAME_SIZE - ICON_SIZE) / 2, 0)
     
-    -- Create spell icon texture
+    -- Create spell icon texture with improved styling
     local iconTexture = iconFrame:CreateTexture(nil, "ARTWORK")
     iconTexture:SetAllPoints()
     iconTexture:SetTexCoord(0.1, 0.9, 0.1, 0.9) -- Crop edges for cleaner look
     iconFrame.icon = iconTexture
     
+    -- Create glow effect for primary icon
+    local glow = iconFrame:CreateTexture(nil, "OVERLAY")
+    glow:SetSize(ICON_SIZE + 4, ICON_SIZE + 4)
+    glow:SetPoint("CENTER")
+    glow:SetColorTexture(1, 1, 0, 0.3) -- Yellow glow
+    glow:SetBlendMode("ADD")
+    iconFrame.glow = glow
+    
     -- Create spell name text
     spellNameText = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     spellNameText:SetPoint("TOP", iconFrame, "BOTTOM", 0, -2)
     spellNameText:SetTextColor(1, 1, 1, 1)
+    spellNameText:SetShadowColor(0, 0, 0, 1)
+    spellNameText:SetShadowOffset(1, -1)
     
     -- Create cooldown frame
     cooldownFrame = CreateFrame("Cooldown", "HealIQCooldownFrame", iconFrame, "CooldownFrameTemplate")
@@ -63,6 +98,9 @@ function UI:CreateMainFrame()
     cooldownFrame:SetDrawEdge(false)
     cooldownFrame:SetDrawSwipe(true)
     cooldownFrame:SetReverse(true)
+    
+    -- Create queue frame
+    self:CreateQueueFrame()
     
     -- Make frame draggable
     self:MakeFrameDraggable()
@@ -139,6 +177,61 @@ function UI:CreateMinimapButton()
     minimapButton:SetScript("OnLeave", function(self)
         GameTooltip:Hide()
     end)
+end
+
+function UI:CreateQueueFrame()
+    if not HealIQ.db.ui.showQueue then
+        return
+    end
+    
+    local queueSize = HealIQ.db.ui.queueSize or 3
+    local queueLayout = HealIQ.db.ui.queueLayout or "horizontal"
+    local queueSpacing = HealIQ.db.ui.queueSpacing or 8
+    local queueIconSize = math.floor(ICON_SIZE * 0.75) -- Smaller icons for queue
+    
+    -- Create queue container frame
+    queueFrame = CreateFrame("Frame", "HealIQQueueFrame", mainFrame)
+    
+    if queueLayout == "horizontal" then
+        queueFrame:SetSize((queueSize - 1) * (queueIconSize + queueSpacing), queueIconSize)
+        queueFrame:SetPoint("LEFT", iconFrame, "RIGHT", queueSpacing, 0)
+    else
+        queueFrame:SetSize(queueIconSize, (queueSize - 1) * (queueIconSize + queueSpacing))
+        queueFrame:SetPoint("TOP", iconFrame, "BOTTOM", 0, -queueSpacing - 20) -- Account for spell name
+    end
+    
+    -- Create queue icons
+    queueIcons = {}
+    for i = 1, queueSize - 1 do -- -1 because primary icon is separate
+        local queueIcon = CreateFrame("Frame", "HealIQQueueIcon" .. i, queueFrame)
+        queueIcon:SetSize(queueIconSize, queueIconSize)
+        
+        if queueLayout == "horizontal" then
+            queueIcon:SetPoint("LEFT", queueFrame, "LEFT", (i - 1) * (queueIconSize + queueSpacing), 0)
+        else
+            queueIcon:SetPoint("TOP", queueFrame, "TOP", 0, -(i - 1) * (queueIconSize + queueSpacing))
+        end
+        
+        -- Create icon texture
+        local texture = queueIcon:CreateTexture(nil, "ARTWORK")
+        texture:SetAllPoints()
+        texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+        texture:SetAlpha(0.7) -- Slightly transparent for queue items
+        queueIcon.icon = texture
+        
+        -- Create border for queue items
+        local border = queueIcon:CreateTexture(nil, "BORDER")
+        border:SetAllPoints()
+        border:SetColorTexture(0.5, 0.5, 0.5, 0.6)
+        border:SetPoint("TOPLEFT", queueIcon, "TOPLEFT", 1, -1)
+        border:SetPoint("BOTTOMRIGHT", queueIcon, "BOTTOMRIGHT", -1, 1)
+        queueIcon.border = border
+        
+        -- Initially hide queue icons
+        queueIcon:Hide()
+        
+        table.insert(queueIcons, queueIcon)
+    end
 end
 
 function UI:CreateOptionsFrame()
@@ -288,6 +381,61 @@ function UI:CreateOptionsFrame()
     end)
     optionsFrame.showCooldownCheck = showCooldownCheck
     
+    -- Queue options
+    local queueLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    queueLabel:SetPoint("TOPLEFT", showCooldownCheck, "BOTTOMLEFT", 0, -20)
+    queueLabel:SetText("Queue Display:")
+    
+    local showQueueCheck = CreateFrame("CheckButton", "HealIQShowQueueCheck", content, "UICheckButtonTemplate")
+    showQueueCheck:SetPoint("TOPLEFT", queueLabel, "BOTTOMLEFT", 0, -10)
+    showQueueCheck.text = showQueueCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    showQueueCheck.text:SetPoint("LEFT", showQueueCheck, "RIGHT", 5, 0)
+    showQueueCheck.text:SetText("Show suggestion queue")
+    showQueueCheck:SetScript("OnClick", function(self)
+        HealIQ.db.ui.showQueue = self:GetChecked()
+        if HealIQ.UI then
+            HealIQ.UI:RecreateFrames()
+        end
+    end)
+    optionsFrame.showQueueCheck = showQueueCheck
+    
+    -- Queue size slider
+    local queueSizeSlider = CreateFrame("Slider", "HealIQQueueSizeSlider", content, "OptionsSliderTemplate")
+    queueSizeSlider:SetPoint("TOPLEFT", showQueueCheck, "BOTTOMLEFT", 0, -20)
+    queueSizeSlider:SetMinMaxValues(2, 5)
+    queueSizeSlider:SetValueStep(1)
+    queueSizeSlider:SetObeyStepOnDrag(true)
+    queueSizeSlider.tooltipText = "Number of suggestions to show in queue"
+    _G[queueSizeSlider:GetName() .. "Low"]:SetText("2")
+    _G[queueSizeSlider:GetName() .. "High"]:SetText("5")
+    _G[queueSizeSlider:GetName() .. "Text"]:SetText("Queue Size")
+    queueSizeSlider:SetScript("OnValueChanged", function(self, value)
+        HealIQ.db.ui.queueSize = math.floor(value)
+        if HealIQ.UI then
+            HealIQ.UI:RecreateFrames()
+        end
+    end)
+    optionsFrame.queueSizeSlider = queueSizeSlider
+    
+    -- Queue layout dropdown
+    local queueLayoutLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    queueLayoutLabel:SetPoint("TOPLEFT", queueSizeSlider, "BOTTOMLEFT", 0, -20)
+    queueLayoutLabel:SetText("Queue Layout:")
+    
+    local queueLayoutButton = CreateFrame("Button", "HealIQQueueLayoutButton", content, "UIPanelButtonTemplate")
+    queueLayoutButton:SetSize(100, 22)
+    queueLayoutButton:SetPoint("LEFT", queueLayoutLabel, "RIGHT", 10, 0)
+    queueLayoutButton:SetText("Horizontal")
+    queueLayoutButton:SetScript("OnClick", function(self)
+        local newLayout = HealIQ.db.ui.queueLayout == "horizontal" and "vertical" or "horizontal"
+        HealIQ.db.ui.queueLayout = newLayout
+        self:SetText(newLayout:sub(1,1):upper() .. newLayout:sub(2))
+        if HealIQ.UI then
+            HealIQ.UI:RecreateFrames()
+        end
+    end)
+    optionsFrame.queueLayoutButton = queueLayoutButton
+    
     -- Close button
     local closeButton = CreateFrame("Button", "HealIQCloseButton", content, "UIPanelButtonTemplate")
     closeButton:SetSize(80, 22)
@@ -357,10 +505,15 @@ function UI:UpdateSuggestion(suggestion)
     -- Show the frame
     mainFrame:Show()
     
-    -- Update icon
+    -- Update primary icon
     if iconFrame and iconFrame.icon then
         iconFrame.icon:SetTexture(suggestion.icon)
         iconFrame.icon:SetDesaturated(false)
+        
+        -- Show glow effect for primary suggestion
+        if iconFrame.glow then
+            iconFrame.glow:Show()
+        end
     end
     
     -- Update spell name
@@ -374,6 +527,74 @@ function UI:UpdateSuggestion(suggestion)
     -- Update cooldown display
     if cooldownFrame and HealIQ.db.ui.showCooldown then
         self:UpdateCooldownDisplay(suggestion)
+    end
+end
+
+function UI:UpdateQueue(queue)
+    if not HealIQ.db.ui.showQueue or not queueIcons then
+        return
+    end
+    
+    -- Hide all queue icons first
+    for _, queueIcon in ipairs(queueIcons) do
+        queueIcon:Hide()
+    end
+    
+    -- Update queue icons with new suggestions
+    for i, suggestion in ipairs(queue) do
+        if i > 1 and i <= #queueIcons + 1 then -- Skip first suggestion (it's the primary)
+            local queueIcon = queueIcons[i - 1]
+            if queueIcon then
+                queueIcon.icon:SetTexture(suggestion.icon)
+                queueIcon:Show()
+                
+                -- Add tooltip for queue items
+                queueIcon:SetScript("OnEnter", function(self)
+                    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                    GameTooltip:AddLine(suggestion.name, 1, 1, 1)
+                    GameTooltip:AddLine("Upcoming suggestion", 0.7, 0.7, 0.7)
+                    GameTooltip:Show()
+                end)
+                
+                queueIcon:SetScript("OnLeave", function(self)
+                    GameTooltip:Hide()
+                end)
+            end
+        end
+    end
+end
+
+function UI:UpdateQueue(queue)
+    if not HealIQ.db.ui.showQueue or not queueIcons then
+        return
+    end
+    
+    -- Hide all queue icons first
+    for _, queueIcon in ipairs(queueIcons) do
+        queueIcon:Hide()
+    end
+    
+    -- Update queue icons with new suggestions
+    for i, suggestion in ipairs(queue) do
+        if i > 1 and i <= #queueIcons + 1 then -- Skip first suggestion (it's the primary)
+            local queueIcon = queueIcons[i - 1]
+            if queueIcon then
+                queueIcon.icon:SetTexture(suggestion.icon)
+                queueIcon:Show()
+                
+                -- Add tooltip for queue items
+                queueIcon:SetScript("OnEnter", function(self)
+                    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                    GameTooltip:AddLine(suggestion.name, 1, 1, 1)
+                    GameTooltip:AddLine("Upcoming suggestion", 0.7, 0.7, 0.7)
+                    GameTooltip:Show()
+                end)
+                
+                queueIcon:SetScript("OnLeave", function(self)
+                    GameTooltip:Hide()
+                end)
+            end
+        end
     end
 end
 
@@ -533,6 +754,30 @@ function UI:ToggleOptionsFrame()
     end
 end
 
+function UI:RecreateFrames()
+    -- Hide and remove existing frames
+    if mainFrame then
+        mainFrame:Hide()
+        mainFrame = nil
+    end
+    
+    -- Clear references
+    iconFrame = nil
+    spellNameText = nil
+    cooldownFrame = nil
+    queueFrame = nil
+    queueIcons = {}
+    
+    -- Recreate the main frame with new settings
+    self:CreateMainFrame()
+    
+    -- Update position and scale
+    self:UpdatePosition()
+    self:UpdateScale()
+    
+    HealIQ:Print("UI frames recreated with new settings")
+end
+
 function UI:UpdateOptionsFrame()
     if not optionsFrame then
         return
@@ -567,6 +812,20 @@ function UI:UpdateOptionsFrame()
     
     if optionsFrame.showCooldownCheck then
         optionsFrame.showCooldownCheck:SetChecked(HealIQ.db.ui.showCooldown)
+    end
+    
+    -- Update queue options
+    if optionsFrame.showQueueCheck then
+        optionsFrame.showQueueCheck:SetChecked(HealIQ.db.ui.showQueue)
+    end
+    
+    if optionsFrame.queueSizeSlider then
+        optionsFrame.queueSizeSlider:SetValue(HealIQ.db.ui.queueSize or 3)
+    end
+    
+    if optionsFrame.queueLayoutButton then
+        local layout = HealIQ.db.ui.queueLayout or "horizontal"
+        optionsFrame.queueLayoutButton:SetText(layout:sub(1,1):upper() .. layout:sub(2))
     end
 end
 

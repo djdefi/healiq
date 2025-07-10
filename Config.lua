@@ -49,6 +49,7 @@ commands.help = function()
     print("|cFFFFFF00/healiq ui|r - Show UI commands")
     print("|cFFFFFF00/healiq rules|r - Show rule commands")
     print("|cFFFFFF00/healiq test|r - Test suggestion display")
+    print("|cFFFFFF00/healiq test queue|r - Test queue display")
     print("|cFFFFFF00/healiq debug|r - Toggle debug mode")
     print("|cFFFFFF00/healiq reset|r - Reset all settings")
     print("|cFFFFFF00/healiq status|r - Show current status")
@@ -118,6 +119,35 @@ commands.ui = function(subcommand, ...)
             HealIQ.UI:SetShowCooldown(show)
         end
         print("|cFF00FF00HealIQ|r Cooldown display " .. (show and "enabled" or "disabled"))
+    elseif subcommand == "queue" then
+        local show = ... == "show"
+        HealIQ.db.ui.showQueue = show
+        if HealIQ.UI then
+            HealIQ.UI:RecreateFrames()
+        end
+        print("|cFF00FF00HealIQ|r Queue display " .. (show and "enabled" or "disabled"))
+    elseif subcommand == "queuesize" then
+        local size = tonumber((...))
+        if size and size >= 2 and size <= 5 then
+            HealIQ.db.ui.queueSize = size
+            if HealIQ.UI then
+                HealIQ.UI:RecreateFrames()
+            end
+            print("|cFF00FF00HealIQ|r Queue size set to " .. size)
+        else
+            print("|cFF00FF00HealIQ|r Usage: /healiq ui queuesize <2-5>")
+        end
+    elseif subcommand == "layout" then
+        local layout = ... or "horizontal"
+        if layout == "horizontal" or layout == "vertical" then
+            HealIQ.db.ui.queueLayout = layout
+            if HealIQ.UI then
+                HealIQ.UI:RecreateFrames()
+            end
+            print("|cFF00FF00HealIQ|r Queue layout set to " .. layout)
+        else
+            print("|cFF00FF00HealIQ|r Usage: /healiq ui layout <horizontal|vertical>")
+        end
     else
         print("|cFF00FF00HealIQ UI Commands:|r")
         print("|cFFFFFF00/healiq ui lock|r - Lock UI position")
@@ -126,6 +156,9 @@ commands.ui = function(subcommand, ...)
         print("|cFFFFFF00/healiq ui reset|r - Reset UI position")
         print("|cFFFFFF00/healiq ui name show/hide|r - Show/hide spell names")
         print("|cFFFFFF00/healiq ui cooldown show/hide|r - Show/hide cooldowns")
+        print("|cFFFFFF00/healiq ui queue show/hide|r - Show/hide queue display")
+        print("|cFFFFFF00/healiq ui queuesize <2-5>|r - Set queue size")
+        print("|cFFFFFF00/healiq ui layout horizontal/vertical|r - Set queue layout")
     end
 end
 
@@ -173,6 +206,24 @@ commands.test = function(subcommand)
                 print("  " .. rule .. ": " .. status)
             end
         end
+    elseif subcommand == "queue" then
+        if HealIQ.Engine then
+            print("|cFF00FF00HealIQ|r Testing queue display...")
+            local queue = HealIQ.Engine:EvaluateRulesQueue()
+            if #queue > 0 then
+                print("  Queue contains " .. #queue .. " suggestions:")
+                for i, suggestion in ipairs(queue) do
+                    print("    " .. i .. ". " .. suggestion.name)
+                end
+            else
+                print("  Queue is empty")
+            end
+            
+            -- Force UI update
+            if HealIQ.UI then
+                HealIQ.UI:UpdateQueue(queue)
+            end
+        end
     else
         if HealIQ.UI then
             HealIQ.UI:TestDisplay()
@@ -198,14 +249,17 @@ commands.reset = function()
     HealIQ.db.ui.showIcon = true
     HealIQ.db.ui.showSpellName = true
     HealIQ.db.ui.showCooldown = true
+    HealIQ.db.ui.showQueue = true
+    HealIQ.db.ui.queueSize = 3
+    HealIQ.db.ui.queueLayout = "horizontal"
+    HealIQ.db.ui.queueSpacing = 8
     
     for rule in pairs(HealIQ.db.rules) do
         HealIQ.db.rules[rule] = true
     end
     
     if HealIQ.UI then
-        HealIQ.UI:UpdateScale()
-        HealIQ.UI:UpdatePosition()
+        HealIQ.UI:RecreateFrames()
     end
     
     print("|cFF00FF00HealIQ|r Settings reset to defaults")
@@ -218,6 +272,9 @@ commands.status = function()
     print("  UI Scale: " .. HealIQ.db.ui.scale)
     print("  UI Position: " .. HealIQ.db.ui.x .. ", " .. HealIQ.db.ui.y)
     print("  UI Locked: " .. (HealIQ.db.ui.locked and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
+    print("  Queue Display: " .. (HealIQ.db.ui.showQueue and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
+    print("  Queue Size: " .. (HealIQ.db.ui.queueSize or 3))
+    print("  Queue Layout: " .. (HealIQ.db.ui.queueLayout or "horizontal"))
     
     -- Show current suggestion
     if HealIQ.Engine then
@@ -226,6 +283,18 @@ commands.status = function()
             print("  Current Suggestion: " .. suggestion.name)
         else
             print("  Current Suggestion: None")
+        end
+        
+        -- Show current queue
+        local queue = HealIQ.Engine:GetCurrentQueue()
+        if queue and #queue > 0 then
+            local names = {}
+            for i, queueSuggestion in ipairs(queue) do
+                table.insert(names, queueSuggestion.name)
+            end
+            print("  Current Queue: " .. table.concat(names, " → "))
+        else
+            print("  Current Queue: Empty")
         end
     end
     
