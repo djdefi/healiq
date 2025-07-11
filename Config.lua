@@ -289,7 +289,7 @@ commands.log = function(action, subaction)
             local timeSinceFlush = time() - HealIQ.lastFlushTime
             print("  Last Flush: " .. HealIQ:FormatDuration(timeSinceFlush) .. " ago")
         end
-        if HealIQ.sessionStats.startTime then
+        if HealIQ.sessionStats and HealIQ.sessionStats.startTime then
             local duration = time() - HealIQ.sessionStats.startTime
             print("  Session Duration: " .. HealIQ:FormatDuration(duration))
         end
