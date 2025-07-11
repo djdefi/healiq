@@ -21,18 +21,14 @@ The repository is configured for automatic CurseForge publishing when new releas
 1. In your CurseForge project, note the project ID from the URL or project settings
 2. Add this as a GitHub repository secret named `CURSEFORGE_PROJECT_ID`
 
-### 3. Game Versions
-
-1. Determine which WoW versions your addon supports (e.g., "1.15.0,10.2.5,11.0.7")
-2. Add this as a GitHub repository secret named `CURSEFORGE_GAME_VERSIONS`
-
-### 4. GitHub Repository Secrets
+### 3. GitHub Repository Secrets
 
 In your GitHub repository, go to Settings > Secrets and Variables > Actions, and add:
 
 - `CURSEFORGE_TOKEN`: Your CurseForge API token
-- `CURSEFORGE_PROJECT_ID`: Your CurseForge project ID  
-- `CURSEFORGE_GAME_VERSIONS`: Comma-separated list of supported WoW versions
+- `CURSEFORGE_PROJECT_ID`: Your CurseForge project ID
+
+**Note**: Game versions are automatically detected from your addon's `.toc` file interface version, so no manual version configuration is needed.
 
 ## How It Works
 
@@ -44,6 +40,16 @@ When you create a new release (either manually or via the automated release work
 2. Creates a GitHub release with the packaged addon
 3. Automatically uploads the same package to CurseForge
 4. Uses the changelog from CHANGELOG.md as the CurseForge release notes
+
+### Automatic Game Version Detection
+
+The workflow automatically detects the supported WoW version from your addon's `HealIQ.toc` file:
+
+1. Reads the `## Interface:` version from the .toc file
+2. Converts it to the corresponding game version (e.g., Interface 110107 → Game Version 11.0.7)
+3. Uses this version for CurseForge uploads
+
+This ensures your CurseForge releases always target the correct WoW version without manual configuration.
 
 ### Package Configuration
 
@@ -71,7 +77,7 @@ The `.pkgmeta` file defines how the addon is packaged:
 1. Check that all required secrets are set correctly
 2. Verify the CurseForge API token has upload permissions
 3. Ensure the project ID is correct
-4. Check that the game versions are in the correct format
+4. Check that the interface version in HealIQ.toc is valid
 
 ### Missing Uploads
 

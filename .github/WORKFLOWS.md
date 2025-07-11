@@ -39,7 +39,8 @@ The release workflow includes automatic CurseForge publishing when properly conf
 **Required GitHub Secrets:**
 - `CURSEFORGE_TOKEN`: API token from CurseForge
 - `CURSEFORGE_PROJECT_ID`: Your CurseForge project ID
-- `CURSEFORGE_GAME_VERSIONS`: Supported WoW versions (comma-separated)
+
+**Game versions are automatically detected** from the addon's `.toc` file interface version.
 
 If these secrets are not configured, the workflow will skip CurseForge upload but still create GitHub releases.
 
