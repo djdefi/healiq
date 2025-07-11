@@ -950,7 +950,7 @@ function UI:MakeFrameDraggable()
     mainFrame:RegisterForDrag("LeftButton")
     
     mainFrame:SetScript("OnDragStart", function(self)
-        if not HealIQ.db or not HealIQ.db.ui or not HealIQ.db.ui.locked then
+        if HealIQ.db and HealIQ.db.ui and not HealIQ.db.ui.locked then
             self:StartMoving()
             isDragging = true
         end
