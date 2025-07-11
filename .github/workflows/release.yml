@@ -191,7 +191,7 @@ jobs:
         files: HealIQ-${{ steps.version.outputs.version }}.zip
         
     - name: Convert interface version to game version
-      if: steps.check_tag.outputs.exists == 'false' && secrets.CURSEFORGE_TOKEN != ''
+      if: steps.check_tag.outputs.exists == 'false'
       id: game_version
       run: |
         # Function to convert WoW interface version to game version
@@ -244,7 +244,7 @@ jobs:
         echo "Using game version: $GAME_VERSION for interface $INTERFACE"
         
     - name: Upload to CurseForge
-      if: steps.check_tag.outputs.exists == 'false' && secrets.CURSEFORGE_TOKEN != ''
+      if: steps.check_tag.outputs.exists == 'false'
       uses: itsmeow/curseforge-upload@v3
       with:
         token: ${{ secrets.CURSEFORGE_TOKEN }}
