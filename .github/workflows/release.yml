@@ -251,6 +251,7 @@ jobs:
         project_id: ${{ secrets.CURSEFORGE_PROJECT_ID }}
         game_endpoint: wow
         file_path: HealIQ-${{ steps.version.outputs.version }}.zip
+        display_name: v${{ steps.version.outputs.version }}
         changelog_type: markdown
         changelog_file: release_notes.md
         game_versions: ${{ steps.game_version.outputs.game_version }}
