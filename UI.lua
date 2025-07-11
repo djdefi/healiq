@@ -433,6 +433,9 @@ function UI:CreateOptionsFrame()
     
     -- Initially hide
     optionsFrame:Hide()
+    
+    -- Update options with current values once frame is created
+    self:UpdateOptionsFrame()
 end
 
 function UI:CreateOptionsTabs(parent)
@@ -551,19 +554,19 @@ function UI:CreateGeneralTab(panel)
     loggingCheck:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
     loggingCheck.text = loggingCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     loggingCheck.text:SetPoint("LEFT", loggingCheck, "RIGHT", 5, 0)
-    loggingCheck.text:SetText("Enable File Logging")
+    loggingCheck.text:SetText("Enable Memory Logging")
     loggingCheck:SetScript("OnClick", function(self)
         if HealIQ.db and HealIQ.db.logging then
             HealIQ.db.logging.enabled = self:GetChecked()
             if HealIQ.db.logging.enabled then
                 HealIQ:InitializeLogging()
-                HealIQ:Message("File logging enabled")
+                HealIQ:Message("Memory logging enabled")
             else
-                HealIQ:Message("File logging disabled")
+                HealIQ:Message("Memory logging disabled")
             end
         end
     end)
-    self:AddTooltip(loggingCheck, "Enable File Logging", "Enable logging debug information to file for troubleshooting.\nLogs are stored in memory and can be exported via /healiq dump.")
+    self:AddTooltip(loggingCheck, "Enable Memory Logging", "Enable logging debug information to memory buffer for troubleshooting.\nLogs are stored in memory and can be viewed via /healiq dump command.")
     optionsFrame.loggingCheck = loggingCheck
     yOffset = yOffset - 30
     

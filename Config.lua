@@ -304,8 +304,8 @@ commands.log = function(action, subaction)
     if not action then
         print("|cFF00FF00HealIQ Logging Commands:|r")
         print("|cFFFFFF00/healiq log status|r - Show logging status")
-        print("|cFFFFFF00/healiq log enable|r - Enable file logging")
-        print("|cFFFFFF00/healiq log disable|r - Disable file logging")
+        print("|cFFFFFF00/healiq log enable|r - Enable memory logging")
+        print("|cFFFFFF00/healiq log disable|r - Disable memory logging")
         print("|cFFFFFF00/healiq log verbose on|r - Enable verbose logging")
         print("|cFFFFFF00/healiq log verbose off|r - Disable verbose logging")
         print("|cFFFFFF00/healiq log stats on|r - Enable session statistics")
@@ -313,6 +313,7 @@ commands.log = function(action, subaction)
         print("|cFFFFFF00/healiq log clear|r - Clear log buffer")
         print("|cFFFFFF00/healiq log flush|r - Force flush log buffer")
         print("|cFFFFFF00/healiq log config|r - Show flush configuration")
+        print("|cFF888888Note: Logs are stored in memory buffer. Use /healiq dump to view.|r")
         return
     end
     
@@ -323,7 +324,7 @@ commands.log = function(action, subaction)
     
     if action == "status" then
         print("|cFF00FF00HealIQ Logging Status:|r")
-        print("  File Logging: " .. (HealIQ.db.logging.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
+        print("  Memory Logging: " .. (HealIQ.db.logging.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
         print("  Verbose Mode: " .. (HealIQ.db.logging.verbose and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
         print("  Session Stats: " .. (HealIQ.db.logging.sessionStats and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
         print("  Log Buffer: " .. (HealIQ.logBuffer and #HealIQ.logBuffer or 0) .. " entries, " .. (HealIQ.logBuffer and HealIQ:GetLogBufferSizeKB() or 0) .. " KB")
@@ -341,10 +342,10 @@ commands.log = function(action, subaction)
     elseif action == "enable" then
         HealIQ.db.logging.enabled = true
         HealIQ:InitializeLogging()
-        print("|cFF00FF00HealIQ|r File logging enabled")
+        print("|cFF00FF00HealIQ|r Memory logging enabled")
     elseif action == "disable" then
         HealIQ.db.logging.enabled = false
-        print("|cFF00FF00HealIQ|r File logging disabled")
+        print("|cFF00FF00HealIQ|r Memory logging disabled")
     elseif action == "verbose" then
         if subaction == "on" then
             HealIQ.db.logging.verbose = true
@@ -581,7 +582,7 @@ commands.status = function()
     print("  Debug: " .. (HealIQ.debug and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
     
     if HealIQ.db.logging then
-        print("  File Logging: " .. (HealIQ.db.logging.enabled and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
+        print("  Memory Logging: " .. (HealIQ.db.logging.enabled and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
         print("  Verbose Logging: " .. (HealIQ.db.logging.verbose and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
         print("  Session Stats: " .. (HealIQ.db.logging.sessionStats and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
     else
@@ -659,7 +660,11 @@ commands.status = function()
     -- Show addon status
     local addonVersion = C_AddOns.GetAddOnMetadata("HealIQ", "Version") or "Unknown"
     print("  Addon Version: |cFF00FF00" .. addonVersion .. "|r")
-    print("  Memory Usage: |cFF00FF00" .. C_AddOns.GetAddOnMemoryUsage("HealIQ") .. " KB|r")
+    
+    -- Update memory usage before getting it (required in modern WoW)
+    UpdateAddOnMemoryUsage()
+    local memoryUsage = GetAddOnMemoryUsage("HealIQ") or 0
+    print("  Memory Usage: |cFF00FF00" .. string.format("%.2f", memoryUsage) .. " KB|r")
 end
 
 -- Public configuration methods

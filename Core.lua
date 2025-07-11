@@ -6,15 +6,15 @@ local addonName, HealIQ = ...
 -- Create the main addon object
 HealIQ = HealIQ or {}
 HealIQ.version = "0.0.13"
-HealIQ.debug = false
+HealIQ.debug = true
 
 -- Default settings
 local defaults = {
     enabled = true,
-    debug = false, -- Debug mode setting
+    debug = true, -- Debug mode setting
     logging = {
-        enabled = false, -- File logging enabled
-        verbose = false, -- Verbose file logging
+        enabled = true, -- File logging enabled
+        verbose = true, -- Verbose file logging
         sessionStats = true, -- Track session statistics
         maxLogSize = 1024, -- Maximum log buffer size in KB
         maxLogFiles = 5, -- Maximum number of log files to keep

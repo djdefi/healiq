@@ -49,7 +49,7 @@ function HealIQ:InitializeLogging()
     -- Log session initialization
     self:LogToFile("=== HealIQ Session Started ===", "INFO")
     self:LogToFile("Version: " .. self.version, "INFO")
-    self:LogToFile("File Logging: " .. (self.db.logging.enabled and "Enabled" or "Disabled"), "INFO")
+    self:LogToFile("Memory Logging: " .. (self.db.logging.enabled and "Enabled" or "Disabled"), "INFO")
     self:LogToFile("Verbose Logging: " .. (self.db.logging.verbose and "Enabled" or "Disabled"))
     self:LogToFile("Max Buffer Size: " .. self.db.logging.maxLogSize .. " KB")
     self:LogToFile("Flush Interval: " .. self.db.logging.flushInterval .. " seconds")
@@ -263,7 +263,11 @@ function HealIQ:GenerateDiagnosticDump()
     table.insert(dump, "Class: " .. (class or "Unknown"))
     table.insert(dump, "Specialization: " .. (spec or "Unknown"))
     table.insert(dump, "In Combat: " .. tostring(InCombatLockdown()))
-    table.insert(dump, "Memory Usage: " .. string.format("%.2f KB", C_AddOns.GetAddOnMemoryUsage("HealIQ")))
+    
+    -- Update memory usage before getting it (required in modern WoW)
+    UpdateAddOnMemoryUsage()
+    local memoryUsage = GetAddOnMemoryUsage("HealIQ") or 0
+    table.insert(dump, "Memory Usage: " .. string.format("%.2f KB", memoryUsage))
     table.insert(dump, "")
     
     -- Recent log entries
