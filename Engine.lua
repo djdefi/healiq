@@ -226,43 +226,44 @@ function Engine:EvaluateRules()
         table.insert(suggestions, SPELLS.BARKSKIN)
     end
     
-    -- Rule 10: Lifebloom on target < 4s → Suggest refresh
-    if HealIQ.db.rules.lifebloom and UnitExists("target") and UnitIsFriend("player", "target") then
-        local lifeboomInfo = tracker:GetTargetHotInfo("lifebloom")
-        if lifeboomInfo and lifeboomInfo.active and lifeboomInfo.remaining < 4 then
-            table.insert(suggestions, SPELLS.LIFEBLOOM)
-        end
-    end
-    
-    -- Rule 11: Swiftmend is usable and Rejuv+Regrowth are active → Suggest Swiftmend
-    if HealIQ.db.rules.swiftmend and tracker:CanSwiftmend() then
-        table.insert(suggestions, SPELLS.SWIFTMEND)
-    end
-    
-    -- Rule 12: No Rejuvenation on current target → Suggest Rejuvenation
-    if HealIQ.db.rules.rejuvenation and UnitExists("target") and UnitIsFriend("player", "target") then
+    -- Priority rules for targets without basic heals - moved higher for better coverage
+    if UnitExists("target") and UnitIsFriend("player", "target") then
         local rejuvInfo = tracker:GetTargetHotInfo("rejuvenation")
-        if not rejuvInfo or not rejuvInfo.active then
+        local lifeboomInfo = tracker:GetTargetHotInfo("lifebloom")
+        local hasRejuv = rejuvInfo and rejuvInfo.active
+        local hasLifebloom = lifeboomInfo and lifeboomInfo.active
+        
+        -- Rule 10: No Rejuvenation on current target → High priority Rejuvenation
+        if HealIQ.db.rules.rejuvenation and not hasRejuv then
             table.insert(suggestions, SPELLS.REJUVENATION)
         end
+        
+        -- Rule 11: No Lifebloom on tank target → High priority Lifebloom
+        if HealIQ.db.rules.lifebloom and not hasLifebloom then
+            -- Check if target is a tank or important target
+            local isTank = UnitGroupRolesAssigned("target") == "TANK"
+            local isFocus = UnitIsUnit("target", "focus")
+            if isTank or isFocus then
+                table.insert(suggestions, SPELLS.LIFEBLOOM)
+            end
+        end
+        
+        -- Rule 12: Lifebloom on target < 4s → Suggest refresh
+        if HealIQ.db.rules.lifebloom and hasLifebloom and lifeboomInfo.remaining < 4 then
+            table.insert(suggestions, SPELLS.LIFEBLOOM)
+        end
+        
+        -- Rule 13: Swiftmend is usable and HoTs are active → Suggest Swiftmend
+        if HealIQ.db.rules.swiftmend and tracker:CanSwiftmend() then
+            table.insert(suggestions, SPELLS.SWIFTMEND)
+        end
     end
     
-    -- Rule 13: Trinket usage
+    -- Rule 14: Trinket usage
     if HealIQ.db.rules.trinket then
         local hasTrinket, slot = tracker:HasActiveTrinket()
         if hasTrinket then
             table.insert(suggestions, SPELLS.TRINKET)
-        end
-    end
-    
-    -- Rule 14: No Lifebloom on target at all → Suggest Lifebloom
-    if HealIQ.db.rules.lifebloom and UnitExists("target") and UnitIsFriend("player", "target") then
-        local lifeboomInfo = tracker:GetTargetHotInfo("lifebloom")
-        if not lifeboomInfo or not lifeboomInfo.active then
-            -- Check if target is a tank (simple heuristic)
-            if UnitGroupRolesAssigned("target") == "TANK" then
-                table.insert(suggestions, SPELLS.LIFEBLOOM)
-            end
         end
     end
     
@@ -327,28 +328,40 @@ function Engine:EvaluateRulesQueue()
         table.insert(suggestions, SPELLS.BARKSKIN)
     end
     
-    -- Rule 10: Lifebloom on target < 4s → Suggest refresh
-    if HealIQ.db.rules.lifebloom and UnitExists("target") and UnitIsFriend("player", "target") then
-        local lifeboomInfo = tracker:GetTargetHotInfo("lifebloom")
-        if lifeboomInfo and lifeboomInfo.active and lifeboomInfo.remaining < 4 then
-            table.insert(suggestions, SPELLS.LIFEBLOOM)
-        end
-    end
-    
-    -- Rule 11: Swiftmend is usable and Rejuv+Regrowth are active → Suggest Swiftmend
-    if HealIQ.db.rules.swiftmend and tracker:CanSwiftmend() then
-        table.insert(suggestions, SPELLS.SWIFTMEND)
-    end
-    
-    -- Rule 12: No Rejuvenation on current target → Suggest Rejuvenation
-    if HealIQ.db.rules.rejuvenation and UnitExists("target") and UnitIsFriend("player", "target") then
+    -- Priority rules for targets without basic heals - moved higher for better coverage
+    if UnitExists("target") and UnitIsFriend("player", "target") then
         local rejuvInfo = tracker:GetTargetHotInfo("rejuvenation")
-        if not rejuvInfo or not rejuvInfo.active then
+        local lifeboomInfo = tracker:GetTargetHotInfo("lifebloom")
+        local hasRejuv = rejuvInfo and rejuvInfo.active
+        local hasLifebloom = lifeboomInfo and lifeboomInfo.active
+        
+        -- Rule 10: No Rejuvenation on current target → High priority Rejuvenation
+        if HealIQ.db.rules.rejuvenation and not hasRejuv then
             table.insert(suggestions, SPELLS.REJUVENATION)
         end
+        
+        -- Rule 11: No Lifebloom on tank target → High priority Lifebloom
+        if HealIQ.db.rules.lifebloom and not hasLifebloom then
+            -- Check if target is a tank or important target
+            local isTank = UnitGroupRolesAssigned("target") == "TANK"
+            local isFocus = UnitIsUnit("target", "focus")
+            if isTank or isFocus then
+                table.insert(suggestions, SPELLS.LIFEBLOOM)
+            end
+        end
+        
+        -- Rule 12: Lifebloom on target < 4s → Suggest refresh
+        if HealIQ.db.rules.lifebloom and hasLifebloom and lifeboomInfo.remaining < 4 then
+            table.insert(suggestions, SPELLS.LIFEBLOOM)
+        end
+        
+        -- Rule 13: Swiftmend is usable and HoTs are active → Suggest Swiftmend
+        if HealIQ.db.rules.swiftmend and tracker:CanSwiftmend() then
+            table.insert(suggestions, SPELLS.SWIFTMEND)
+        end
     end
     
-    -- Rule 13: Trinket usage
+    -- Rule 14: Trinket usage
     if HealIQ.db.rules.trinket then
         local hasTrinket, slot = tracker:HasActiveTrinket()
         if hasTrinket then
@@ -356,20 +369,10 @@ function Engine:EvaluateRulesQueue()
         end
     end
     
-    -- Rule 14: No Lifebloom on target at all → Suggest Lifebloom
-    if HealIQ.db.rules.lifebloom and UnitExists("target") and UnitIsFriend("player", "target") then
-        local lifeboomInfo = tracker:GetTargetHotInfo("lifebloom")
-        if not lifeboomInfo or not lifeboomInfo.active then
-            -- Check if target is a tank (simple heuristic)
-            if UnitGroupRolesAssigned("target") == "TANK" then
-                table.insert(suggestions, SPELLS.LIFEBLOOM)
-            end
-        end
-    end
-    
-    -- Return up to 3 suggestions for queue display
+    -- Return up to the configured queue size suggestions
+    local queueSize = HealIQ.db.ui.queueSize or 3
     local queue = {}
-    for i = 1, math.min(3, #suggestions) do
+    for i = 1, math.min(queueSize, #suggestions) do
         table.insert(queue, suggestions[i])
     end
     
@@ -385,11 +388,13 @@ function Engine:SetSuggestion(suggestion)
             HealIQ.UI:UpdateSuggestion(suggestion)
         end
         
-        -- Debug output
-        if suggestion then
-            HealIQ:Print("Suggesting: " .. suggestion.name)
-        else
-            HealIQ:Print("No suggestion")
+        -- Debug output (only when debug mode is on)
+        if HealIQ.debug then
+            if suggestion then
+                HealIQ:Print("Suggesting: " .. suggestion.name)
+            else
+                HealIQ:Print("No suggestion")
+            end
         end
     end
 end
@@ -416,15 +421,17 @@ function Engine:SetQueue(queue)
             HealIQ.UI:UpdateQueue(queue)
         end
         
-        -- Debug output
-        if #queue > 0 then
-            local names = {}
-            for i, suggestion in ipairs(queue) do
-                table.insert(names, suggestion.name)
+        -- Debug output (only when debug mode is on)
+        if HealIQ.debug then
+            if #queue > 0 then
+                local names = {}
+                for i, suggestion in ipairs(queue) do
+                    table.insert(names, suggestion.name)
+                end
+                HealIQ:Print("Queue: " .. table.concat(names, " → "))
+            else
+                HealIQ:Print("Empty queue")
             end
-            HealIQ:Print("Queue: " .. table.concat(names, " → "))
-        else
-            HealIQ:Print("Empty queue")
         end
     end
 end

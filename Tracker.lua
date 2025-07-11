@@ -448,9 +448,22 @@ end
 function Tracker:HasActiveTrinket()
     -- Check if any trinket is ready to use
     for slot = 13, 14 do
-        local trinket = trackedData.trinketCooldowns[slot]
-        if trinket and trinket.ready then
-            return true, slot
+        local itemId = GetInventoryItemID("player", slot)
+        if itemId then
+            local startTime, duration, isEnabled = C_Item.GetItemCooldown(itemId)
+            -- Check if trinket has a use effect and is not on cooldown
+            if isEnabled and (not startTime or startTime == 0 or duration == 0) then
+                -- Additional check to see if item has a use effect
+                if type(itemId) == "number" and itemId > 0 then
+                    local item = Item:CreateFromItemID(itemId)
+                    if item and item:IsItemDataCached() then
+                        local itemSpell = C_Item.GetItemSpell(itemId)
+                        if itemSpell then
+                            return true, slot
+                        end
+                    end
+                end
+            end
         end
     end
     return false, nil
