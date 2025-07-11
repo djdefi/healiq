@@ -342,6 +342,7 @@ commands.reset = function()
         HealIQ.db.ui.queueScale = 0.75
         HealIQ.db.ui.minimapAngle = -math.pi/4
         HealIQ.db.ui.showPositionBorder = false
+        HealIQ.db.ui.castOnSelfWhenNoTarget = true
     end
     
     if HealIQ.db.rules then

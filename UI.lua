@@ -22,6 +22,7 @@ local FRAME_SIZE = 64
 local ICON_SIZE = 48
 local OPTIONS_FRAME_HEIGHT = 600
 local TOOLTIP_LINE_LENGTH = 45
+local TRINKET_SPELL_NAME = "Use Trinket"
 
 -- Minimap button positioning
 local MINIMAP_BUTTON_PIXEL_BUFFER = 2
@@ -57,6 +58,8 @@ function UI:CreateMainFrame()
     local queueSize = HealIQ.db.ui.queueSize or 3
     local queueLayout = HealIQ.db.ui.queueLayout or "horizontal"
     local queueSpacing = HealIQ.db.ui.queueSpacing or 8
+    local queueScale = HealIQ.db.ui.queueScale or 0.75
+    local queueIconSize = math.floor(ICON_SIZE * queueScale) -- Use same calculation as CreateQueueFrame
     local padding = 8 -- Consistent padding for all elements
     
     local frameWidth = FRAME_SIZE + (padding * 2)
@@ -64,11 +67,15 @@ function UI:CreateMainFrame()
     
     if HealIQ.db.ui.showQueue then
         if queueLayout == "horizontal" then
-            frameWidth = frameWidth + (queueSize - 1) * (ICON_SIZE + queueSpacing)
+            -- Fix: Use corrected spacing calculation (same as CreateQueueFrame)
+            local totalWidth = (queueSize - 1) * queueIconSize + math.max(0, queueSize - 2) * queueSpacing
+            frameWidth = frameWidth + totalWidth
         else
             -- Account for spell name text in vertical layout
             local spellNameHeight = HealIQ.db.ui.showSpellName and 20 or 0
-            frameHeight = frameHeight + (queueSize - 1) * (ICON_SIZE + queueSpacing) + spellNameHeight
+            -- Fix: Use corrected spacing calculation (same as CreateQueueFrame)
+            local totalHeight = (queueSize - 1) * queueIconSize + math.max(0, queueSize - 2) * queueSpacing
+            frameHeight = frameHeight + totalHeight + spellNameHeight
         end
     end
     
@@ -99,6 +106,13 @@ function UI:CreateMainFrame()
     iconFrame = CreateFrame("Frame", "HealIQIconFrame", mainFrame)
     iconFrame:SetSize(ICON_SIZE, ICON_SIZE)
     iconFrame:SetPoint("LEFT", mainFrame, "LEFT", padding + (FRAME_SIZE - ICON_SIZE) / 2, 0)
+    
+    -- Make iconFrame clickable for casting spells
+    iconFrame:EnableMouse(true)
+    iconFrame:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    
+    -- Store current suggestion for click handling
+    iconFrame.currentSuggestion = nil
     
     -- Create spell icon texture with improved styling
     local iconTexture = iconFrame:CreateTexture(nil, "ARTWORK")
@@ -133,6 +147,37 @@ function UI:CreateMainFrame()
     glowAnimation:Play()
     iconFrame.glowAnimation = glowAnimation
     
+    -- Add click handler for casting spells
+    iconFrame:SetScript("OnClick", function(self, button)
+        UI:OnIconClick(button)
+    end)
+    
+    -- Add tooltip functionality for the main icon
+    iconFrame:SetScript("OnEnter", function(self)
+        if self.currentSuggestion then
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:AddLine(self.currentSuggestion.name, 1, 1, 1)
+            GameTooltip:AddLine("Left-click: Cast on target", 0.7, 0.7, 0.7)
+            GameTooltip:AddLine("Right-click: Cast on self", 0.7, 0.7, 0.7)
+            
+            -- Add information about fallback behavior
+            if HealIQ.db and HealIQ.db.ui and HealIQ.db.ui.castOnSelfWhenNoTarget then
+                GameTooltip:AddLine("(Casts on self if no target)", 0.6, 0.6, 0.6)
+            else
+                GameTooltip:AddLine("(Requires target to cast)", 0.6, 0.6, 0.6)
+            end
+            
+            if self.currentSuggestion.priority then
+                GameTooltip:AddLine("Priority: " .. self.currentSuggestion.priority, 0.5, 0.8, 1)
+            end
+            GameTooltip:Show()
+        end
+    end)
+    
+    iconFrame:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
+    
     -- Create spell name text with consistent spacing
     spellNameText = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     spellNameText:SetPoint("TOP", iconFrame, "BOTTOM", 0, -4) -- Consistent spacing
@@ -152,6 +197,11 @@ function UI:CreateMainFrame()
     
     -- Make frame draggable
     self:MakeFrameDraggable()
+    
+    -- Update position border based on current settings
+    -- This call is necessary here because the frame border needs to be initialized
+    -- after all frame components are created and the database is available
+    self:UpdatePositionBorder()
     
     -- Initially hide the frame
     mainFrame:Hide()
@@ -317,11 +367,15 @@ function UI:CreateQueueFrame()
     queueFrame = CreateFrame("Frame", "HealIQQueueFrame", mainFrame)
     
     if queueLayout == "horizontal" then
-        queueFrame:SetSize((queueSize - 1) * (queueIconSize + queueSpacing), queueIconSize)
-        queueFrame:SetPoint("LEFT", iconFrame, "RIGHT", queueSpacing + padding, 0)
+        -- Fix: Adjust frame size calculation to account for proper spacing
+        local totalWidth = (queueSize - 1) * queueIconSize + math.max(0, queueSize - 2) * queueSpacing
+        queueFrame:SetSize(totalWidth, queueIconSize)
+        queueFrame:SetPoint("LEFT", iconFrame, "RIGHT", queueSpacing, 0)
     else
-        queueFrame:SetSize(queueIconSize, (queueSize - 1) * (queueIconSize + queueSpacing))
-        -- Fixed: Better vertical positioning that accounts for spell name text and padding
+        -- Fix: Adjust frame size calculation for vertical layout
+        local totalHeight = (queueSize - 1) * queueIconSize + math.max(0, queueSize - 2) * queueSpacing
+        queueFrame:SetSize(queueIconSize, totalHeight)
+        -- Better vertical positioning that accounts for spell name text and padding
         local verticalOffset = HealIQ.db.ui.showSpellName and -(queueSpacing + 25) or -(queueSpacing + padding)
         queueFrame:SetPoint("TOP", iconFrame, "BOTTOM", 0, verticalOffset)
     end
@@ -457,7 +511,8 @@ function UI:CreateOptionsTabs(parent)
         -- Create tab button using UIPanelButtonTemplate which is known to work
         local tabButton = CreateFrame("Button", "HealIQTab" .. tab.id, parent, "UIPanelButtonTemplate")
         tabButton:SetSize(tabWidth, tabHeight)
-        tabButton:SetPoint("TOPLEFT", parent, "TOPLEFT", 10 + (i-1) * (tabWidth - 10), -5)
+        -- Fix: Increase y-offset to prevent overlap with header (was -5, now -35)
+        tabButton:SetPoint("TOPLEFT", parent, "TOPLEFT", 10 + (i-1) * (tabWidth - 10), -35)
         tabButton:SetText(tab.name)
         tabButton.tabId = tab.id
         
@@ -490,7 +545,8 @@ function UI:CreateOptionsTabs(parent)
         
         -- Create tab panel
         local panel = CreateFrame("Frame", "HealIQPanel" .. tab.id, parent)
-        panel:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -35)
+        -- Fix: Adjust panel position to account for moved tabs (was -35, now -65)
+        panel:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -65)
         panel:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -10, 40)
         panel:Hide()
         
@@ -753,6 +809,27 @@ function UI:CreateDisplayTab(panel)
     end)
     self:AddTooltip(showIconCheck, "Show Minimap Icon", "Display the HealIQ minimap button.")
     optionsFrame.showIconCheck = showIconCheck
+    yOffset = yOffset - 40
+    
+    -- Spell Casting Section
+    local castingHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    castingHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    castingHeader:SetText("Spell Casting Behavior")
+    castingHeader:SetTextColor(1, 0.8, 0, 1)
+    yOffset = yOffset - 30
+    
+    local castOnSelfCheck = CreateFrame("CheckButton", "HealIQCastOnSelfCheck", panel, "UICheckButtonTemplate")
+    castOnSelfCheck:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    castOnSelfCheck.text = castOnSelfCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    castOnSelfCheck.text:SetPoint("LEFT", castOnSelfCheck, "RIGHT", 5, 0)
+    castOnSelfCheck.text:SetText("Cast on self when no target")
+    castOnSelfCheck:SetScript("OnClick", function(self)
+        if HealIQ.db and HealIQ.db.ui then
+            HealIQ.db.ui.castOnSelfWhenNoTarget = self:GetChecked()
+        end
+    end)
+    self:AddTooltip(castOnSelfCheck, "Cast on Self When No Target", "When enabled, left-clicking a spell with no target selected will cast it on yourself.\nWhen disabled, you must have a target or right-click to cast on self.")
+    optionsFrame.castOnSelfCheck = castOnSelfCheck
 end
 
 function UI:CreateQueueTab(panel)
@@ -1046,6 +1123,9 @@ function UI:UpdateSuggestion(suggestion)
             iconFrame.icon:SetTexture(suggestion.icon)
             iconFrame.icon:SetDesaturated(false)
             
+            -- Store current suggestion for click handling
+            iconFrame.currentSuggestion = suggestion
+            
             -- Show glow effect for primary suggestion
             if iconFrame.glow then
                 iconFrame.glow:Show()
@@ -1152,7 +1232,7 @@ function UI:GetSpellContext(suggestion)
         ["Nature's Swiftness"] = "Makes next spell instant cast",
         ["Barkskin"] = "Personal damage reduction",
         ["Flourish"] = "Extends duration of active HoTs",
-        ["Use Trinket"] = "Activate healing trinket effect"
+        [TRINKET_SPELL_NAME] = "Activate healing trinket effect"
     }
     
     return contexts[suggestion.name]
@@ -1178,6 +1258,104 @@ function UI:UpdateCooldownDisplay(suggestion)
     else
         cooldownFrame:Hide()
     end
+end
+
+-- Helper function for consistent spell casting feedback messages
+function UI:PrintSpellCastMessage(spellName, targetUnit, success)
+    if not success then
+        if spellName == TRINKET_SPELL_NAME then
+            HealIQ:Print("No trinket available")
+        else
+            HealIQ:Print("Failed to cast " .. spellName)
+        end
+        return
+    end
+    
+    if spellName == TRINKET_SPELL_NAME then
+        HealIQ:Print("Used trinket")
+        return
+    end
+    
+    if targetUnit == "player" then
+        HealIQ:Print("Cast " .. spellName .. " on self")
+    else
+        local targetName = UnitName("target") or "target"
+        HealIQ:Print("Cast " .. spellName .. " on " .. targetName)
+    end
+end
+
+function UI:OnIconClick(button)
+    HealIQ:SafeCall(function()
+        if not iconFrame or not iconFrame.currentSuggestion then
+            return
+        end
+        
+        local suggestion = iconFrame.currentSuggestion
+        local spellName = suggestion.name
+        
+        -- Handle special cases for spell names that differ from what we display
+        if spellName == TRINKET_SPELL_NAME then
+            -- Handle trinket usage
+            local trinketSlot = nil
+            local trinket1 = GetInventoryItemID("player", 13) -- First trinket slot
+            local trinket2 = GetInventoryItemID("player", 14) -- Second trinket slot
+            
+            if trinket1 then
+                trinketSlot = 13
+            elseif trinket2 then
+                trinketSlot = 14
+            end
+            
+            if trinketSlot then
+                UseInventoryItem(trinketSlot)
+                self:PrintSpellCastMessage(spellName, "player", true)
+            else
+                self:PrintSpellCastMessage(spellName, "player", false)
+            end
+            return
+        end
+        
+        -- Determine target based on button click and user configuration
+        local targetUnit = "target"
+        local hasTarget = UnitExists("target")
+        
+        if button == "RightButton" then
+            -- Right-click always casts on self
+            targetUnit = "player"
+        elseif not hasTarget then
+            -- No target exists - check user preference for fallback behavior
+            if HealIQ.db and HealIQ.db.ui and HealIQ.db.ui.castOnSelfWhenNoTarget then
+                targetUnit = "player"
+            else
+                -- User preference is to not cast when no target - provide feedback
+                HealIQ:Print("No target selected for " .. spellName .. " (Right-click to cast on self)")
+                return
+            end
+        end
+        
+        -- Cast the spell
+        local success = false
+        if suggestion.id and suggestion.id > 0 then
+            -- Use spell ID for more reliable casting
+            if targetUnit == "player" then
+                CastSpellByID(suggestion.id, "player")
+            else
+                CastSpellByID(suggestion.id, "target")
+            end
+            success = true
+        else
+            -- Fallback to spell name
+            if targetUnit == "player" then
+                CastSpellByName(spellName, "player")
+            else
+                CastSpellByName(spellName, "target")
+            end
+            success = true
+        end
+        
+        -- Provide consistent feedback
+        self:PrintSpellCastMessage(spellName, targetUnit, success)
+    end)
 end
 
 function UI:UpdateScale()
@@ -1490,6 +1668,10 @@ function UI:UpdateOptionsFrame()
         
         if optionsFrame.showIconCheck then
             optionsFrame.showIconCheck:SetChecked(HealIQ.db.ui.showIcon)
+        end
+        
+        if optionsFrame.castOnSelfCheck then
+            optionsFrame.castOnSelfCheck:SetChecked(HealIQ.db.ui.castOnSelfWhenNoTarget)
         end
         
         -- Update frame positioning checkbox
