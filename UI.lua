@@ -71,7 +71,7 @@ function UI:CreateMainFrame()
             local totalWidth = (queueSize - 1) * queueIconSize + math.max(0, queueSize - 2) * queueSpacing
             frameWidth = frameWidth + totalWidth
         else
-            -- Account for spell name text in vertical layout  
+            -- Account for spell name text in vertical layout
             local spellNameHeight = HealIQ.db.ui.showSpellName and 20 or 0
             -- Fix: Use corrected spacing calculation (same as CreateQueueFrame)
             local totalHeight = (queueSize - 1) * queueIconSize + math.max(0, queueSize - 2) * queueSpacing
