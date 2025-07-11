@@ -22,6 +22,7 @@ local FRAME_SIZE = 64
 local ICON_SIZE = 48
 local OPTIONS_FRAME_HEIGHT = 600
 local TOOLTIP_LINE_LENGTH = 45
+local TRINKET_SPELL_NAME = "Use Trinket"
 
 -- Minimap button positioning
 local MINIMAP_BUTTON_PIXEL_BUFFER = 2
@@ -158,6 +159,14 @@ function UI:CreateMainFrame()
             GameTooltip:AddLine(self.currentSuggestion.name, 1, 1, 1)
             GameTooltip:AddLine("Left-click: Cast on target", 0.7, 0.7, 0.7)
             GameTooltip:AddLine("Right-click: Cast on self", 0.7, 0.7, 0.7)
+            
+            -- Add information about fallback behavior
+            if HealIQ.db and HealIQ.db.ui and HealIQ.db.ui.castOnSelfWhenNoTarget then
+                GameTooltip:AddLine("(Casts on self if no target)", 0.6, 0.6, 0.6)
+            else
+                GameTooltip:AddLine("(Requires target to cast)", 0.6, 0.6, 0.6)
+            end
+            
             if self.currentSuggestion.priority then
                 GameTooltip:AddLine("Priority: " .. self.currentSuggestion.priority, 0.5, 0.8, 1)
             end
@@ -190,6 +199,8 @@ function UI:CreateMainFrame()
     self:MakeFrameDraggable()
     
     -- Update position border based on current settings
+    -- This call is necessary here because the frame border needs to be initialized
+    -- after all frame components are created and the database is available
     self:UpdatePositionBorder()
     
     -- Initially hide the frame
@@ -798,6 +809,27 @@ function UI:CreateDisplayTab(panel)
     end)
     self:AddTooltip(showIconCheck, "Show Minimap Icon", "Display the HealIQ minimap button.")
     optionsFrame.showIconCheck = showIconCheck
+    yOffset = yOffset - 40
+    
+    -- Spell Casting Section
+    local castingHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    castingHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    castingHeader:SetText("Spell Casting Behavior")
+    castingHeader:SetTextColor(1, 0.8, 0, 1)
+    yOffset = yOffset - 30
+    
+    local castOnSelfCheck = CreateFrame("CheckButton", "HealIQCastOnSelfCheck", panel, "UICheckButtonTemplate")
+    castOnSelfCheck:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    castOnSelfCheck.text = castOnSelfCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    castOnSelfCheck.text:SetPoint("LEFT", castOnSelfCheck, "RIGHT", 5, 0)
+    castOnSelfCheck.text:SetText("Cast on self when no target")
+    castOnSelfCheck:SetScript("OnClick", function(self)
+        if HealIQ.db and HealIQ.db.ui then
+            HealIQ.db.ui.castOnSelfWhenNoTarget = self:GetChecked()
+        end
+    end)
+    self:AddTooltip(castOnSelfCheck, "Cast on Self When No Target", "When enabled, left-clicking a spell with no target selected will cast it on yourself.\nWhen disabled, you must have a target or right-click to cast on self.")
+    optionsFrame.castOnSelfCheck = castOnSelfCheck
 end
 
 function UI:CreateQueueTab(panel)
@@ -1200,7 +1232,7 @@ function UI:GetSpellContext(suggestion)
         ["Nature's Swiftness"] = "Makes next spell instant cast",
         ["Barkskin"] = "Personal damage reduction",
         ["Flourish"] = "Extends duration of active HoTs",
-        ["Use Trinket"] = "Activate healing trinket effect"
+        [TRINKET_SPELL_NAME] = "Activate healing trinket effect"
     }
     
     return contexts[suggestion.name]
@@ -1228,6 +1260,30 @@ function UI:UpdateCooldownDisplay(suggestion)
     end
 end
 
+-- Helper function for consistent spell casting feedback messages
+function UI:PrintSpellCastMessage(spellName, targetUnit, success)
+    if not success then
+        if spellName == TRINKET_SPELL_NAME then
+            HealIQ:Print("No trinket available")
+        else
+            HealIQ:Print("Failed to cast " .. spellName)
+        end
+        return
+    end
+    
+    if spellName == TRINKET_SPELL_NAME then
+        HealIQ:Print("Used trinket")
+        return
+    end
+    
+    if targetUnit == "player" then
+        HealIQ:Print("Cast " .. spellName .. " on self")
+    else
+        local targetName = UnitName("target") or "target"
+        HealIQ:Print("Cast " .. spellName .. " on " .. targetName)
+    end
+end
+
 function UI:OnIconClick(button)
     HealIQ:SafeCall(function()
         if not iconFrame or not iconFrame.currentSuggestion then
@@ -1238,7 +1294,7 @@ function UI:OnIconClick(button)
         local spellName = suggestion.name
         
         -- Handle special cases for spell names that differ from what we display
-        if spellName == "Use Trinket" then
+        if spellName == TRINKET_SPELL_NAME then
             -- Handle trinket usage
             local trinketSlot = nil
             local trinket1 = GetInventoryItemID("player", 13) -- First trinket slot
@@ -1252,39 +1308,53 @@ function UI:OnIconClick(button)
             
             if trinketSlot then
                 UseInventoryItem(trinketSlot)
-                HealIQ:Print("Used trinket")
+                self:PrintSpellCastMessage(spellName, "player", true)
             else
-                HealIQ:Print("No trinket available")
+                self:PrintSpellCastMessage(spellName, "player", false)
             end
             return
         end
         
-        -- Determine target based on button click
+        -- Determine target based on button click and user configuration
         local targetUnit = "target"
-        if button == "RightButton" or not UnitExists("target") then
+        local hasTarget = UnitExists("target")
+        
+        if button == "RightButton" then
+            -- Right-click always casts on self
             targetUnit = "player"
+        elseif not hasTarget then
+            -- No target exists - check user preference for fallback behavior
+            if HealIQ.db and HealIQ.db.ui and HealIQ.db.ui.castOnSelfWhenNoTarget then
+                targetUnit = "player"
+            else
+                -- User preference is to not cast when no target - provide feedback
+                HealIQ:Print("No target selected for " .. spellName .. " (Right-click to cast on self)")
+                return
+            end
         end
         
         -- Cast the spell
+        local success = false
         if suggestion.id and suggestion.id > 0 then
             -- Use spell ID for more reliable casting
             if targetUnit == "player" then
                 CastSpellByID(suggestion.id, "player")
-                HealIQ:Print("Cast " .. spellName .. " on self")
             else
                 CastSpellByID(suggestion.id, "target")
-                HealIQ:Print("Cast " .. spellName .. " on " .. (UnitName("target") or "target"))
             end
+            success = true
         else
             -- Fallback to spell name
             if targetUnit == "player" then
                 CastSpellByName(spellName, "player")
-                HealIQ:Print("Cast " .. spellName .. " on self")
             else
                 CastSpellByName(spellName, "target")
-                HealIQ:Print("Cast " .. spellName .. " on " .. (UnitName("target") or "target"))
             end
+            success = true
         end
+        
+        -- Provide consistent feedback
+        self:PrintSpellCastMessage(spellName, targetUnit, success)
     end)
 end
 
@@ -1598,6 +1668,10 @@ function UI:UpdateOptionsFrame()
         
         if optionsFrame.showIconCheck then
             optionsFrame.showIconCheck:SetChecked(HealIQ.db.ui.showIcon)
+        end
+        
+        if optionsFrame.castOnSelfCheck then
+            optionsFrame.castOnSelfCheck:SetChecked(HealIQ.db.ui.castOnSelfWhenNoTarget)
         end
         
         -- Update frame positioning checkbox
