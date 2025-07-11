@@ -509,6 +509,55 @@ function UI:CreateGeneralTab(panel)
     end)
     self:AddTooltip(debugCheck, "Enable Debug Mode", "Enable additional debug output and test features.\nUseful for troubleshooting issues.")
     optionsFrame.debugCheck = debugCheck
+    yOffset = yOffset - 30
+    
+    -- File logging checkbox
+    local loggingCheck = CreateFrame("CheckButton", "HealIQLoggingCheck", panel, "UICheckButtonTemplate")
+    loggingCheck:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    loggingCheck.text = loggingCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    loggingCheck.text:SetPoint("LEFT", loggingCheck, "RIGHT", 5, 0)
+    loggingCheck.text:SetText("Enable File Logging")
+    loggingCheck:SetScript("OnClick", function(self)
+        HealIQ.db.logging.enabled = self:GetChecked()
+        if HealIQ.db.logging.enabled then
+            HealIQ:InitializeLogging()
+            HealIQ:Message("File logging enabled")
+        else
+            HealIQ:Message("File logging disabled")
+        end
+    end)
+    self:AddTooltip(loggingCheck, "Enable File Logging", "Enable logging debug information to file for troubleshooting.\nLogs are stored in memory and can be exported via /healiq dump.")
+    optionsFrame.loggingCheck = loggingCheck
+    yOffset = yOffset - 30
+    
+    -- Verbose logging checkbox
+    local verboseCheck = CreateFrame("CheckButton", "HealIQVerboseCheck", panel, "UICheckButtonTemplate")
+    verboseCheck:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    verboseCheck.text = verboseCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    verboseCheck.text:SetPoint("LEFT", verboseCheck, "RIGHT", 5, 0)
+    verboseCheck.text:SetText("Verbose Logging")
+    verboseCheck:SetScript("OnClick", function(self)
+        HealIQ.db.logging.verbose = self:GetChecked()
+        local status = HealIQ.db.logging.verbose and "enabled" or "disabled"
+        HealIQ:Message("Verbose logging " .. status)
+    end)
+    self:AddTooltip(verboseCheck, "Verbose Logging", "Enable detailed logging of rule processing and suggestions.\nRequires File Logging to be enabled.")
+    optionsFrame.verboseCheck = verboseCheck
+    yOffset = yOffset - 30
+    
+    -- Session stats checkbox
+    local statsCheck = CreateFrame("CheckButton", "HealIQStatsCheck", panel, "UICheckButtonTemplate")
+    statsCheck:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    statsCheck.text = statsCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    statsCheck.text:SetPoint("LEFT", statsCheck, "RIGHT", 5, 0)
+    statsCheck.text:SetText("Session Statistics")
+    statsCheck:SetScript("OnClick", function(self)
+        HealIQ.db.logging.sessionStats = self:GetChecked()
+        local status = HealIQ.db.logging.sessionStats and "enabled" or "disabled"
+        HealIQ:Message("Session statistics " .. status)
+    end)
+    self:AddTooltip(statsCheck, "Session Statistics", "Track session statistics like suggestions generated, rules processed, etc.\nView statistics with /healiq status or /healiq dump.")
+    optionsFrame.statsCheck = statsCheck
     yOffset = yOffset - 50
     
     -- UI Position Section
@@ -1297,6 +1346,19 @@ function UI:UpdateOptionsFrame()
     -- Update debug checkbox
     if optionsFrame.debugCheck then
         optionsFrame.debugCheck:SetChecked(HealIQ.db.debug)
+    end
+    
+    -- Update logging checkboxes
+    if optionsFrame.loggingCheck then
+        optionsFrame.loggingCheck:SetChecked(HealIQ.db.logging.enabled)
+    end
+    
+    if optionsFrame.verboseCheck then
+        optionsFrame.verboseCheck:SetChecked(HealIQ.db.logging.verbose)
+    end
+    
+    if optionsFrame.statsCheck then
+        optionsFrame.statsCheck:SetChecked(HealIQ.db.logging.sessionStats)
     end
     
     -- Update scale slider

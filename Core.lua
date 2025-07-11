@@ -12,6 +12,15 @@ HealIQ.debug = false
 local defaults = {
     enabled = true,
     debug = false, -- Debug mode setting
+    logging = {
+        enabled = false, -- File logging enabled
+        verbose = false, -- Verbose file logging
+        sessionStats = true, -- Track session statistics
+        maxLogSize = 1024, -- Maximum log buffer size in KB
+        maxLogFiles = 5, -- Maximum number of log files to keep
+        flushInterval = 300, -- Flush to storage every 5 minutes (in seconds)
+        flushThreshold = 512, -- Flush when buffer reaches this size in KB
+    },
     ui = {
         scale = 1.0,
         x = 0,
@@ -131,14 +140,42 @@ function HealIQ:Print(message)
     end
 end
 
+
+
+
+
+
+
+
+
+
+
+
+function HealIQ:FormatDuration(seconds)
+    local hours = math.floor(seconds / 3600)
+    local minutes = math.floor((seconds % 3600) / 60)
+    local secs = seconds % 60
+    
+    if hours > 0 then
+        return string.format("%dh %dm %ds", hours, minutes, secs)
+    elseif minutes > 0 then
+        return string.format("%dm %ds", minutes, secs)
+    else
+        return string.format("%ds", secs)
+    end
+end
+
 -- Error handling wrapper
 function HealIQ:SafeCall(func, ...)
     local success, result = pcall(func, ...)
     if not success then
         local errorMsg = tostring(result)
         print("|cFFFF0000HealIQ Error:|r " .. errorMsg)
+        self:LogError("SafeCall Error: " .. errorMsg)
+        
         if self.debug then
             print("|cFFFF0000Stack trace:|r " .. debugstack())
+            self:LogToFile("Stack trace: " .. debugstack(), "ERROR")
         end
         
         -- Also report to WoW's error system for copyable errors
@@ -166,24 +203,36 @@ function HealIQ:OnInitialize()
         self:InitializeDB()
         self:Print("HealIQ " .. self.version .. " loaded")
         
+        -- Initialize logging variables and system
+        if self.Logging then
+            self.Logging:InitializeVariables()
+        end
+        self:InitializeLogging()
+        self:LogToFile("HealIQ initialization started", "INFO")
+        
         -- Initialize modules
         if self.Tracker then
             self.Tracker:Initialize()
+            self:LogVerbose("Tracker module initialized")
         end
         
         if self.Engine then
             self.Engine:Initialize()
+            self:LogVerbose("Engine module initialized")
         end
         
         if self.UI then
             self.UI:Initialize()
+            self:LogVerbose("UI module initialized")
         end
         
         if self.Config then
             self.Config:Initialize()
+            self:LogVerbose("Config module initialized")
         end
         
         self:Message("HealIQ " .. self.version .. " initialized successfully")
+        self:LogToFile("HealIQ initialization completed successfully", "INFO")
     end)
 end
 
@@ -191,6 +240,9 @@ end
 function HealIQ:OnEvent(event, ...)
     local args = {...}  -- Capture varargs for use in SafeCall
     self:SafeCall(function()
+        self.sessionStats.eventsHandled = self.sessionStats.eventsHandled + 1
+        self:LogVerbose("Event received: " .. event)
+        
         if event == "ADDON_LOADED" then
             local loadedAddon = args[1]
             if loadedAddon == addonName then
@@ -207,12 +259,14 @@ end
 function HealIQ:OnPlayerLogin()
     self:SafeCall(function()
         self:Print("Player logged in")
+        self:LogToFile("Player logged in", "INFO")
     end)
 end
 
 function HealIQ:OnPlayerEnteringWorld()
     self:SafeCall(function()
         self:Print("Player entering world")
+        self:LogToFile("Player entering world", "INFO")
         
         -- Check if player is a Restoration Druid
         local _, class = UnitClass("player")
@@ -220,15 +274,18 @@ function HealIQ:OnPlayerEnteringWorld()
             local specIndex = GetSpecialization()
             if specIndex == 4 then -- Restoration spec
                 self:Print("Restoration Druid detected")
+                self:LogToFile("Restoration Druid detected - enabling addon", "INFO")
                 self.db.enabled = true
                 self:Message("HealIQ enabled for Restoration Druid")
             else
                 self:Print("Not Restoration spec, addon disabled")
+                self:LogToFile("Not Restoration spec (spec: " .. (specIndex or "unknown") .. ") - disabling addon", "INFO")
                 self.db.enabled = false
                 self:Message("HealIQ disabled (not Restoration spec)")
             end
         else
             self:Print("Not a Druid, addon disabled")
+            self:LogToFile("Not a Druid (class: " .. (class or "unknown") .. ") - disabling addon", "INFO")
             self.db.enabled = false
             self:Message("HealIQ disabled (not a Druid)")
         end
@@ -250,6 +307,11 @@ _G[addonName] = HealIQ
 -- Cleanup function for addon disable/reload
 function HealIQ:Cleanup()
     self:SafeCall(function()
+        -- Flush any remaining log entries before cleanup
+        if self.db and self.db.logging and self.db.logging.enabled then
+            self:FlushLogBuffer()
+        end
+        
         if self.UI then
             self.UI:Hide()
         end

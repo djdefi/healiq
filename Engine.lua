@@ -127,6 +127,11 @@ function Engine:OnUpdate(elapsed)
         
         lastUpdate = currentTime
         
+        -- Check for log buffer flush (do this periodically, regardless of other conditions)
+        if HealIQ.db.logging.enabled and HealIQ:ShouldFlushLogBuffer() then
+            HealIQ:FlushLogBuffer()
+        end
+        
         -- Only suggest spells if addon is enabled and player is in combat or has a target
         if not HealIQ.db.enabled then
             self:SetSuggestion(nil)
@@ -177,20 +182,27 @@ function Engine:EvaluateRules()
     end
     
     local suggestions = {}
+    HealIQ:LogVerbose("Starting rule evaluation")
     
     -- Rule 1: Tranquility if off cooldown and 4+ allies recently damaged (highest priority)
     if HealIQ.db.rules.tranquility and tracker:ShouldUseTranquility() then
         table.insert(suggestions, SPELLS.TRANQUILITY)
+        HealIQ:LogVerbose("Rule triggered: Tranquility")
+        HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
     end
     
     -- Rule 2: Incarnation: Tree of Life for high damage phases
     if HealIQ.db.rules.incarnationTree and tracker:ShouldUseIncarnation() then
         table.insert(suggestions, SPELLS.INCARNATION_TREE)
+        HealIQ:LogVerbose("Rule triggered: Incarnation Tree")
+        HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
     end
     
     -- Rule 3: Ironbark for damage reduction on target
     if HealIQ.db.rules.ironbark and tracker:ShouldUseIronbark() then
         table.insert(suggestions, SPELLS.IRONBARK)
+        HealIQ:LogVerbose("Rule triggered: Ironbark")
+        HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
     end
     
     -- Rule 4: Wild Growth if off cooldown and 3+ allies recently damaged
@@ -198,6 +210,8 @@ function Engine:EvaluateRules()
         local recentDamageCount = tracker:GetRecentDamageCount()
         if recentDamageCount >= 3 then
             table.insert(suggestions, SPELLS.WILD_GROWTH)
+            HealIQ:LogVerbose("Rule triggered: Wild Growth (recent damage: " .. recentDamageCount .. ")")
+            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
         end
     end
     
@@ -266,6 +280,8 @@ function Engine:EvaluateRules()
             table.insert(suggestions, SPELLS.TRINKET)
         end
     end
+    
+    HealIQ:LogVerbose("Rule evaluation completed, " .. #suggestions .. " suggestions found")
     
     -- Return the top suggestion for backward compatibility
     return suggestions[1] or nil
@@ -392,9 +408,16 @@ function Engine:SetSuggestion(suggestion)
         if HealIQ.debug then
             if suggestion then
                 HealIQ:Print("Suggesting: " .. suggestion.name)
+                HealIQ:LogVerbose("Generated suggestion: " .. suggestion.name .. " (priority: " .. suggestion.priority .. ")")
             else
                 HealIQ:Print("No suggestion")
+                HealIQ:LogVerbose("No suggestion generated")
             end
+        end
+        
+        -- Track suggestion stats
+        if suggestion then
+            HealIQ.sessionStats.suggestions = HealIQ.sessionStats.suggestions + 1
         end
     end
 end
@@ -428,9 +451,11 @@ function Engine:SetQueue(queue)
                 for i, suggestion in ipairs(queue) do
                     table.insert(names, suggestion.name)
                 end
-                HealIQ:Print("Queue: " .. table.concat(names, " → "))
+                HealIQ:Print("Queue updated: " .. table.concat(names, " → "))
+                HealIQ:LogVerbose("Queue updated (" .. #queue .. " items): " .. table.concat(names, " → "))
             else
-                HealIQ:Print("Empty queue")
+                HealIQ:Print("Queue cleared")
+                HealIQ:LogVerbose("Queue cleared")
             end
         end
     end
