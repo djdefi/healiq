@@ -21,8 +21,11 @@ jobs:
       id: version
       run: |
         VERSION=$(grep "^## Version:" HealIQ.toc | cut -d' ' -f3)
+        INTERFACE=$(grep "^## Interface:" HealIQ.toc | cut -d' ' -f3)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "interface=$INTERFACE" >> $GITHUB_OUTPUT
         echo "Extracted version: $VERSION"
+        echo "Extracted interface: $INTERFACE"
         
     - name: Get previous version tag
       id: prev_version
@@ -186,3 +189,69 @@ jobs:
         draft: false
         prerelease: false
         files: HealIQ-${{ steps.version.outputs.version }}.zip
+        
+    - name: Convert interface version to game version
+      if: steps.check_tag.outputs.exists == 'false' && secrets.CURSEFORGE_TOKEN != ''
+      id: game_version
+      run: |
+        # Function to convert WoW interface version to game version
+        convert_interface_version() {
+          local interface="$1"
+          
+          # WoW interface versions follow format: MMNNPP or MNNPP
+          # MM/M = major, NN = minor, PP = patch
+          if [[ $interface =~ ^([0-9]+)$ ]] && [ ${#interface} -ge 5 ] && [ ${#interface} -le 6 ]; then
+            if [ ${#interface} -eq 6 ]; then
+              # 6 digits: MMNNPP (e.g., 110107 -> 11.0.7)
+              local major="${interface:0:2}"
+              local minor_raw="${interface:2:2}"
+              local patch_raw="${interface:4:2}"
+            else
+              # 5 digits: MNNPP (e.g., 90205 -> 9.2.5)
+              local major="${interface:0:1}"
+              local minor_raw="${interface:1:2}"
+              local patch_raw="${interface:3:2}"
+            fi
+            
+            # Convert to decimal, handling leading zeros
+            local minor="$((10#$minor_raw))"
+            local patch="$((10#$patch_raw))"
+            
+            # Generic rule: if minor raw is "01", it represents 0
+            if [ "$minor_raw" = "01" ]; then
+              minor="0"
+            fi
+            
+            echo "${major}.${minor}.${patch}"
+          else
+            # Fallback: try to extract numeric major version or use current retail
+            if [[ $interface =~ ^([0-9]+) ]]; then
+              local major_fallback="${BASH_REMATCH[1]}"
+              if [ ${#major_fallback} -gt 2 ]; then
+                major_fallback="${major_fallback:0:2}"
+              fi
+              echo "${major_fallback}.0.0"
+            else
+              echo "11.0.7"  # Hard fallback to current retail
+            fi
+          fi
+        }
+        
+        INTERFACE="${{ steps.version.outputs.interface }}"
+        GAME_VERSION=$(convert_interface_version "$INTERFACE")
+        
+        echo "game_version=$GAME_VERSION" >> $GITHUB_OUTPUT
+        echo "Using game version: $GAME_VERSION for interface $INTERFACE"
+        
+    - name: Upload to CurseForge
+      if: steps.check_tag.outputs.exists == 'false' && secrets.CURSEFORGE_TOKEN != ''
+      uses: itsmeow/curseforge-upload@v3
+      with:
+        token: ${{ secrets.CURSEFORGE_TOKEN }}
+        project_id: ${{ secrets.CURSEFORGE_PROJECT_ID }}
+        game_endpoint: wow
+        file_path: HealIQ-${{ steps.version.outputs.version }}.zip
+        changelog_type: markdown
+        changelog_file: release_notes.md
+        game_versions: ${{ steps.game_version.outputs.game_version }}
+        release_type: release

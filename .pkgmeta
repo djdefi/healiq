@@ -1,0 +1,38 @@
+package-as: HealIQ
+
+# CurseForge automatic packaging configuration
+# This file defines how the addon should be packaged for distribution
+
+# Files to include in the package
+enable-nolib-creation: no
+
+# Move files to the root of the addon package
+move-folders:
+    HealIQ:
+        - Core.lua
+        - Engine.lua
+        - UI.lua
+        - Tracker.lua
+        - Config.lua
+        - Logging.lua
+        - HealIQ.toc
+        - README.md
+        - LICENSE
+        - CHANGELOG.md
+        - INSTALL.md
+
+# Files to ignore (not include in the package)
+ignore:
+    - .git
+    - .github
+    - .gitignore
+    - DESIGN.md
+    - CHANGELOG.md.backup
+    - "*.backup"
+    - .pkgmeta
+
+# Manual changelog - use the CHANGELOG.md file
+manual-changelog: CHANGELOG.md
+
+# License detection
+license-output: LICENSE

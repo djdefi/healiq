@@ -30,6 +30,19 @@ This repository uses GitHub Actions for automated testing and releases.
     - Version-specific changelog from CHANGELOG.md
     - Installation instructions
     - Downloadable addon package
+  - Automatically uploads to CurseForge (if configured with required secrets)
+
+### CurseForge Integration
+
+The release workflow includes automatic CurseForge publishing when properly configured. See `.github/CURSEFORGE_SETUP.md` for detailed setup instructions.
+
+**Required GitHub Secrets:**
+- `CURSEFORGE_TOKEN`: API token from CurseForge
+- `CURSEFORGE_PROJECT_ID`: Your CurseForge project ID
+
+**Game versions are automatically detected** from the addon's `.toc` file interface version.
+
+If these secrets are not configured, the workflow will skip CurseForge upload but still create GitHub releases.
 
 ## Luacheck Settings
 
