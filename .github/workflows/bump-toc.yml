@@ -30,6 +30,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   bump-version:
@@ -284,6 +285,9 @@ jobs:
             return 'success';
           } catch (error) {
             console.error('Failed to trigger release workflow:', error.message);
+            if (error.message.includes('Resource not accessible by integration')) {
+              console.error('This error typically indicates insufficient permissions. Ensure the workflow has "actions: write" permission.');
+            }
             return 'failed';
           }
         
