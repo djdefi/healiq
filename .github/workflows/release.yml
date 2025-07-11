@@ -24,6 +24,18 @@ jobs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Extracted version: $VERSION"
         
+    - name: Get previous version tag
+      id: prev_version
+      run: |
+        PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+        if [ -z "$PREV_TAG" ]; then
+          echo "No previous tag found, this might be the first release"
+          echo "prev_tag=initial" >> $GITHUB_OUTPUT
+        else
+          echo "prev_tag=$PREV_TAG" >> $GITHUB_OUTPUT
+        fi
+        echo "Previous version tag: $PREV_TAG"
+        
     - name: Check if tag already exists
       id: check_tag
       run: |
@@ -33,6 +45,84 @@ jobs:
         else
           echo "exists=false" >> $GITHUB_OUTPUT
           echo "Tag v${{ steps.version.outputs.version }} does not exist"
+        fi
+        
+    - name: Generate and update changelog
+      if: steps.check_tag.outputs.exists == 'false'
+      run: |
+        echo "Generating changelog entries for version ${{ steps.version.outputs.version }}..."
+        
+        # Make sure the changelog script is executable
+        chmod +x .github/scripts/generate-changelog.sh
+        
+        # Generate changelog from previous version to current
+        if [ "${{ steps.prev_version.outputs.prev_tag }}" = "initial" ]; then
+          echo "Generating changelog from initial commit..."
+          ./.github/scripts/generate-changelog.sh initial ${{ steps.version.outputs.version }}
+        else
+          echo "Generating changelog from ${{ steps.prev_version.outputs.prev_tag }} to ${{ steps.version.outputs.version }}..."
+          ./.github/scripts/generate-changelog.sh ${{ steps.prev_version.outputs.prev_tag }} ${{ steps.version.outputs.version }}
+        fi
+        
+        echo "Changelog generation completed"
+        
+    - name: Validate changelog entry
+      if: steps.check_tag.outputs.exists == 'false'
+      id: validate_changelog
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        
+        # Check if changelog entry exists for this version
+        if ! grep -q "## \[$VERSION\]" CHANGELOG.md; then
+          echo "ERROR: No changelog entry found for version $VERSION"
+          exit 1
+        fi
+        
+        # Extract the changelog section for this version
+        SECTION=$(sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | head -n -1)
+        
+        # Check if all sections have only empty bullets
+        ADDED_EMPTY=$(echo "$SECTION" | grep -A10 "### Added" | grep -E "^- $" | wc -l)
+        CHANGED_EMPTY=$(echo "$SECTION" | grep -A10 "### Changed" | grep -E "^- $" | wc -l)
+        FIXED_EMPTY=$(echo "$SECTION" | grep -A10 "### Fixed" | grep -E "^- $" | wc -l)
+        
+        # Count non-empty entries
+        ADDED_CONTENT=$(echo "$SECTION" | grep -A10 "### Added" | grep -E "^- .+$" | grep -v "^- $" | wc -l)
+        CHANGED_CONTENT=$(echo "$SECTION" | grep -A10 "### Changed" | grep -E "^- .+$" | grep -v "^- $" | wc -l)
+        FIXED_CONTENT=$(echo "$SECTION" | grep -A10 "### Fixed" | grep -E "^- .+$" | grep -v "^- $" | wc -l)
+        
+        TOTAL_CONTENT=$((ADDED_CONTENT + CHANGED_CONTENT + FIXED_CONTENT))
+        
+        echo "Changelog validation results:"
+        echo "- Added entries: $ADDED_CONTENT"
+        echo "- Changed entries: $CHANGED_CONTENT"
+        echo "- Fixed entries: $FIXED_CONTENT"
+        echo "- Total content entries: $TOTAL_CONTENT"
+        
+        if [ $TOTAL_CONTENT -eq 0 ]; then
+          echo "WARNING: Changelog entry for version $VERSION appears to be empty"
+          echo "This suggests no significant changes were detected from commit messages."
+          echo "Proceeding with release, but consider manually updating the changelog."
+          echo "has_content=false" >> $GITHUB_OUTPUT
+        else
+          echo "Changelog entry validation passed!"
+          echo "has_content=true" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Commit updated changelog
+      if: steps.check_tag.outputs.exists == 'false'
+      run: |
+        # Check if changelog was modified
+        if git diff --quiet CHANGELOG.md; then
+          echo "No changes to commit in CHANGELOG.md"
+        else
+          echo "Committing updated changelog..."
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add CHANGELOG.md
+          git commit -m "Update changelog for release v${{ steps.version.outputs.version }}"
+          git push origin ${{ github.ref_name }}
+          echo "Changelog committed and pushed"
         fi
         
     - name: Create Git tag

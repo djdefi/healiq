@@ -184,32 +184,24 @@ jobs:
       if: ${{ github.event.inputs.create_changelog_entry == 'true' && steps.check_version.outputs.changelog_exists == 'false' }}
       run: |
         NEW_VERSION="${{ steps.new_version.outputs.new }}"
-        CURRENT_DATE=$(date +"%Y-%m-%d")
         
-        # Create temporary file with new changelog entry
-        cat > temp_changelog.md << EOF
-        # HealIQ Changelog
+        echo "Generating changelog entry for version $NEW_VERSION..."
         
-        ## [$NEW_VERSION] - $CURRENT_DATE
+        # Make sure the changelog script is executable
+        chmod +x .github/scripts/generate-changelog.sh
         
-        ### Added
-        - 
+        # Get the previous version tag
+        PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
         
-        ### Changed
-        - 
+        if [ -z "$PREV_TAG" ]; then
+          echo "No previous tag found, generating from initial commit..."
+          ./.github/scripts/generate-changelog.sh initial $NEW_VERSION
+        else
+          echo "Generating changelog from $PREV_TAG to $NEW_VERSION..."
+          ./.github/scripts/generate-changelog.sh $PREV_TAG $NEW_VERSION
+        fi
         
-        ### Fixed
-        - 
-        
-        EOF
-        
-        # Add rest of changelog after the first line
-        tail -n +2 CHANGELOG.md >> temp_changelog.md
-        
-        # Replace original changelog
-        mv temp_changelog.md CHANGELOG.md
-        
-        echo "Created changelog entry for version $NEW_VERSION"
+        echo "Changelog entry created for version $NEW_VERSION"
         
     - name: Validate version consistency
       run: |
