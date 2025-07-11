@@ -209,7 +209,7 @@ function HealIQ:FlushLogBuffer()
     
     -- In WoW environment, we simulate flushing by creating a summary
     -- Real implementation would write to actual files here
-    local flushSummary = string.format("LOG FLUSH: %d entries, %.2f KB flushed at %s", 
+    local flushSummary = string.format("LOG FLUSH: %d entries, %.2f KB flushed at %s",
         entryCount, bufferSizeKB, date("%H:%M:%S"))
     
     if self.debug then
