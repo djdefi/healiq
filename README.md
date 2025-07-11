@@ -4,12 +4,15 @@
 
 ## 🧠 What It Does
 
-- Suggests your next optimal healing spell
+- Displays optimal healing spell suggestions
 - Tracks HoT durations (e.g. Lifebloom, Rejuvenation)
 - Recognizes Clearcasting procs
-- Prompts Swiftmend combo use
+- Shows Swiftmend combo opportunities
 - Alerts for cooldown-based AoE healing (e.g. Wild Growth)
 - Supports movement and configuration of suggestion UI
+- Shows upcoming suggestions in a queue display
+
+**Note:** HealIQ provides visual suggestions only. Due to Blizzard restrictions, spell casting must be done manually using your normal keybinds or action bars.
 
 > HealIQ is inspired by Hekili, but for healing. Designed with Restoration Druids in mind, support for other healers may be added later.
 
