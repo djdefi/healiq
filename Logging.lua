@@ -123,11 +123,6 @@ function HealIQ:GenerateDiagnosticDump()
     table.insert(dump, "Class: " .. (class or "Unknown"))
     table.insert(dump, "Specialization: " .. (spec or "Unknown"))
     table.insert(dump, "In Combat: " .. tostring(InCombatLockdown()))
-    
-    -- Update memory usage before getting it (required in modern WoW)
-    UpdateAddOnMemoryUsage()
-    local memoryUsage = GetAddOnMemoryUsage("HealIQ") or 0
-    table.insert(dump, "Memory Usage: " .. string.format("%.2f KB", memoryUsage))
     table.insert(dump, "")
     
     return table.concat(dump, "\n")

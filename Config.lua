@@ -546,11 +546,6 @@ commands.status = function()
     -- Show addon status
     local addonVersion = C_AddOns.GetAddOnMetadata("HealIQ", "Version") or "Unknown"
     print("  Addon Version: |cFF00FF00" .. addonVersion .. "|r")
-    
-    -- Update memory usage before getting it (required in modern WoW)
-    UpdateAddOnMemoryUsage()
-    local memoryUsage = GetAddOnMemoryUsage("HealIQ") or 0
-    print("  Memory Usage: |cFF00FF00" .. string.format("%.2f", memoryUsage) .. " KB|r")
 end
 
 -- Public configuration methods
