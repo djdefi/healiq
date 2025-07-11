@@ -1,117 +1,75 @@
 # HealIQ Changelog
 
-## [0.0.11] - 2025-07-11
-
-### Added
-- Add comprehensive validation and testing for changelog automation
-
-### Changed
-- Initial plan
-- Implement automated changelog generation for releases
-- Demonstrate changelog generation functionality with available git history
-
-### Fixed
-- 
-
 ## [0.0.10] - 2025-07-11
 
 ### Added
-- GitHub workflows for automated testing and releases
-- Comprehensive workflow documentation in `.github/WORKFLOWS.md`
-- Automated version bumping and changelog management
-- Test workflow for continuous integration
+- 
 
 ### Changed
-- Improved release process with automated workflows
-- Enhanced project structure with GitHub Actions integration
+- 
 
 ### Fixed
-- Streamlined deployment and release management
+- 
 
 
 ## [0.0.9] - 2025-07-11
 
 ### Added
-- Advanced logging system with categorized output
-- Memory usage tracking and optimization
-- Enhanced debug capabilities with detailed stack traces
+- 
 
 ### Changed
-- Improved error handling throughout all modules
-- Better performance monitoring and diagnostics
-- Enhanced user feedback system
+- 
 
 ### Fixed
-- Memory leak issues in event handling
-- Performance optimization for large raid groups
+- 
 
 
 ## [0.0.8] - 2025-07-10
 
 ### Added
-- Smart cooldown tracking for all healing abilities
-- Enhanced spell priority system with weighted scoring
-- Automatic talent detection and rule adaptation
+- 
 
 ### Changed
-- Improved spell suggestion accuracy based on combat context
-- Better integration with WoW's combat log system
-- Enhanced rule engine performance
+- 
 
 ### Fixed
-- Issues with spell cooldown detection in high-latency environments
-- False positive suggestions during global cooldowns
+- 
 
 
 ## [0.0.7] - 2025-07-10
 
 ### Added
-- Raid frame integration for target selection
-- Party member health monitoring
-- Dynamic suggestion filtering based on group composition
+- 
 
 ### Changed
-- Enhanced UI responsiveness during combat
-- Improved target selection algorithms
-- Better handling of different group sizes
+- 
 
 ### Fixed
-- Target selection issues in large raid groups
-- UI display problems with non-standard group configurations
+- 
 
 
 ## [0.0.6] - 2025-07-10
 
 ### Added
-- Configuration persistence system with saved variables
-- User preference management for all settings
-- Import/export functionality for rule configurations
+- 
 
 ### Changed
-- Enhanced configuration interface with better organization
-- Improved settings validation and error handling
-- Better default configuration values
+- 
 
 ### Fixed
-- Settings not persisting between game sessions
-- Configuration corruption issues on addon reload
+- 
 
 
 ## [0.0.5] - 2025-07-10
 
 ### Added
-- Advanced UI customization options
-- Movable and scalable suggestion display
-- Multiple UI themes and styling options
+- 
 
 ### Changed
-- Complete UI system rewrite for better performance
-- Enhanced visual feedback and animations
-- Improved accessibility features
+- 
 
 ### Fixed
-- UI scaling issues on different screen resolutions
-- Display problems with custom UI scale settings
+- 
 
 
 ## [0.0.4] - 2025-07-10
