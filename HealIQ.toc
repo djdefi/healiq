@@ -8,6 +8,7 @@
 
 # Core files
 Core.lua
+Logging.lua
 Tracker.lua
 Engine.lua
 UI.lua
