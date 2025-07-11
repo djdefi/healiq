@@ -188,21 +188,27 @@ function Engine:EvaluateRules()
     if HealIQ.db.rules.tranquility and tracker:ShouldUseTranquility() then
         table.insert(suggestions, SPELLS.TRANQUILITY)
         HealIQ:LogVerbose("Rule triggered: Tranquility")
-        HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
+        if HealIQ.sessionStats then
+            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
+        end
     end
     
     -- Rule 2: Incarnation: Tree of Life for high damage phases
     if HealIQ.db.rules.incarnationTree and tracker:ShouldUseIncarnation() then
         table.insert(suggestions, SPELLS.INCARNATION_TREE)
         HealIQ:LogVerbose("Rule triggered: Incarnation Tree")
-        HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
+        if HealIQ.sessionStats then
+            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
+        end
     end
     
     -- Rule 3: Ironbark for damage reduction on target
     if HealIQ.db.rules.ironbark and tracker:ShouldUseIronbark() then
         table.insert(suggestions, SPELLS.IRONBARK)
         HealIQ:LogVerbose("Rule triggered: Ironbark")
-        HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
+        if HealIQ.sessionStats then
+            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
+        end
     end
     
     -- Rule 4: Wild Growth if off cooldown and 3+ allies recently damaged
@@ -211,7 +217,9 @@ function Engine:EvaluateRules()
         if recentDamageCount >= 3 then
             table.insert(suggestions, SPELLS.WILD_GROWTH)
             HealIQ:LogVerbose("Rule triggered: Wild Growth (recent damage: " .. recentDamageCount .. ")")
-            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
+            if HealIQ.sessionStats then
+                HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
+            end
         end
     end
     
@@ -416,7 +424,7 @@ function Engine:SetSuggestion(suggestion)
         end
         
         -- Track suggestion stats
-        if suggestion then
+        if suggestion and HealIQ.sessionStats then
             HealIQ.sessionStats.suggestions = HealIQ.sessionStats.suggestions + 1
         end
     end

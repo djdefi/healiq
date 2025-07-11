@@ -121,7 +121,7 @@ function HealIQ:TrimLogBuffer()
 end
 
 function HealIQ:LogToFile(message, level)
-    if not self.db.logging.enabled then
+    if not self.db or not self.db.logging or not self.db.logging.enabled then
         return
     end
     
@@ -130,7 +130,7 @@ function HealIQ:LogToFile(message, level)
     local logEntry = string.format("[%s] [%s] %s", timestamp, level, tostring(message))
     
     -- Print to chat if debug mode or verbose logging is enabled
-    if self.debug or self.db.logging.verbose then
+    if self.debug or (self.db and self.db.logging and self.db.logging.verbose) then
         print("|cFF888888[LOG]|r " .. logEntry)
     end
     
@@ -153,14 +153,16 @@ function HealIQ:LogToFile(message, level)
 end
 
 function HealIQ:LogVerbose(message)
-    if self.db.logging.enabled and self.db.logging.verbose then
+    if self.db and self.db.logging and self.db.logging.enabled and self.db.logging.verbose then
         self:LogToFile(message, "VERBOSE")
     end
 end
 
 function HealIQ:LogError(message)
     self:LogToFile(message, "ERROR")
-    self.sessionStats.errorsLogged = self.sessionStats.errorsLogged + 1
+    if self.sessionStats then
+        self.sessionStats.errorsLogged = self.sessionStats.errorsLogged + 1
+    end
 end
 
 function HealIQ:GenerateDiagnosticDump()
