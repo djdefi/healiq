@@ -103,9 +103,15 @@ function HealIQ:TrimLogBuffer()
     local maxSizeBytes = self.db.logging.maxLogSize * 1024
     
     -- Remove oldest entries until we're under the limit
-    while self.logBufferSize > maxSizeBytes and #self.logBuffer > 1 do
+    while self.logBufferSize > maxSizeBytes and #self.logBuffer > 0 do
         local removedEntry = table.remove(self.logBuffer, 1)
         self.logBufferSize = self.logBufferSize - string.len(removedEntry)
+    end
+    
+    -- Additional size validation for single oversized entry
+    if self.logBufferSize > maxSizeBytes and #self.logBuffer == 1 then
+        self.logBuffer = {}
+        self.logBufferSize = 0
     end
     
     -- Safety check to prevent negative buffer size
