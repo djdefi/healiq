@@ -453,12 +453,33 @@ function UI:CreateOptionsTabs(parent)
     optionsFrame.tabPanels = {}
     
     for i, tab in ipairs(tabs) do
-        -- Create tab button
-        local tabButton = CreateFrame("Button", "HealIQTab" .. tab.id, parent, "TabButtonTemplate")
+        -- Create tab button using UIPanelButtonTemplate which is known to work
+        local tabButton = CreateFrame("Button", "HealIQTab" .. tab.id, parent, "UIPanelButtonTemplate")
         tabButton:SetSize(tabWidth, tabHeight)
         tabButton:SetPoint("TOPLEFT", parent, "TOPLEFT", 10 + (i-1) * (tabWidth - 10), -5)
         tabButton:SetText(tab.name)
         tabButton.tabId = tab.id
+        
+        -- Style the button to look like a tab with better visual feedback
+        tabButton:SetNormalFontObject("GameFontNormal")
+        tabButton:SetHighlightFontObject("GameFontHighlight")
+        tabButton:SetDisabledFontObject("GameFontDisable")
+        
+        -- Set initial inactive appearance
+        tabButton:SetAlpha(0.7)
+        
+        -- Add hover effects for better user experience
+        tabButton:SetScript("OnEnter", function(self)
+            if self.tabId ~= optionsFrame.activeTab then
+                self:SetAlpha(0.85)
+            end
+        end)
+        
+        tabButton:SetScript("OnLeave", function(self)
+            if self.tabId ~= optionsFrame.activeTab then
+                self:SetAlpha(0.7)
+            end
+        end)
         
         tabButton:SetScript("OnClick", function(self)
             UI:ShowOptionsTab(self.tabId)
@@ -488,15 +509,22 @@ function UI:ShowOptionsTab(tabId)
     -- Hide all panels and reset tab states
     for id, panel in pairs(optionsFrame.tabPanels) do
         panel:Hide()
-        optionsFrame.tabs[id]:SetNormalTexture("")
-        optionsFrame.tabs[id]:SetPushedTexture("")
+        -- Reset button appearance for inactive tabs
+        local tab = optionsFrame.tabs[id]
+        tab:SetAlpha(0.7)
+        tab:SetNormalFontObject("GameFontNormal")
     end
     
     -- Show selected panel and mark tab as active
     if optionsFrame.tabPanels[tabId] then
         optionsFrame.tabPanels[tabId]:Show()
-        optionsFrame.tabs[tabId]:SetNormalTexture("Interface\\ChatFrame\\ChatFrameTab-ActiveLeft")
-        optionsFrame.tabs[tabId]:SetPushedTexture("Interface\\ChatFrame\\ChatFrameTab-ActiveLeft")
+        -- Highlight the active tab
+        local activeTab = optionsFrame.tabs[tabId]
+        activeTab:SetAlpha(1.0)
+        activeTab:SetNormalFontObject("GameFontHighlight")
+        
+        -- Track the active tab for hover effects
+        optionsFrame.activeTab = tabId
     end
 end
 
