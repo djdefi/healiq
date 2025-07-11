@@ -194,47 +194,51 @@ jobs:
       if: steps.check_tag.outputs.exists == 'false' && secrets.CURSEFORGE_TOKEN != ''
       id: game_version
       run: |
-        # Convert interface version to game version
-        INTERFACE="${{ steps.version.outputs.interface }}"
-        
-        # Extract major.minor.patch from interface version (e.g., 110107 -> 11.0.7)
-        # Format: MMNNPP where MM=major, NN=minor, PP=patch
-        if [[ $INTERFACE =~ ^([0-9]{2,3})([0-9]{2})([0-9]{2})$ ]]; then
-          MAJOR="${BASH_REMATCH[1]}"
-          MINOR_RAW="${BASH_REMATCH[2]}"
-          PATCH_RAW="${BASH_REMATCH[3]}"
+        # Function to convert WoW interface version to game version
+        convert_interface_version() {
+          local interface="$1"
           
-          # For WoW interface versions like 110107:
-          # - First 2-3 digits: major version (11)
-          # - Next 2 digits: minor version (01 = 0) 
-          # - Last 2 digits: patch version (07 = 7)
-          
-          # Handle the case where interface is 6 digits (e.g., 110107)
-          if [ ${#INTERFACE} -eq 6 ]; then
-            MAJOR="${INTERFACE:0:2}"
-            MINOR_RAW="${INTERFACE:2:2}"
-            PATCH_RAW="${INTERFACE:4:2}"
+          # WoW interface versions follow format: MMNNPP or MNNPP
+          # MM/M = major, NN = minor, PP = patch
+          if [[ $interface =~ ^([0-9]+)$ ]] && [ ${#interface} -ge 5 ] && [ ${#interface} -le 6 ]; then
+            if [ ${#interface} -eq 6 ]; then
+              # 6 digits: MMNNPP (e.g., 110107 -> 11.0.7)
+              local major="${interface:0:2}"
+              local minor_raw="${interface:2:2}"
+              local patch_raw="${interface:4:2}"
+            else
+              # 5 digits: MNNPP (e.g., 90205 -> 9.2.5)
+              local major="${interface:0:1}"
+              local minor_raw="${interface:1:2}"
+              local patch_raw="${interface:3:2}"
+            fi
+            
+            # Convert to decimal, handling leading zeros
+            local minor="$((10#$minor_raw))"
+            local patch="$((10#$patch_raw))"
+            
+            # Generic rule: if minor raw is "01", it represents 0
+            if [ "$minor_raw" = "01" ]; then
+              minor="0"
+            fi
+            
+            echo "${major}.${minor}.${patch}"
           else
-            # Handle 5 digit versions like 90205 (9.2.5)
-            MAJOR="${INTERFACE:0:1}"
-            MINOR_RAW="${INTERFACE:1:2}"
-            PATCH_RAW="${INTERFACE:3:2}"
+            # Fallback: try to extract numeric major version or use current retail
+            if [[ $interface =~ ^([0-9]+) ]]; then
+              local major_fallback="${BASH_REMATCH[1]}"
+              if [ ${#major_fallback} -gt 2 ]; then
+                major_fallback="${major_fallback:0:2}"
+              fi
+              echo "${major_fallback}.0.0"
+            else
+              echo "11.0.7"  # Hard fallback to current retail
+            fi
           fi
-          
-          # Convert to decimal and handle the special case where minor 01 means 0
-          MINOR="$((10#$MINOR_RAW))"
-          PATCH="$((10#$PATCH_RAW))"
-          
-          # Special handling: if minor is 1 and we're in 11.x.x era, it likely means 0
-          if [ "$MAJOR" = "11" ] && [ "$MINOR" = "1" ] && [ "$MINOR_RAW" = "01" ]; then
-            MINOR="0"
-          fi
-          
-          GAME_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-        else
-          echo "Warning: Could not parse interface version $INTERFACE, using fallback"
-          GAME_VERSION="11.0.7"  # Fallback to current retail
-        fi
+        }
+        
+        INTERFACE="${{ steps.version.outputs.interface }}"
+        GAME_VERSION=$(convert_interface_version "$INTERFACE")
         
         echo "game_version=$GAME_VERSION" >> $GITHUB_OUTPUT
         echo "Using game version: $GAME_VERSION for interface $INTERFACE"
