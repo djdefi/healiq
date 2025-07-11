@@ -451,6 +451,7 @@ function UI:CreateOptionsTabs(parent)
     
     optionsFrame.tabs = {}
     optionsFrame.tabPanels = {}
+    optionsFrame.activeTab = nil  -- Initialize activeTab to avoid nil reference issues
     
     for i, tab in ipairs(tabs) do
         -- Create tab button using UIPanelButtonTemplate which is known to work
@@ -470,13 +471,13 @@ function UI:CreateOptionsTabs(parent)
         
         -- Add hover effects for better user experience
         tabButton:SetScript("OnEnter", function(self)
-            if self.tabId ~= optionsFrame.activeTab then
+            if not optionsFrame.activeTab or self.tabId ~= optionsFrame.activeTab then
                 self:SetAlpha(0.85)
             end
         end)
         
         tabButton:SetScript("OnLeave", function(self)
-            if self.tabId ~= optionsFrame.activeTab then
+            if not optionsFrame.activeTab or self.tabId ~= optionsFrame.activeTab then
                 self:SetAlpha(0.7)
             end
         end)
