@@ -240,7 +240,9 @@ end
 function HealIQ:OnEvent(event, ...)
     local args = {...}  -- Capture varargs for use in SafeCall
     self:SafeCall(function()
-        self.sessionStats.eventsHandled = self.sessionStats.eventsHandled + 1
+        if self.sessionStats then
+            self.sessionStats.eventsHandled = self.sessionStats.eventsHandled + 1
+        end
         self:LogVerbose("Event received: " .. event)
         
         if event == "ADDON_LOADED" then
@@ -267,6 +269,11 @@ function HealIQ:OnPlayerEnteringWorld()
     self:SafeCall(function()
         self:Print("Player entering world")
         self:LogToFile("Player entering world", "INFO")
+        
+        if not self.db then
+            self:LogToFile("Database not yet initialized during OnPlayerEnteringWorld", "WARN")
+            return
+        end
         
         -- Check if player is a Restoration Druid
         local _, class = UnitClass("player")

@@ -28,7 +28,7 @@ end
 
 -- File logging functions
 function HealIQ:InitializeLogging()
-    if not self.db.logging.enabled then
+    if not self.db or not self.db.logging or not self.db.logging.enabled then
         return
     end
     
@@ -62,6 +62,9 @@ end
 
 function HealIQ:ShouldFlushLogBuffer()
     if not self.logBuffer or #self.logBuffer == 0 then
+        return false
+    end
+    if not self.db or not self.db.logging then
         return false
     end
     local timeSinceFlush = time() - self.lastFlushTime
@@ -100,6 +103,10 @@ function HealIQ:TrimLogBuffer()
         return
     end
     
+    if not self.db or not self.db.logging then
+        return
+    end
+    
     local maxSizeBytes = self.db.logging.maxLogSize * 1024
     
     -- Remove oldest entries until we're under the limit
@@ -121,7 +128,7 @@ function HealIQ:TrimLogBuffer()
 end
 
 function HealIQ:LogToFile(message, level)
-    if not self.db.logging.enabled then
+    if not self.db or not self.db.logging or not self.db.logging.enabled then
         return
     end
     
@@ -130,7 +137,7 @@ function HealIQ:LogToFile(message, level)
     local logEntry = string.format("[%s] [%s] %s", timestamp, level, tostring(message))
     
     -- Print to chat if debug mode or verbose logging is enabled
-    if self.debug or self.db.logging.verbose then
+    if self.debug or (self.db and self.db.logging and self.db.logging.verbose) then
         print("|cFF888888[LOG]|r " .. logEntry)
     end
     
@@ -153,14 +160,16 @@ function HealIQ:LogToFile(message, level)
 end
 
 function HealIQ:LogVerbose(message)
-    if self.db.logging.enabled and self.db.logging.verbose then
+    if self.db and self.db.logging and self.db.logging.enabled and self.db.logging.verbose then
         self:LogToFile(message, "VERBOSE")
     end
 end
 
 function HealIQ:LogError(message)
     self:LogToFile(message, "ERROR")
-    self.sessionStats.errorsLogged = self.sessionStats.errorsLogged + 1
+    if self.sessionStats then
+        self.sessionStats.errorsLogged = self.sessionStats.errorsLogged + 1
+    end
 end
 
 function HealIQ:GenerateDiagnosticDump()
@@ -174,23 +183,31 @@ function HealIQ:GenerateDiagnosticDump()
     
     -- Session Statistics
     table.insert(dump, "=== Session Statistics ===")
-    if self.sessionStats.startTime then
-        local sessionDuration = time() - self.sessionStats.startTime
-        table.insert(dump, "Session Duration: " .. self:FormatDuration(sessionDuration))
+    if self.sessionStats then
+        if self.sessionStats.startTime then
+            local sessionDuration = time() - self.sessionStats.startTime
+            table.insert(dump, "Session Duration: " .. self:FormatDuration(sessionDuration))
+        end
+        table.insert(dump, "Suggestions Generated: " .. self.sessionStats.suggestions)
+        table.insert(dump, "Rules Processed: " .. self.sessionStats.rulesProcessed)
+        table.insert(dump, "Errors Logged: " .. self.sessionStats.errorsLogged)
+        table.insert(dump, "Events Handled: " .. self.sessionStats.eventsHandled)
+    else
+        table.insert(dump, "Session statistics not yet initialized")
     end
-    table.insert(dump, "Suggestions Generated: " .. self.sessionStats.suggestions)
-    table.insert(dump, "Rules Processed: " .. self.sessionStats.rulesProcessed)
-    table.insert(dump, "Errors Logged: " .. self.sessionStats.errorsLogged)
-    table.insert(dump, "Events Handled: " .. self.sessionStats.eventsHandled)
     table.insert(dump, "")
     
     -- Logging Statistics
     table.insert(dump, "=== Logging Statistics ===")
     table.insert(dump, "Log Buffer Entries: " .. (self.logBuffer and #self.logBuffer or 0))
     table.insert(dump, "Log Buffer Size: " .. self:GetLogBufferSizeKB() .. " KB")
-    table.insert(dump, "Max Buffer Size: " .. self.db.logging.maxLogSize .. " KB")
-    table.insert(dump, "Flush Threshold: " .. self.db.logging.flushThreshold .. " KB")
-    table.insert(dump, "Flush Interval: " .. self.db.logging.flushInterval .. " seconds")
+    if self.db and self.db.logging then
+        table.insert(dump, "Max Buffer Size: " .. self.db.logging.maxLogSize .. " KB")
+        table.insert(dump, "Flush Threshold: " .. self.db.logging.flushThreshold .. " KB")
+        table.insert(dump, "Flush Interval: " .. self.db.logging.flushInterval .. " seconds")
+    else
+        table.insert(dump, "Logging configuration not yet initialized")
+    end
     if self.lastFlushTime and self.lastFlushTime > 0 then
         local timeSinceFlush = time() - self.lastFlushTime
         table.insert(dump, "Last Flush: " .. self:FormatDuration(timeSinceFlush) .. " ago")
@@ -199,27 +216,43 @@ function HealIQ:GenerateDiagnosticDump()
     
     -- Configuration
     table.insert(dump, "=== Configuration ===")
-    table.insert(dump, "Enabled: " .. tostring(self.db.enabled))
-    table.insert(dump, "Debug Mode: " .. tostring(self.debug))
-    table.insert(dump, "File Logging: " .. tostring(self.db.logging.enabled))
-    table.insert(dump, "Verbose Logging: " .. tostring(self.db.logging.verbose))
-    table.insert(dump, "Session Stats: " .. tostring(self.db.logging.sessionStats))
+    if self.db then
+        table.insert(dump, "Enabled: " .. tostring(self.db.enabled))
+        table.insert(dump, "Debug Mode: " .. tostring(self.debug))
+        if self.db.logging then
+            table.insert(dump, "File Logging: " .. tostring(self.db.logging.enabled))
+            table.insert(dump, "Verbose Logging: " .. tostring(self.db.logging.verbose))
+            table.insert(dump, "Session Stats: " .. tostring(self.db.logging.sessionStats))
+        else
+            table.insert(dump, "Logging configuration not yet initialized")
+        end
+    else
+        table.insert(dump, "Database not yet initialized")
+    end
     table.insert(dump, "")
     
     -- UI Configuration
     table.insert(dump, "=== UI Configuration ===")
-    table.insert(dump, "Scale: " .. tostring(self.db.ui.scale))
-    table.insert(dump, "Position: " .. self.db.ui.x .. ", " .. self.db.ui.y)
-    table.insert(dump, "Locked: " .. tostring(self.db.ui.locked))
-    table.insert(dump, "Show Queue: " .. tostring(self.db.ui.showQueue))
-    table.insert(dump, "Queue Size: " .. tostring(self.db.ui.queueSize))
-    table.insert(dump, "Queue Layout: " .. tostring(self.db.ui.queueLayout))
+    if self.db and self.db.ui then
+        table.insert(dump, "Scale: " .. tostring(self.db.ui.scale))
+        table.insert(dump, "Position: " .. self.db.ui.x .. ", " .. self.db.ui.y)
+        table.insert(dump, "Locked: " .. tostring(self.db.ui.locked))
+        table.insert(dump, "Show Queue: " .. tostring(self.db.ui.showQueue))
+        table.insert(dump, "Queue Size: " .. tostring(self.db.ui.queueSize))
+        table.insert(dump, "Queue Layout: " .. tostring(self.db.ui.queueLayout))
+    else
+        table.insert(dump, "UI configuration not yet initialized")
+    end
     table.insert(dump, "")
     
     -- Rules Configuration
     table.insert(dump, "=== Rules Configuration ===")
-    for rule, enabled in pairs(self.db.rules) do
-        table.insert(dump, rule .. ": " .. tostring(enabled))
+    if self.db and self.db.rules then
+        for rule, enabled in pairs(self.db.rules) do
+            table.insert(dump, rule .. ": " .. tostring(enabled))
+        end
+    else
+        table.insert(dump, "Rules configuration not yet initialized")
     end
     table.insert(dump, "")
     

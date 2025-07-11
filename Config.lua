@@ -75,6 +75,11 @@ commands.version = function()
 end
 
 commands.toggle = function()
+    if not HealIQ.db then
+        print("|cFFFF0000HealIQ|r Database not yet initialized")
+        return
+    end
+    
     HealIQ.db.enabled = not HealIQ.db.enabled
     local status = HealIQ.db.enabled and "enabled" or "disabled"
     print("|cFF00FF00HealIQ|r " .. status)
@@ -91,6 +96,11 @@ commands.config = function()
 end
 
 commands.enable = function()
+    if not HealIQ.db then
+        print("|cFFFF0000HealIQ|r Database not yet initialized")
+        return
+    end
+    
     HealIQ.db.enabled = true
     print("|cFF00FF00HealIQ|r enabled")
     
@@ -100,6 +110,11 @@ commands.enable = function()
 end
 
 commands.disable = function()
+    if not HealIQ.db then
+        print("|cFFFF0000HealIQ|r Database not yet initialized")
+        return
+    end
+    
     HealIQ.db.enabled = false
     print("|cFF00FF00HealIQ|r disabled")
     
@@ -109,6 +124,11 @@ commands.disable = function()
 end
 
 commands.ui = function(subcommand, ...)
+    if not HealIQ.db or not HealIQ.db.ui then
+        print("|cFFFF0000HealIQ|r Database not yet initialized")
+        return
+    end
+    
     if subcommand == "lock" then
         HealIQ.db.ui.locked = true
         print("|cFF00FF00HealIQ|r UI locked")
@@ -182,6 +202,11 @@ commands.ui = function(subcommand, ...)
 end
 
 commands.rules = function(subcommand, ...)
+    if not HealIQ.db or not HealIQ.db.rules then
+        print("|cFFFF0000HealIQ|r Database not yet initialized")
+        return
+    end
+    
     if subcommand == "list" then
         print("|cFF00FF00HealIQ Rules:|r")
         for rule, enabled in pairs(HealIQ.db.rules) do
@@ -216,14 +241,21 @@ commands.rules = function(subcommand, ...)
 end
 
 commands.test = function(subcommand)
+    if not HealIQ.db then
+        print("|cFFFF0000HealIQ|r Database not yet initialized")
+        return
+    end
+    
     if subcommand == "engine" then
-        if HealIQ.Engine then
+        if HealIQ.Engine and HealIQ.db.rules then
             print("|cFF00FF00HealIQ|r Testing engine rules...")
             for rule in pairs(HealIQ.db.rules) do
                 local result = HealIQ.Engine:TestRule(rule)
                 local status = result and "|cFF00FF00PASS|r" or "|cFFFF0000FAIL|r"
                 print("  " .. rule .. ": " .. status)
             end
+        else
+            print("|cFFFF0000HealIQ|r Engine or rules not yet initialized")
         end
     elseif subcommand == "queue" then
         if HealIQ.Engine then
@@ -242,14 +274,20 @@ commands.test = function(subcommand)
             if HealIQ.UI then
                 HealIQ.UI:UpdateQueue(queue)
             end
+        else
+            print("|cFFFF0000HealIQ|r Engine not yet initialized")
         end
     elseif subcommand == "ui" then
         if HealIQ.UI then
             HealIQ.UI:TestQueue()
+        else
+            print("|cFFFF0000HealIQ|r UI not yet initialized")
         end
     else
         if HealIQ.UI then
             HealIQ.UI:TestDisplay()
+        else
+            print("|cFFFF0000HealIQ|r UI not yet initialized")
         end
     end
 end
@@ -276,6 +314,11 @@ commands.log = function(action, subaction)
         return
     end
     
+    if not HealIQ.db or not HealIQ.db.logging then
+        print("|cFFFF0000HealIQ|r Database not yet initialized")
+        return
+    end
+    
     if action == "status" then
         print("|cFF00FF00HealIQ Logging Status:|r")
         print("  File Logging: " .. (HealIQ.db.logging.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
@@ -289,7 +332,7 @@ commands.log = function(action, subaction)
             local timeSinceFlush = time() - HealIQ.lastFlushTime
             print("  Last Flush: " .. HealIQ:FormatDuration(timeSinceFlush) .. " ago")
         end
-        if HealIQ.sessionStats.startTime then
+        if HealIQ.sessionStats and HealIQ.sessionStats.startTime then
             local duration = time() - HealIQ.sessionStats.startTime
             print("  Session Duration: " .. HealIQ:FormatDuration(duration))
         end
@@ -367,33 +410,46 @@ commands.dump = function()
 end
 
 commands.reset = function()
+    if not HealIQ.db then
+        print("|cFFFF0000HealIQ|r Database not yet initialized")
+        return
+    end
+    
     print("|cFF00FF00HealIQ|r Resetting all settings...")
     
     -- Reset to defaults
     HealIQ.db.enabled = true
     HealIQ.db.debug = false
-    HealIQ.db.logging.enabled = false
-    HealIQ.db.logging.verbose = false
-    HealIQ.db.logging.sessionStats = true
-    HealIQ.db.logging.maxLogSize = 1024
-    HealIQ.db.logging.maxLogFiles = 5
-    HealIQ.db.ui.scale = 1.0
-    HealIQ.db.ui.x = 0
-    HealIQ.db.ui.y = 0
-    HealIQ.db.ui.locked = false
-    HealIQ.db.ui.showIcon = true
-    HealIQ.db.ui.showSpellName = true
-    HealIQ.db.ui.showCooldown = true
-    HealIQ.db.ui.showQueue = true
-    HealIQ.db.ui.queueSize = 3
-    HealIQ.db.ui.queueLayout = "horizontal"
-    HealIQ.db.ui.queueSpacing = 8
-    HealIQ.db.ui.queueScale = 0.75
-    HealIQ.db.ui.minimapAngle = -math.pi/4
-    HealIQ.db.ui.showPositionBorder = false
     
-    for rule in pairs(HealIQ.db.rules) do
-        HealIQ.db.rules[rule] = true
+    if HealIQ.db.logging then
+        HealIQ.db.logging.enabled = false
+        HealIQ.db.logging.verbose = false
+        HealIQ.db.logging.sessionStats = true
+        HealIQ.db.logging.maxLogSize = 1024
+        HealIQ.db.logging.maxLogFiles = 5
+    end
+    
+    if HealIQ.db.ui then
+        HealIQ.db.ui.scale = 1.0
+        HealIQ.db.ui.x = 0
+        HealIQ.db.ui.y = 0
+        HealIQ.db.ui.locked = false
+        HealIQ.db.ui.showIcon = true
+        HealIQ.db.ui.showSpellName = true
+        HealIQ.db.ui.showCooldown = true
+        HealIQ.db.ui.showQueue = true
+        HealIQ.db.ui.queueSize = 3
+        HealIQ.db.ui.queueLayout = "horizontal"
+        HealIQ.db.ui.queueSpacing = 8
+        HealIQ.db.ui.queueScale = 0.75
+        HealIQ.db.ui.minimapAngle = -math.pi/4
+        HealIQ.db.ui.showPositionBorder = false
+    end
+    
+    if HealIQ.db.rules then
+        for rule in pairs(HealIQ.db.rules) do
+            HealIQ.db.rules[rule] = true
+        end
     end
     
     if HealIQ.UI then
@@ -428,6 +484,11 @@ commands.reload = function()
 end
 
 commands.backup = function()
+    if not HealIQ.db then
+        print("|cFFFF0000HealIQ|r Database not yet initialized")
+        return
+    end
+    
     -- Create a backup of current settings
     if not HealIQDB.backups then
         HealIQDB.backups = {}
@@ -441,19 +502,28 @@ commands.backup = function()
     }
     
     -- Copy UI settings
-    for key, value in pairs(HealIQ.db.ui) do
-        HealIQDB.backups[backupKey].ui[key] = value
+    if HealIQ.db.ui then
+        for key, value in pairs(HealIQ.db.ui) do
+            HealIQDB.backups[backupKey].ui[key] = value
+        end
     end
     
     -- Copy rule settings
-    for key, value in pairs(HealIQ.db.rules) do
-        HealIQDB.backups[backupKey].rules[key] = value
+    if HealIQ.db.rules then
+        for key, value in pairs(HealIQ.db.rules) do
+            HealIQDB.backups[backupKey].rules[key] = value
+        end
     end
     
     print("|cFF00FF00HealIQ|r Settings backed up as: " .. backupKey)
 end
 
 commands.restore = function()
+    if not HealIQ.db then
+        print("|cFFFF0000HealIQ|r Database not yet initialized")
+        return
+    end
+    
     if not HealIQDB.backups then
         print("|cFF00FF00HealIQ|r No backups found")
         return
@@ -474,12 +544,16 @@ commands.restore = function()
         -- Restore settings
         HealIQ.db.enabled = mostRecent.enabled
         
-        for key, value in pairs(mostRecent.ui) do
-            HealIQ.db.ui[key] = value
+        if HealIQ.db.ui and mostRecent.ui then
+            for key, value in pairs(mostRecent.ui) do
+                HealIQ.db.ui[key] = value
+            end
         end
         
-        for key, value in pairs(mostRecent.rules) do
-            HealIQ.db.rules[key] = value
+        if HealIQ.db.rules and mostRecent.rules then
+            for key, value in pairs(mostRecent.rules) do
+                HealIQ.db.rules[key] = value
+            end
         end
         
         -- Recreate UI with restored settings
@@ -495,17 +569,33 @@ end
 
 commands.status = function()
     print("|cFF00FF00HealIQ v" .. HealIQ.version .. " Status:|r")
+    
+    if not HealIQ.db then
+        print("  |cFFFF0000Database not yet initialized|r")
+        return
+    end
+    
     print("  Enabled: " .. (HealIQ.db.enabled and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
     print("  Debug: " .. (HealIQ.debug and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
-    print("  File Logging: " .. (HealIQ.db.logging.enabled and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
-    print("  Verbose Logging: " .. (HealIQ.db.logging.verbose and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
-    print("  Session Stats: " .. (HealIQ.db.logging.sessionStats and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
-    print("  UI Scale: " .. HealIQ.db.ui.scale)
-    print("  UI Position: " .. HealIQ.db.ui.x .. ", " .. HealIQ.db.ui.y)
-    print("  UI Locked: " .. (HealIQ.db.ui.locked and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
-    print("  Queue Display: " .. (HealIQ.db.ui.showQueue and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
-    print("  Queue Size: " .. (HealIQ.db.ui.queueSize or 3))
-    print("  Queue Layout: " .. (HealIQ.db.ui.queueLayout or "horizontal"))
+    
+    if HealIQ.db.logging then
+        print("  File Logging: " .. (HealIQ.db.logging.enabled and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
+        print("  Verbose Logging: " .. (HealIQ.db.logging.verbose and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
+        print("  Session Stats: " .. (HealIQ.db.logging.sessionStats and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
+    else
+        print("  Logging: |cFFFF0000Not yet initialized|r")
+    end
+    
+    if HealIQ.db.ui then
+        print("  UI Scale: " .. HealIQ.db.ui.scale)
+        print("  UI Position: " .. HealIQ.db.ui.x .. ", " .. HealIQ.db.ui.y)
+        print("  UI Locked: " .. (HealIQ.db.ui.locked and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
+        print("  Queue Display: " .. (HealIQ.db.ui.showQueue and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
+        print("  Queue Size: " .. (HealIQ.db.ui.queueSize or 3))
+        print("  Queue Layout: " .. (HealIQ.db.ui.queueLayout or "horizontal"))
+    else
+        print("  UI: |cFFFF0000Not yet initialized|r")
+    end
     
     -- Show current suggestion
     if HealIQ.Engine then
@@ -527,16 +617,22 @@ commands.status = function()
         else
             print("  Current Queue: |cFFFF0000Empty|r")
         end
+    else
+        print("  Engine: |cFFFF0000Not yet initialized|r")
     end
     
     -- Show active rules
-    local activeRules = {}
-    for rule, enabled in pairs(HealIQ.db.rules) do
-        if enabled then
-            table.insert(activeRules, rule)
+    if HealIQ.db.rules then
+        local activeRules = {}
+        for rule, enabled in pairs(HealIQ.db.rules) do
+            if enabled then
+                table.insert(activeRules, rule)
+            end
         end
+        print("  Active Rules: " .. (#activeRules > 0 and "|cFF00FF00" .. table.concat(activeRules, ", ") .. "|r" or "|cFFFF0000None|r"))
+    else
+        print("  Rules: |cFFFF0000Not yet initialized|r")
     end
-    print("  Active Rules: " .. (#activeRules > 0 and "|cFF00FF00" .. table.concat(activeRules, ", ") .. "|r" or "|cFFFF0000None|r"))
     
     -- Show spec info
     local _, class = UnitClass("player")
@@ -547,7 +643,7 @@ commands.status = function()
     print("  In Combat: " .. (InCombatLockdown() and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
     
     -- Show session statistics
-    if HealIQ.db.logging.sessionStats and HealIQ.sessionStats.startTime then
+    if HealIQ.db and HealIQ.db.logging and HealIQ.db.logging.sessionStats and HealIQ.sessionStats and HealIQ.sessionStats.startTime then
         print("  |cFF00FF00Session Statistics:|r")
         local duration = time() - HealIQ.sessionStats.startTime
         print("    Duration: " .. HealIQ:FormatDuration(duration))
@@ -566,10 +662,14 @@ end
 
 -- Public configuration methods
 function Config:SetOption(category, option, value)
-    if category == "ui" and HealIQ.db.ui[option] ~= nil then
+    if not HealIQ.db then
+        return false
+    end
+    
+    if category == "ui" and HealIQ.db.ui and HealIQ.db.ui[option] ~= nil then
         HealIQ.db.ui[option] = value
         return true
-    elseif category == "rules" and HealIQ.db.rules[option] ~= nil then
+    elseif category == "rules" and HealIQ.db.rules and HealIQ.db.rules[option] ~= nil then
         HealIQ.db.rules[option] = value
         return true
     elseif category == "general" and HealIQ.db[option] ~= nil then
@@ -580,9 +680,13 @@ function Config:SetOption(category, option, value)
 end
 
 function Config:GetOption(category, option)
-    if category == "ui" then
+    if not HealIQ.db then
+        return nil
+    end
+    
+    if category == "ui" and HealIQ.db.ui then
         return HealIQ.db.ui[option]
-    elseif category == "rules" then
+    elseif category == "rules" and HealIQ.db.rules then
         return HealIQ.db.rules[option]
     elseif category == "general" then
         return HealIQ.db[option]
