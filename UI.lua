@@ -549,44 +549,6 @@ function UI:CreateGeneralTab(panel)
     optionsFrame.debugCheck = debugCheck
     yOffset = yOffset - 30
     
-    -- File logging checkbox
-    local loggingCheck = CreateFrame("CheckButton", "HealIQLoggingCheck", panel, "UICheckButtonTemplate")
-    loggingCheck:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    loggingCheck.text = loggingCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    loggingCheck.text:SetPoint("LEFT", loggingCheck, "RIGHT", 5, 0)
-    loggingCheck.text:SetText("Enable Memory Logging")
-    loggingCheck:SetScript("OnClick", function(self)
-        if HealIQ.db and HealIQ.db.logging then
-            HealIQ.db.logging.enabled = self:GetChecked()
-            if HealIQ.db.logging.enabled then
-                HealIQ:InitializeLogging()
-                HealIQ:Message("Memory logging enabled")
-            else
-                HealIQ:Message("Memory logging disabled")
-            end
-        end
-    end)
-    self:AddTooltip(loggingCheck, "Enable Memory Logging", "Enable logging debug information to memory buffer for troubleshooting.\nLogs are stored in memory and can be viewed via /healiq dump command.")
-    optionsFrame.loggingCheck = loggingCheck
-    yOffset = yOffset - 30
-    
-    -- Verbose logging checkbox
-    local verboseCheck = CreateFrame("CheckButton", "HealIQVerboseCheck", panel, "UICheckButtonTemplate")
-    verboseCheck:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    verboseCheck.text = verboseCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    verboseCheck.text:SetPoint("LEFT", verboseCheck, "RIGHT", 5, 0)
-    verboseCheck.text:SetText("Verbose Logging")
-    verboseCheck:SetScript("OnClick", function(self)
-        if HealIQ.db and HealIQ.db.logging then
-            HealIQ.db.logging.verbose = self:GetChecked()
-            local status = HealIQ.db.logging.verbose and "enabled" or "disabled"
-            HealIQ:Message("Verbose logging " .. status)
-        end
-    end)
-    self:AddTooltip(verboseCheck, "Verbose Logging", "Enable detailed logging of rule processing and suggestions.\nRequires File Logging to be enabled.")
-    optionsFrame.verboseCheck = verboseCheck
-    yOffset = yOffset - 30
-    
     -- Session stats checkbox
     local statsCheck = CreateFrame("CheckButton", "HealIQStatsCheck", panel, "UICheckButtonTemplate")
     statsCheck:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
@@ -594,10 +556,25 @@ function UI:CreateGeneralTab(panel)
     statsCheck.text:SetPoint("LEFT", statsCheck, "RIGHT", 5, 0)
     statsCheck.text:SetText("Session Statistics")
     statsCheck:SetScript("OnClick", function(self)
-        if HealIQ.db and HealIQ.db.logging then
-            HealIQ.db.logging.sessionStats = self:GetChecked()
-            local status = HealIQ.db.logging.sessionStats and "enabled" or "disabled"
-            HealIQ:Message("Session statistics " .. status)
+        local enabled = self:GetChecked()
+        if enabled then
+            if not HealIQ.sessionStats then
+                HealIQ.sessionStats = {
+                    startTime = time(),
+                    suggestions = 0,
+                    rulesProcessed = 0,
+                    errorsLogged = 0,
+                    eventsHandled = 0,
+                }
+            elseif not HealIQ.sessionStats.startTime then
+                HealIQ.sessionStats.startTime = time()
+            end
+            HealIQ:Message("Session statistics enabled")
+        else
+            if HealIQ.sessionStats then
+                HealIQ.sessionStats.startTime = nil
+            end
+            HealIQ:Message("Session statistics disabled")
         end
     end)
     self:AddTooltip(statsCheck, "Session Statistics", "Track session statistics like suggestions generated, rules processed, etc.\nView statistics with /healiq status or /healiq dump.")
@@ -1451,19 +1428,9 @@ function UI:UpdateOptionsFrame()
         optionsFrame.debugCheck:SetChecked(HealIQ.db.debug)
     end
     
-    -- Update logging checkboxes
-    if HealIQ.db.logging then
-        if optionsFrame.loggingCheck then
-            optionsFrame.loggingCheck:SetChecked(HealIQ.db.logging.enabled)
-        end
-        
-        if optionsFrame.verboseCheck then
-            optionsFrame.verboseCheck:SetChecked(HealIQ.db.logging.verbose)
-        end
-        
-        if optionsFrame.statsCheck then
-            optionsFrame.statsCheck:SetChecked(HealIQ.db.logging.sessionStats)
-        end
+    -- Update session stats checkbox
+    if optionsFrame.statsCheck then
+        optionsFrame.statsCheck:SetChecked(HealIQ.sessionStats and HealIQ.sessionStats.startTime ~= nil)
     end
     
     -- Update UI options

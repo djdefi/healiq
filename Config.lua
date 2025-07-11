@@ -59,7 +59,6 @@ commands.help = function()
     print("|cFFFFFF00/healiq test queue|r - Test queue display")
     print("|cFFFFFF00/healiq test ui|r - Test UI with sample queue")
     print("|cFFFFFF00/healiq debug|r - Toggle debug mode")
-    print("|cFFFFFF00/healiq log|r - Show logging commands")
     print("|cFFFFFF00/healiq dump|r - Generate diagnostic dump")
     print("|cFFFFFF00/healiq reset|r - Reset all settings")
     print("|cFFFFFF00/healiq reload|r - Reload addon configuration")
@@ -300,99 +299,6 @@ commands.debug = function()
     print("|cFF00FF00HealIQ|r Debug mode " .. status)
 end
 
-commands.log = function(action, subaction)
-    if not action then
-        print("|cFF00FF00HealIQ Logging Commands:|r")
-        print("|cFFFFFF00/healiq log status|r - Show logging status")
-        print("|cFFFFFF00/healiq log enable|r - Enable memory logging")
-        print("|cFFFFFF00/healiq log disable|r - Disable memory logging")
-        print("|cFFFFFF00/healiq log verbose on|r - Enable verbose logging")
-        print("|cFFFFFF00/healiq log verbose off|r - Disable verbose logging")
-        print("|cFFFFFF00/healiq log stats on|r - Enable session statistics")
-        print("|cFFFFFF00/healiq log stats off|r - Disable session statistics")
-        print("|cFFFFFF00/healiq log clear|r - Clear log buffer")
-        print("|cFFFFFF00/healiq log flush|r - Force flush log buffer")
-        print("|cFFFFFF00/healiq log config|r - Show flush configuration")
-        print("|cFF888888Note: Logs are stored in memory buffer. Use /healiq dump to view.|r")
-        return
-    end
-    
-    if not HealIQ.db or not HealIQ.db.logging then
-        print("|cFFFF0000HealIQ|r Database not yet initialized")
-        return
-    end
-    
-    if action == "status" then
-        print("|cFF00FF00HealIQ Logging Status:|r")
-        print("  Memory Logging: " .. (HealIQ.db.logging.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
-        print("  Verbose Mode: " .. (HealIQ.db.logging.verbose and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
-        print("  Session Stats: " .. (HealIQ.db.logging.sessionStats and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
-        print("  Log Buffer: " .. (HealIQ.logBuffer and #HealIQ.logBuffer or 0) .. " entries, " .. (HealIQ.logBuffer and HealIQ:GetLogBufferSizeKB() or 0) .. " KB")
-        print("  Max Buffer Size: " .. HealIQ.db.logging.maxLogSize .. " KB")
-        print("  Flush Threshold: " .. HealIQ.db.logging.flushThreshold .. " KB")
-        print("  Flush Interval: " .. HealIQ.db.logging.flushInterval .. " seconds")
-        if HealIQ.lastFlushTime and HealIQ.lastFlushTime > 0 then
-            local timeSinceFlush = time() - HealIQ.lastFlushTime
-            print("  Last Flush: " .. HealIQ:FormatDuration(timeSinceFlush) .. " ago")
-        end
-        if HealIQ.sessionStats and HealIQ.sessionStats.startTime then
-            local duration = time() - HealIQ.sessionStats.startTime
-            print("  Session Duration: " .. HealIQ:FormatDuration(duration))
-        end
-    elseif action == "enable" then
-        HealIQ.db.logging.enabled = true
-        HealIQ:InitializeLogging()
-        print("|cFF00FF00HealIQ|r Memory logging enabled")
-    elseif action == "disable" then
-        HealIQ.db.logging.enabled = false
-        print("|cFF00FF00HealIQ|r Memory logging disabled")
-    elseif action == "verbose" then
-        if subaction == "on" then
-            HealIQ.db.logging.verbose = true
-            print("|cFF00FF00HealIQ|r Verbose logging enabled")
-        elseif subaction == "off" then
-            HealIQ.db.logging.verbose = false
-            print("|cFF00FF00HealIQ|r Verbose logging disabled")
-        else
-            print("|cFF00FF00HealIQ|r Usage: /healiq log verbose on/off")
-        end
-    elseif action == "stats" then
-        if subaction == "on" then
-            HealIQ.db.logging.sessionStats = true
-            print("|cFF00FF00HealIQ|r Session statistics enabled")
-        elseif subaction == "off" then
-            HealIQ.db.logging.sessionStats = false
-            print("|cFF00FF00HealIQ|r Session statistics disabled")
-        else
-            print("|cFF00FF00HealIQ|r Usage: /healiq log stats on/off")
-        end
-    elseif action == "clear" then
-        HealIQ.logBuffer = {}
-        HealIQ.logBufferSize = 0
-        print("|cFF00FF00HealIQ|r Log buffer cleared")
-    elseif action == "flush" then
-        if HealIQ.db.logging.enabled then
-            HealIQ:FlushLogBuffer()
-            print("|cFF00FF00HealIQ|r Log buffer flushed")
-        else
-            print("|cFFFF0000HealIQ|r File logging is not enabled")
-        end
-    elseif action == "config" then
-        print("|cFF00FF00HealIQ Flush Configuration:|r")
-        print("  Max Buffer Size: " .. HealIQ.db.logging.maxLogSize .. " KB")
-        print("  Flush Threshold: " .. HealIQ.db.logging.flushThreshold .. " KB")
-        print("  Flush Interval: " .. HealIQ.db.logging.flushInterval .. " seconds")
-        print("  Current Buffer: " .. HealIQ:GetLogBufferSizeKB() .. " KB")
-        if HealIQ:ShouldFlushLogBuffer() then
-            print("  |cFFFFFF00Buffer is ready for flushing|r")
-        else
-            print("  |cFF00FF00Buffer does not need flushing|r")
-        end
-    else
-        print("|cFF00FF00HealIQ|r Unknown logging command: " .. tostring(action))
-    end
-end
-
 commands.dump = function()
     local dump = HealIQ:GenerateDiagnosticDump()
     
@@ -407,9 +313,6 @@ commands.dump = function()
     
     print("|cFF888888" .. string.rep("-", 50) .. "|r")
     print("|cFF00FF00HealIQ|r Diagnostic dump complete")
-    
-    -- Also log the dump generation
-    HealIQ:LogToFile("Diagnostic dump generated via command", "INFO")
 end
 
 commands.reset = function()
@@ -423,14 +326,6 @@ commands.reset = function()
     -- Reset to defaults
     HealIQ.db.enabled = true
     HealIQ.db.debug = false
-    
-    if HealIQ.db.logging then
-        HealIQ.db.logging.enabled = false
-        HealIQ.db.logging.verbose = false
-        HealIQ.db.logging.sessionStats = true
-        HealIQ.db.logging.maxLogSize = 1024
-        HealIQ.db.logging.maxLogFiles = 5
-    end
     
     if HealIQ.db.ui then
         HealIQ.db.ui.scale = 1.0
@@ -581,14 +476,6 @@ commands.status = function()
     print("  Enabled: " .. (HealIQ.db.enabled and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
     print("  Debug: " .. (HealIQ.debug and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
     
-    if HealIQ.db.logging then
-        print("  Memory Logging: " .. (HealIQ.db.logging.enabled and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
-        print("  Verbose Logging: " .. (HealIQ.db.logging.verbose and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
-        print("  Session Stats: " .. (HealIQ.db.logging.sessionStats and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
-    else
-        print("  Logging: |cFFFF0000Not yet initialized|r")
-    end
-    
     if HealIQ.db.ui then
         print("  UI Scale: " .. HealIQ.db.ui.scale)
         print("  UI Position: " .. HealIQ.db.ui.x .. ", " .. HealIQ.db.ui.y)
@@ -646,7 +533,7 @@ commands.status = function()
     print("  In Combat: " .. (InCombatLockdown() and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
     
     -- Show session statistics
-    if HealIQ.db and HealIQ.db.logging and HealIQ.db.logging.sessionStats and HealIQ.sessionStats and HealIQ.sessionStats.startTime then
+    if HealIQ.sessionStats and HealIQ.sessionStats.startTime then
         print("  |cFF00FF00Session Statistics:|r")
         local duration = time() - HealIQ.sessionStats.startTime
         print("    Duration: " .. HealIQ:FormatDuration(duration))
@@ -654,7 +541,6 @@ commands.status = function()
         print("    Rules Processed: " .. HealIQ.sessionStats.rulesProcessed)
         print("    Events Handled: " .. HealIQ.sessionStats.eventsHandled)
         print("    Errors Logged: " .. HealIQ.sessionStats.errorsLogged)
-        print("    Log Buffer: " .. (HealIQ.logBuffer and #HealIQ.logBuffer or 0) .. " entries")
     end
     
     -- Show addon status
