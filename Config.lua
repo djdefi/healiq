@@ -6,6 +6,8 @@ local addonName, HealIQ = ...
 HealIQ.Config = {}
 local Config = HealIQ.Config
 
+
+
 -- Command handlers
 local commands = {}
 
@@ -655,9 +657,9 @@ commands.status = function()
     end
     
     -- Show addon status
-    local addonVersion = GetAddOnMetadata("HealIQ", "Version")
+    local addonVersion = C_AddOns.GetAddOnMetadata("HealIQ", "Version") or "Unknown"
     print("  Addon Version: |cFF00FF00" .. addonVersion .. "|r")
-    print("  Memory Usage: |cFF00FF00" .. GetAddOnMemoryUsage("HealIQ") .. " KB|r")
+    print("  Memory Usage: |cFF00FF00" .. C_AddOns.GetAddOnMemoryUsage("HealIQ") .. " KB|r")
 end
 
 -- Public configuration methods

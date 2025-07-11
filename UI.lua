@@ -286,6 +286,19 @@ function UI:CreateMinimapButton()
     minimapButton:SetScript("OnLeave", function(self)
         GameTooltip:Hide()
     end)
+    
+    -- Set initial visibility based on showIcon setting
+    self:UpdateMinimapButtonVisibility()
+end
+
+function UI:UpdateMinimapButtonVisibility()
+    if minimapButton and HealIQ.db and HealIQ.db.ui then
+        if HealIQ.db.ui.showIcon then
+            minimapButton:Show()
+        else
+            minimapButton:Hide()
+        end
+    end
 end
 
 function UI:CreateQueueFrame()
@@ -714,6 +727,23 @@ function UI:CreateDisplayTab(panel)
     end)
     self:AddTooltip(showCooldownCheck, "Show Cooldown Spirals", "Display cooldown sweep animations on suggestion icons.")
     optionsFrame.showCooldownCheck = showCooldownCheck
+    yOffset = yOffset - 30
+    
+    local showIconCheck = CreateFrame("CheckButton", "HealIQShowIconCheck", panel, "UICheckButtonTemplate")
+    showIconCheck:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    showIconCheck.text = showIconCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    showIconCheck.text:SetPoint("LEFT", showIconCheck, "RIGHT", 5, 0)
+    showIconCheck.text:SetText("Show minimap icon")
+    showIconCheck:SetScript("OnClick", function(self)
+        if HealIQ.db and HealIQ.db.ui then
+            HealIQ.db.ui.showIcon = self:GetChecked()
+            if HealIQ.UI then
+                HealIQ.UI:UpdateMinimapButtonVisibility()
+            end
+        end
+    end)
+    self:AddTooltip(showIconCheck, "Show Minimap Icon", "Display the HealIQ minimap button.")
+    optionsFrame.showIconCheck = showIconCheck
 end
 
 function UI:CreateQueueTab(panel)
@@ -1457,6 +1487,10 @@ function UI:UpdateOptionsFrame()
         
         if optionsFrame.showCooldownCheck then
             optionsFrame.showCooldownCheck:SetChecked(HealIQ.db.ui.showCooldown)
+        end
+        
+        if optionsFrame.showIconCheck then
+            optionsFrame.showIconCheck:SetChecked(HealIQ.db.ui.showIcon)
         end
         
         -- Update frame positioning checkbox

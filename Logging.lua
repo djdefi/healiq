@@ -263,7 +263,7 @@ function HealIQ:GenerateDiagnosticDump()
     table.insert(dump, "Class: " .. (class or "Unknown"))
     table.insert(dump, "Specialization: " .. (spec or "Unknown"))
     table.insert(dump, "In Combat: " .. tostring(InCombatLockdown()))
-    table.insert(dump, "Memory Usage: " .. string.format("%.2f KB", GetAddOnMemoryUsage("HealIQ")))
+    table.insert(dump, "Memory Usage: " .. string.format("%.2f KB", C_AddOns.GetAddOnMemoryUsage("HealIQ")))
     table.insert(dump, "")
     
     -- Recent log entries
