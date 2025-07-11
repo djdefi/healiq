@@ -271,6 +271,8 @@ commands.log = function(action, subaction)
         print("|cFFFFFF00/healiq log stats on|r - Enable session statistics")
         print("|cFFFFFF00/healiq log stats off|r - Disable session statistics")
         print("|cFFFFFF00/healiq log clear|r - Clear log buffer")
+        print("|cFFFFFF00/healiq log flush|r - Force flush log buffer")
+        print("|cFFFFFF00/healiq log config|r - Show flush configuration")
         return
     end
     
@@ -279,7 +281,14 @@ commands.log = function(action, subaction)
         print("  File Logging: " .. (HealIQ.db.logging.enabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
         print("  Verbose Mode: " .. (HealIQ.db.logging.verbose and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
         print("  Session Stats: " .. (HealIQ.db.logging.sessionStats and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"))
-        print("  Log Buffer Size: " .. (HealIQ.logBuffer and #HealIQ.logBuffer or 0) .. " entries")
+        print("  Log Buffer: " .. (HealIQ.logBuffer and #HealIQ.logBuffer or 0) .. " entries, " .. HealIQ:GetLogBufferSizeKB() .. " KB")
+        print("  Max Buffer Size: " .. HealIQ.db.logging.maxLogSize .. " KB")
+        print("  Flush Threshold: " .. HealIQ.db.logging.flushThreshold .. " KB")
+        print("  Flush Interval: " .. HealIQ.db.logging.flushInterval .. " seconds")
+        if HealIQ.lastFlushTime and HealIQ.lastFlushTime > 0 then
+            local timeSinceFlush = time() - HealIQ.lastFlushTime
+            print("  Last Flush: " .. HealIQ:FormatDuration(timeSinceFlush) .. " ago")
+        end
         if HealIQ.sessionStats.startTime then
             local duration = time() - HealIQ.sessionStats.startTime
             print("  Session Duration: " .. HealIQ:FormatDuration(duration))
@@ -313,7 +322,26 @@ commands.log = function(action, subaction)
         end
     elseif action == "clear" then
         HealIQ.logBuffer = {}
+        HealIQ.logBufferSize = 0
         print("|cFF00FF00HealIQ|r Log buffer cleared")
+    elseif action == "flush" then
+        if HealIQ.db.logging.enabled then
+            HealIQ:FlushLogBuffer()
+            print("|cFF00FF00HealIQ|r Log buffer flushed")
+        else
+            print("|cFFFF0000HealIQ|r File logging is not enabled")
+        end
+    elseif action == "config" then
+        print("|cFF00FF00HealIQ Flush Configuration:|r")
+        print("  Max Buffer Size: " .. HealIQ.db.logging.maxLogSize .. " KB")
+        print("  Flush Threshold: " .. HealIQ.db.logging.flushThreshold .. " KB")
+        print("  Flush Interval: " .. HealIQ.db.logging.flushInterval .. " seconds")
+        print("  Current Buffer: " .. HealIQ:GetLogBufferSizeKB() .. " KB")
+        if HealIQ:ShouldFlushLogBuffer() then
+            print("  |cFFFFFF00Buffer is ready for flushing|r")
+        else
+            print("  |cFF00FF00Buffer does not need flushing|r")
+        end
     else
         print("|cFF00FF00HealIQ|r Unknown logging command: " .. tostring(action))
     end

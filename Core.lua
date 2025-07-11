@@ -11,6 +11,9 @@ HealIQ.debug = false
 -- File logging variables
 HealIQ.logFile = nil
 HealIQ.logPath = nil
+HealIQ.logBuffer = nil
+HealIQ.logBufferSize = 0 -- Track actual memory usage in bytes
+HealIQ.lastFlushTime = 0 -- Track last flush time for interval-based flushing
 HealIQ.sessionStats = {
     startTime = nil,
     suggestions = 0,
@@ -27,8 +30,10 @@ local defaults = {
         enabled = false, -- File logging enabled
         verbose = false, -- Verbose file logging
         sessionStats = true, -- Track session statistics
-        maxLogSize = 1024, -- Maximum log file size in KB
+        maxLogSize = 1024, -- Maximum log buffer size in KB
         maxLogFiles = 5, -- Maximum number of log files to keep
+        flushInterval = 300, -- Flush to storage every 5 minutes (in seconds)
+        flushThreshold = 512, -- Flush when buffer reaches this size in KB
     },
     ui = {
         scale = 1.0,
@@ -159,6 +164,11 @@ function HealIQ:InitializeLogging()
     local logsDir = "Interface\\AddOns\\HealIQ\\logs"
     self.logPath = logsDir .. "\\healiq-debug.log"
     
+    -- Initialize log buffer and tracking
+    self.logBuffer = {}
+    self.logBufferSize = 0
+    self.lastFlushTime = time()
+    
     -- Initialize session stats
     self.sessionStats.startTime = time()
     self.sessionStats.suggestions = 0
@@ -171,6 +181,67 @@ function HealIQ:InitializeLogging()
     self:LogToFile("Session Start Time: " .. date("%Y-%m-%d %H:%M:%S", self.sessionStats.startTime))
     self:LogToFile("Debug Mode: " .. (self.debug and "Enabled" or "Disabled"))
     self:LogToFile("Verbose Logging: " .. (self.db.logging.verbose and "Enabled" or "Disabled"))
+    self:LogToFile("Max Buffer Size: " .. self.db.logging.maxLogSize .. " KB")
+    self:LogToFile("Flush Interval: " .. self.db.logging.flushInterval .. " seconds")
+    self:LogToFile("Flush Threshold: " .. self.db.logging.flushThreshold .. " KB")
+end
+
+function HealIQ:GetLogBufferSizeKB()
+    return math.floor(self.logBufferSize / 1024 * 100) / 100 -- Round to 2 decimal places
+end
+
+function HealIQ:ShouldFlushLogBuffer()
+    local currentTime = time()
+    local timeSinceFlush = currentTime - self.lastFlushTime
+    local bufferSizeKB = self:GetLogBufferSizeKB()
+    
+    -- Flush if interval exceeded or size threshold reached
+    return timeSinceFlush >= self.db.logging.flushInterval or bufferSizeKB >= self.db.logging.flushThreshold
+end
+
+function HealIQ:FlushLogBuffer()
+    if not self.logBuffer or #self.logBuffer == 0 then
+        return
+    end
+    
+    local bufferSizeKB = self:GetLogBufferSizeKB()
+    local entryCount = #self.logBuffer
+    
+    -- In WoW environment, we simulate flushing by creating a summary
+    -- Real implementation would write to actual files here
+    local flushSummary = string.format("LOG FLUSH: %d entries, %.2f KB flushed at %s", 
+        entryCount, bufferSizeKB, date("%H:%M:%S"))
+    
+    if self.debug then
+        print("|cFF888888[FLUSH]|r " .. flushSummary)
+    end
+    
+    -- Clear the buffer after flush
+    self.logBuffer = {}
+    self.logBufferSize = 0
+    self.lastFlushTime = time()
+    
+    -- Log the flush event itself (this starts a new buffer)
+    self:LogToFile("Buffer flushed: " .. entryCount .. " entries, " .. bufferSizeKB .. " KB", "INFO")
+end
+
+function HealIQ:TrimLogBuffer()
+    if not self.logBuffer then
+        return
+    end
+    
+    local maxSizeBytes = self.db.logging.maxLogSize * 1024
+    
+    -- Remove oldest entries until we're under the size limit
+    while self.logBufferSize > maxSizeBytes and #self.logBuffer > 1 do
+        local removedEntry = table.remove(self.logBuffer, 1)
+        self.logBufferSize = self.logBufferSize - string.len(removedEntry)
+    end
+    
+    -- Ensure we don't go negative due to estimation errors
+    if self.logBufferSize < 0 then
+        self.logBufferSize = 0
+    end
 end
 
 function HealIQ:LogToFile(message, level)
@@ -191,15 +262,19 @@ function HealIQ:LogToFile(message, level)
     -- Store log entries in memory for diagnostic dump
     if not self.logBuffer then
         self.logBuffer = {}
+        self.logBufferSize = 0
     end
     
     table.insert(self.logBuffer, logEntry)
+    self.logBufferSize = self.logBufferSize + string.len(logEntry)
     
-    -- Keep only recent entries to prevent memory issues
-    local maxBufferSize = 1000
-    if #self.logBuffer > maxBufferSize then
-        table.remove(self.logBuffer, 1)
+    -- Check if we should flush the buffer
+    if self:ShouldFlushLogBuffer() then
+        self:FlushLogBuffer()
     end
+    
+    -- Trim buffer if it exceeds maximum size
+    self:TrimLogBuffer()
 end
 
 function HealIQ:LogVerbose(message)
@@ -232,6 +307,19 @@ function HealIQ:GenerateDiagnosticDump()
     table.insert(dump, "Rules Processed: " .. self.sessionStats.rulesProcessed)
     table.insert(dump, "Errors Logged: " .. self.sessionStats.errorsLogged)
     table.insert(dump, "Events Handled: " .. self.sessionStats.eventsHandled)
+    table.insert(dump, "")
+    
+    -- Logging Statistics
+    table.insert(dump, "=== Logging Statistics ===")
+    table.insert(dump, "Log Buffer Entries: " .. (self.logBuffer and #self.logBuffer or 0))
+    table.insert(dump, "Log Buffer Size: " .. self:GetLogBufferSizeKB() .. " KB")
+    table.insert(dump, "Max Buffer Size: " .. self.db.logging.maxLogSize .. " KB")
+    table.insert(dump, "Flush Threshold: " .. self.db.logging.flushThreshold .. " KB")
+    table.insert(dump, "Flush Interval: " .. self.db.logging.flushInterval .. " seconds")
+    if self.lastFlushTime and self.lastFlushTime > 0 then
+        local timeSinceFlush = time() - self.lastFlushTime
+        table.insert(dump, "Last Flush: " .. self:FormatDuration(timeSinceFlush) .. " ago")
+    end
     table.insert(dump, "")
     
     -- Configuration
@@ -436,6 +524,11 @@ _G[addonName] = HealIQ
 -- Cleanup function for addon disable/reload
 function HealIQ:Cleanup()
     self:SafeCall(function()
+        -- Flush any remaining log entries before cleanup
+        if self.db and self.db.logging and self.db.logging.enabled then
+            self:FlushLogBuffer()
+        end
+        
         if self.UI then
             self.UI:Hide()
         end

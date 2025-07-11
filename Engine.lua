@@ -127,6 +127,11 @@ function Engine:OnUpdate(elapsed)
         
         lastUpdate = currentTime
         
+        -- Check for log buffer flush (do this periodically, regardless of other conditions)
+        if HealIQ.db.logging.enabled and HealIQ:ShouldFlushLogBuffer() then
+            HealIQ:FlushLogBuffer()
+        end
+        
         -- Only suggest spells if addon is enabled and player is in combat or has a target
         if not HealIQ.db.enabled then
             self:SetSuggestion(nil)
