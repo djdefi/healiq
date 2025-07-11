@@ -66,13 +66,15 @@ function UI:CreateMainFrame()
     
     if HealIQ.db.ui.showQueue then
         if queueLayout == "horizontal" then
-            -- Fix: Use queueIconSize instead of ICON_SIZE for consistent sizing
-            frameWidth = frameWidth + (queueSize - 1) * (queueIconSize + queueSpacing)
+            -- Fix: Use corrected spacing calculation (same as CreateQueueFrame)
+            local totalWidth = (queueSize - 1) * queueIconSize + math.max(0, queueSize - 2) * queueSpacing
+            frameWidth = frameWidth + totalWidth
         else
             -- Account for spell name text in vertical layout  
             local spellNameHeight = HealIQ.db.ui.showSpellName and 20 or 0
-            -- Fix: Use queueIconSize instead of ICON_SIZE for consistent sizing
-            frameHeight = frameHeight + (queueSize - 1) * (queueIconSize + queueSpacing) + spellNameHeight
+            -- Fix: Use corrected spacing calculation (same as CreateQueueFrame)
+            local totalHeight = (queueSize - 1) * queueIconSize + math.max(0, queueSize - 2) * queueSpacing
+            frameHeight = frameHeight + totalHeight + spellNameHeight
         end
     end
     
