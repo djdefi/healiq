@@ -270,6 +270,11 @@ function HealIQ:OnPlayerEnteringWorld()
         self:Print("Player entering world")
         self:LogToFile("Player entering world", "INFO")
         
+        if not self.db then
+            self:LogToFile("Database not yet initialized during OnPlayerEnteringWorld", "WARN")
+            return
+        end
+        
         -- Check if player is a Restoration Druid
         local _, class = UnitClass("player")
         if class == "DRUID" then

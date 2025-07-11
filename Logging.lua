@@ -28,7 +28,7 @@ end
 
 -- File logging functions
 function HealIQ:InitializeLogging()
-    if not self.db.logging.enabled then
+    if not self.db or not self.db.logging or not self.db.logging.enabled then
         return
     end
     
@@ -253,8 +253,6 @@ function HealIQ:GenerateDiagnosticDump()
         end
     else
         table.insert(dump, "Rules configuration not yet initialized")
-    end
-        table.insert(dump, rule .. ": " .. tostring(enabled))
     end
     table.insert(dump, "")
     

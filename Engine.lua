@@ -128,12 +128,12 @@ function Engine:OnUpdate(elapsed)
         lastUpdate = currentTime
         
         -- Check for log buffer flush (do this periodically, regardless of other conditions)
-        if HealIQ.db.logging.enabled and HealIQ:ShouldFlushLogBuffer() then
+        if HealIQ.db and HealIQ.db.logging and HealIQ.db.logging.enabled and HealIQ:ShouldFlushLogBuffer() then
             HealIQ:FlushLogBuffer()
         end
         
-        -- Only suggest spells if addon is enabled and player is in combat or has a target
-        if not HealIQ.db.enabled then
+        -- Only suggest spells if addon is enabled and database is initialized
+        if not HealIQ.db or not HealIQ.db.enabled then
             self:SetSuggestion(nil)
             self:SetQueue({})
             return
@@ -178,6 +178,10 @@ end
 function Engine:EvaluateRules()
     local tracker = HealIQ.Tracker
     if not tracker then
+        return nil
+    end
+    
+    if not HealIQ.db or not HealIQ.db.rules then
         return nil
     end
     
@@ -302,6 +306,10 @@ function Engine:EvaluateRulesQueue()
         return {}
     end
     
+    if not HealIQ.db or not HealIQ.db.rules then
+        return {}
+    end
+    
     local suggestions = {}
     
     -- Rule 1: Tranquility if off cooldown and 4+ allies recently damaged (highest priority)
@@ -394,13 +402,21 @@ function Engine:EvaluateRulesQueue()
     end
     
     -- Return up to the configured queue size suggestions
-    local queueSize = HealIQ.db.ui.queueSize or 3
-    local queue = {}
-    for i = 1, math.min(queueSize, #suggestions) do
-        table.insert(queue, suggestions[i])
+    if HealIQ.db and HealIQ.db.ui then
+        local queueSize = HealIQ.db.ui.queueSize or 3
+        local queue = {}
+        for i = 1, math.min(queueSize, #suggestions) do
+            table.insert(queue, suggestions[i])
+        end
+        return queue
+    else
+        -- Fallback if UI config not available
+        local queue = {}
+        for i = 1, math.min(3, #suggestions) do
+            table.insert(queue, suggestions[i])
+        end
+        return queue
     end
-    
-    return queue
 end
 
 function Engine:SetSuggestion(suggestion)
