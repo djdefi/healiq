@@ -22,6 +22,11 @@ on:
         required: false
         default: true
         type: boolean
+      create_release:
+        description: 'Create release after version bump'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -261,7 +266,29 @@ jobs:
         git push origin ${{ github.ref_name }}
         echo "Pushed version bump to ${{ github.ref_name }}"
         
+    - name: Trigger release workflow
+      if: ${{ github.event.inputs.create_release == 'true' }}
+      id: trigger_release
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          try {
+            const result = await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'release.yml',
+              ref: '${{ github.ref_name }}'
+            });
+            console.log('Release workflow triggered successfully');
+            return 'success';
+          } catch (error) {
+            console.error('Failed to trigger release workflow:', error.message);
+            return 'failed';
+          }
+        
     - name: Summary
+      if: always()
       run: |
         NEW_VERSION="${{ steps.new_version.outputs.new }}"
         CURRENT_VERSION="${{ steps.current_version.outputs.current }}"
@@ -271,6 +298,15 @@ jobs:
         echo "- New version: $NEW_VERSION" >> $GITHUB_STEP_SUMMARY
         echo "- Bump type: ${{ github.event.inputs.version_type }}" >> $GITHUB_STEP_SUMMARY
         echo "- Changelog entry created: ${{ github.event.inputs.create_changelog_entry }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Auto-release enabled: ${{ github.event.inputs.create_release }}" >> $GITHUB_STEP_SUMMARY
         echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "The release workflow will automatically create a new release when these changes are merged to main." >> $GITHUB_STEP_SUMMARY
+        if [ "${{ github.event.inputs.create_release }}" = "true" ]; then
+          if [ "${{ steps.trigger_release.outcome }}" = "success" ]; then
+            echo "The release workflow has been successfully triggered and will create a new release." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Attempted to trigger the release workflow, but it may have failed. Please check the workflow logs or manually trigger a release." >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "The release workflow will automatically create a new release when these changes are merged to main." >> $GITHUB_STEP_SUMMARY
+        fi
