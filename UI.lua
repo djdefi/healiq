@@ -1361,7 +1361,14 @@ function UI:RecreateFrames()
 end
 
 function UI:UpdatePositionBorder()
-    if not mainFrame or not mainFrame.border or not HealIQ.db or not HealIQ.db.ui then
+    -- Check for UI frame existence first (original function logic)
+    if not mainFrame or not mainFrame.border then
+        return
+    end
+    
+    -- If database isn't ready, hide border and return (graceful degradation)
+    if not HealIQ.db or not HealIQ.db.ui then
+        mainFrame.border:Hide()
         return
     end
     
