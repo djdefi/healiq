@@ -15,9 +15,15 @@
 
 ## 📦 Installation
 
-1. Download the latest release and unzip to your `Interface/AddOns/` directory.
-2. Enable the addon in the WoW AddOn menu.
-3. Type `/healiq` for basic options and slash commands (coming soon).
+### From CurseForge (Recommended)
+- Download from [CurseForge](https://curseforge.com) using the CurseForge app or website
+- Automatic updates and dependency management
+
+### Manual Installation
+1. Download the latest release from [GitHub Releases](https://github.com/djdefi/healiq/releases)
+2. Unzip to your `Interface/AddOns/` directory
+3. Enable the addon in the WoW AddOn menu
+4. Type `/healiq` for basic options and slash commands (coming soon)
 
 ## 🔧 Configuration
 

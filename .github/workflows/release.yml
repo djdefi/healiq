@@ -186,3 +186,16 @@ jobs:
         draft: false
         prerelease: false
         files: HealIQ-${{ steps.version.outputs.version }}.zip
+        
+    - name: Upload to CurseForge
+      if: steps.check_tag.outputs.exists == 'false' && secrets.CURSEFORGE_TOKEN != ''
+      uses: itsmeow/curseforge-upload@v3
+      with:
+        token: ${{ secrets.CURSEFORGE_TOKEN }}
+        project_id: ${{ secrets.CURSEFORGE_PROJECT_ID }}
+        game_endpoint: wow
+        file_path: HealIQ-${{ steps.version.outputs.version }}.zip
+        changelog_type: markdown
+        changelog_file: release_notes.md
+        game_versions: ${{ secrets.CURSEFORGE_GAME_VERSIONS }}
+        release_type: release
