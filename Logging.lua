@@ -3,6 +3,17 @@
 
 local addonName, HealIQ = ...
 
+-- Compatibility wrapper for addon API functions
+local function GetAddOnMemoryUsageCompat(name)
+    if C_AddOns and C_AddOns.GetAddOnMemoryUsage then
+        return C_AddOns.GetAddOnMemoryUsage(name)
+    elseif GetAddOnMemoryUsage then
+        return GetAddOnMemoryUsage(name)
+    else
+        return 0
+    end
+end
+
 -- Create the Logging module
 HealIQ.Logging = {}
 local Logging = HealIQ.Logging
@@ -263,7 +274,7 @@ function HealIQ:GenerateDiagnosticDump()
     table.insert(dump, "Class: " .. (class or "Unknown"))
     table.insert(dump, "Specialization: " .. (spec or "Unknown"))
     table.insert(dump, "In Combat: " .. tostring(InCombatLockdown()))
-    table.insert(dump, "Memory Usage: " .. string.format("%.2f KB", GetAddOnMemoryUsage("HealIQ")))
+    table.insert(dump, "Memory Usage: " .. string.format("%.2f KB", GetAddOnMemoryUsageCompat("HealIQ")))
     table.insert(dump, "")
     
     -- Recent log entries
