@@ -103,7 +103,7 @@ function UI:CreateMainFrame()
     mainFrame.border = border
     
     -- Create primary spell icon frame (current suggestion) with consistent padding
-    iconFrame = CreateFrame("Frame", "HealIQIconFrame", mainFrame)
+    iconFrame = CreateFrame("Button", "HealIQIconFrame", mainFrame)
     iconFrame:SetSize(ICON_SIZE, ICON_SIZE)
     iconFrame:SetPoint("LEFT", mainFrame, "LEFT", padding + (FRAME_SIZE - ICON_SIZE) / 2, 0)
     
