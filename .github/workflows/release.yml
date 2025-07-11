@@ -243,6 +243,21 @@ jobs:
         echo "game_version=$GAME_VERSION" >> $GITHUB_OUTPUT
         echo "Using game version: $GAME_VERSION for interface $INTERFACE"
         
+    - name: Read release notes for CurseForge
+      if: steps.check_tag.outputs.exists == 'false'
+      id: release_notes
+      run: |
+        if [ -f "release_notes.md" ]; then
+          # Read the content and handle multiline output properly
+          {
+            echo "content<<EOF"
+            cat release_notes.md
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+        else
+          echo "content=No release notes available" >> $GITHUB_OUTPUT
+        fi
+        
     - name: Upload to CurseForge
       if: steps.check_tag.outputs.exists == 'false'
       uses: itsmeow/curseforge-upload@v3
@@ -252,6 +267,6 @@ jobs:
         game_endpoint: wow
         file_path: HealIQ-${{ steps.version.outputs.version }}.zip
         changelog_type: markdown
-        changelog_file: release_notes.md
+        changelog: ${{ steps.release_notes.outputs.content }}
         game_versions: ${{ steps.game_version.outputs.game_version }}
         release_type: release
