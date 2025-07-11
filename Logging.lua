@@ -246,15 +246,3 @@ function HealIQ:GenerateDiagnosticDump()
     return table.concat(dump, "\n")
 end
 
--- Helper function for formatting duration
-function HealIQ:FormatDuration(seconds)
-    if seconds < 60 then
-        return string.format("%d seconds", seconds)
-    elseif seconds < 3600 then
-        return string.format("%d minutes, %d seconds", math.floor(seconds / 60), seconds % 60)
-    else
-        local hours = math.floor(seconds / 3600)
-        local minutes = math.floor((seconds % 3600) / 60)
-        return string.format("%d hours, %d minutes", hours, minutes)
-    end
-end
