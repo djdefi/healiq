@@ -127,11 +127,6 @@ function Engine:OnUpdate(elapsed)
         
         lastUpdate = currentTime
         
-        -- Check for log buffer flush (do this periodically, regardless of other conditions)
-        if HealIQ.db and HealIQ.db.logging and HealIQ.db.logging.enabled and HealIQ:ShouldFlushLogBuffer() then
-            HealIQ:FlushLogBuffer()
-        end
-        
         -- Only suggest spells if addon is enabled and database is initialized
         if not HealIQ.db or not HealIQ.db.enabled then
             self:SetSuggestion(nil)
@@ -186,12 +181,12 @@ function Engine:EvaluateRules()
     end
     
     local suggestions = {}
-    HealIQ:LogVerbose("Starting rule evaluation")
+    HealIQ:DebugLog("Starting rule evaluation")
     
     -- Rule 1: Tranquility if off cooldown and 4+ allies recently damaged (highest priority)
     if HealIQ.db.rules.tranquility and tracker:ShouldUseTranquility() then
         table.insert(suggestions, SPELLS.TRANQUILITY)
-        HealIQ:LogVerbose("Rule triggered: Tranquility")
+        HealIQ:DebugLog("Rule triggered: Tranquility")
         if HealIQ.sessionStats then
             HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
         end
@@ -200,7 +195,7 @@ function Engine:EvaluateRules()
     -- Rule 2: Incarnation: Tree of Life for high damage phases
     if HealIQ.db.rules.incarnationTree and tracker:ShouldUseIncarnation() then
         table.insert(suggestions, SPELLS.INCARNATION_TREE)
-        HealIQ:LogVerbose("Rule triggered: Incarnation Tree")
+        HealIQ:DebugLog("Rule triggered: Incarnation Tree")
         if HealIQ.sessionStats then
             HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
         end
@@ -209,7 +204,7 @@ function Engine:EvaluateRules()
     -- Rule 3: Ironbark for damage reduction on target
     if HealIQ.db.rules.ironbark and tracker:ShouldUseIronbark() then
         table.insert(suggestions, SPELLS.IRONBARK)
-        HealIQ:LogVerbose("Rule triggered: Ironbark")
+        HealIQ:DebugLog("Rule triggered: Ironbark")
         if HealIQ.sessionStats then
             HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
         end
@@ -220,7 +215,7 @@ function Engine:EvaluateRules()
         local recentDamageCount = tracker:GetRecentDamageCount()
         if recentDamageCount >= 3 then
             table.insert(suggestions, SPELLS.WILD_GROWTH)
-            HealIQ:LogVerbose("Rule triggered: Wild Growth (recent damage: " .. recentDamageCount .. ")")
+            HealIQ:DebugLog("Rule triggered: Wild Growth (recent damage: " .. recentDamageCount .. ")")
             if HealIQ.sessionStats then
                 HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
             end
@@ -293,7 +288,7 @@ function Engine:EvaluateRules()
         end
     end
     
-    HealIQ:LogVerbose("Rule evaluation completed, " .. #suggestions .. " suggestions found")
+    HealIQ:DebugLog("Rule evaluation completed, " .. #suggestions .. " suggestions found")
     
     -- Return the top suggestion for backward compatibility
     return suggestions[1] or nil
@@ -432,10 +427,10 @@ function Engine:SetSuggestion(suggestion)
         if HealIQ.debug then
             if suggestion then
                 HealIQ:Print("Suggesting: " .. suggestion.name)
-                HealIQ:LogVerbose("Generated suggestion: " .. suggestion.name .. " (priority: " .. suggestion.priority .. ")")
+                HealIQ:DebugLog("Generated suggestion: " .. suggestion.name .. " (priority: " .. suggestion.priority .. ")")
             else
                 HealIQ:Print("No suggestion")
-                HealIQ:LogVerbose("No suggestion generated")
+                HealIQ:DebugLog("No suggestion generated")
             end
         end
         
@@ -476,10 +471,10 @@ function Engine:SetQueue(queue)
                     table.insert(names, suggestion.name)
                 end
                 HealIQ:Print("Queue updated: " .. table.concat(names, " → "))
-                HealIQ:LogVerbose("Queue updated (" .. #queue .. " items): " .. table.concat(names, " → "))
+                HealIQ:DebugLog("Queue updated (" .. #queue .. " items): " .. table.concat(names, " → "))
             else
                 HealIQ:Print("Queue cleared")
-                HealIQ:LogVerbose("Queue cleared")
+                HealIQ:DebugLog("Queue cleared")
             end
         end
     end
