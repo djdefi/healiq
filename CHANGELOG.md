@@ -1,5 +1,16 @@
 # HealIQ Changelog
 
+## [0.0.11] - 2025-07-11
+
+### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
 ## [0.0.16] - 2025-07-11
 
 ### Added
