@@ -32,6 +32,7 @@
 
 - UI icon is movable (drag-and-drop)
 - Suggestions shown via a single icon by default
+- Queue preview shows upcoming spell suggestions
 - Future: support for WeakAura export, config GUI, and profile-based tuning
 
 ## 📜 Planned Features

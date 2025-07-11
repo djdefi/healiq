@@ -29,6 +29,7 @@ This tool is designed to:
   - Suggest specific healing *targets*.
   - Auto-cast or assist with automation of any kind.
   - Replace human decision-making for triage or positioning.
+  - Cast spells via button clicks (removed due to Blizzard restrictions).
 
 ## Architecture
 
@@ -68,13 +69,15 @@ This logic will be modular and eventually configurable.
 * Central floating suggestion icon (customizable position/scale)
 * Optional cooldown overlay and spell name
 * Optional "queue mode" to show next 2–3 recommendations
+* Display-only interface - no spell casting functionality
 * Future: draggable UI config mode or `/healiq` command options
 
 ## Addon API Constraints and Considerations
 
 * Addons **cannot** read live health/mana of units during combat (except player/target/focus).
 * Suggestions will rely on combat log events, known auras, cooldowns, and predicted AoE phases.
-* Addon must not attempt to cast spells or make target-specific recommendations.
+* Addon provides visual suggestions only and does not cast spells automatically.
+* Button-based spell casting removed due to Blizzard API restrictions.
 
 ## Compatibility
 
