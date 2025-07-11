@@ -6,26 +6,7 @@ local addonName, HealIQ = ...
 HealIQ.Config = {}
 local Config = HealIQ.Config
 
--- Compatibility wrappers for addon API functions
-local function GetAddOnMetadataCompat(name, field)
-    if C_AddOns and C_AddOns.GetAddOnMetadata then
-        return C_AddOns.GetAddOnMetadata(name, field)
-    elseif GetAddOnMetadata then
-        return GetAddOnMetadata(name, field)
-    else
-        return nil
-    end
-end
 
-local function GetAddOnMemoryUsageCompat(name)
-    if C_AddOns and C_AddOns.GetAddOnMemoryUsage then
-        return C_AddOns.GetAddOnMemoryUsage(name)
-    elseif GetAddOnMemoryUsage then
-        return GetAddOnMemoryUsage(name)
-    else
-        return 0
-    end
-end
 
 -- Command handlers
 local commands = {}
@@ -676,9 +657,9 @@ commands.status = function()
     end
     
     -- Show addon status
-    local addonVersion = GetAddOnMetadataCompat("HealIQ", "Version") or "Unknown"
+    local addonVersion = C_AddOns.GetAddOnMetadata("HealIQ", "Version") or "Unknown"
     print("  Addon Version: |cFF00FF00" .. addonVersion .. "|r")
-    print("  Memory Usage: |cFF00FF00" .. GetAddOnMemoryUsageCompat("HealIQ") .. " KB|r")
+    print("  Memory Usage: |cFF00FF00" .. C_AddOns.GetAddOnMemoryUsage("HealIQ") .. " KB|r")
 end
 
 -- Public configuration methods
