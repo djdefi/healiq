@@ -47,6 +47,12 @@ function UI:Initialize()
 end
 
 function UI:CreateMainFrame()
+    -- Check if database is initialized before accessing UI settings
+    if not HealIQ.db or not HealIQ.db.ui then
+        HealIQ:LogError("UI:CreateMainFrame called before database initialization")
+        return
+    end
+    
     -- Determine total frame size based on queue settings
     local queueSize = HealIQ.db.ui.queueSize or 3
     local queueLayout = HealIQ.db.ui.queueLayout or "horizontal"
@@ -170,6 +176,11 @@ function UI:CalculateMinimapButtonRadius()
 end
 
 function UI:CreateMinimapButton()
+    if not HealIQ.db or not HealIQ.db.ui then
+        HealIQ:LogError("UI:CreateMinimapButton called before database initialization")
+        return
+    end
+    
     -- Create minimap button
     minimapButton = CreateFrame("Button", "HealIQMinimapButton", Minimap)
     minimapButton:SetSize(32, 32)
@@ -246,7 +257,9 @@ function UI:CreateMinimapButton()
         end
         
         -- Save minimap button position as angle for consistency
-        HealIQ.db.ui.minimapAngle = angle
+        if HealIQ.db and HealIQ.db.ui then
+            HealIQ.db.ui.minimapAngle = angle
+        end
     end)
     
     -- Click handler
@@ -276,6 +289,11 @@ function UI:CreateMinimapButton()
 end
 
 function UI:CreateQueueFrame()
+    if not HealIQ.db or not HealIQ.db.ui then
+        HealIQ:LogError("UI:CreateQueueFrame called before database initialization")
+        return
+    end
+    
     local queueSize = HealIQ.db.ui.queueSize or 3
     local queueLayout = HealIQ.db.ui.queueLayout or "horizontal"
     local queueSpacing = HealIQ.db.ui.queueSpacing or 8
@@ -483,9 +501,11 @@ function UI:CreateGeneralTab(panel)
     enableCheck.text:SetPoint("LEFT", enableCheck, "RIGHT", 5, 0)
     enableCheck.text:SetText("Enable HealIQ")
     enableCheck:SetScript("OnClick", function(self)
-        HealIQ.db.enabled = self:GetChecked()
-        if HealIQ.UI then
-            HealIQ.UI:SetEnabled(HealIQ.db.enabled)
+        if HealIQ.db then
+            HealIQ.db.enabled = self:GetChecked()
+            if HealIQ.UI then
+                HealIQ.UI:SetEnabled(HealIQ.db.enabled)
+            end
         end
     end)
     self:AddTooltip(enableCheck, "Enable HealIQ", "Enable or disable the entire HealIQ addon.\nWhen disabled, no suggestions will be shown.")
@@ -499,12 +519,14 @@ function UI:CreateGeneralTab(panel)
     debugCheck.text:SetPoint("LEFT", debugCheck, "RIGHT", 5, 0)
     debugCheck.text:SetText("Enable Debug Mode")
     debugCheck:SetScript("OnClick", function(self)
-        HealIQ.db.debug = self:GetChecked()
-        HealIQ.debug = HealIQ.db.debug
-        if HealIQ.debug then
-            HealIQ:Print("Debug mode enabled")
-        else
-            HealIQ:Print("Debug mode disabled")
+        if HealIQ.db then
+            HealIQ.db.debug = self:GetChecked()
+            HealIQ.debug = HealIQ.db.debug
+            if HealIQ.debug then
+                HealIQ:Print("Debug mode enabled")
+            else
+                HealIQ:Print("Debug mode disabled")
+            end
         end
     end)
     self:AddTooltip(debugCheck, "Enable Debug Mode", "Enable additional debug output and test features.\nUseful for troubleshooting issues.")
@@ -518,12 +540,14 @@ function UI:CreateGeneralTab(panel)
     loggingCheck.text:SetPoint("LEFT", loggingCheck, "RIGHT", 5, 0)
     loggingCheck.text:SetText("Enable File Logging")
     loggingCheck:SetScript("OnClick", function(self)
-        HealIQ.db.logging.enabled = self:GetChecked()
-        if HealIQ.db.logging.enabled then
-            HealIQ:InitializeLogging()
-            HealIQ:Message("File logging enabled")
-        else
-            HealIQ:Message("File logging disabled")
+        if HealIQ.db and HealIQ.db.logging then
+            HealIQ.db.logging.enabled = self:GetChecked()
+            if HealIQ.db.logging.enabled then
+                HealIQ:InitializeLogging()
+                HealIQ:Message("File logging enabled")
+            else
+                HealIQ:Message("File logging disabled")
+            end
         end
     end)
     self:AddTooltip(loggingCheck, "Enable File Logging", "Enable logging debug information to file for troubleshooting.\nLogs are stored in memory and can be exported via /healiq dump.")
@@ -537,9 +561,11 @@ function UI:CreateGeneralTab(panel)
     verboseCheck.text:SetPoint("LEFT", verboseCheck, "RIGHT", 5, 0)
     verboseCheck.text:SetText("Verbose Logging")
     verboseCheck:SetScript("OnClick", function(self)
-        HealIQ.db.logging.verbose = self:GetChecked()
-        local status = HealIQ.db.logging.verbose and "enabled" or "disabled"
-        HealIQ:Message("Verbose logging " .. status)
+        if HealIQ.db and HealIQ.db.logging then
+            HealIQ.db.logging.verbose = self:GetChecked()
+            local status = HealIQ.db.logging.verbose and "enabled" or "disabled"
+            HealIQ:Message("Verbose logging " .. status)
+        end
     end)
     self:AddTooltip(verboseCheck, "Verbose Logging", "Enable detailed logging of rule processing and suggestions.\nRequires File Logging to be enabled.")
     optionsFrame.verboseCheck = verboseCheck
@@ -552,9 +578,11 @@ function UI:CreateGeneralTab(panel)
     statsCheck.text:SetPoint("LEFT", statsCheck, "RIGHT", 5, 0)
     statsCheck.text:SetText("Session Statistics")
     statsCheck:SetScript("OnClick", function(self)
-        HealIQ.db.logging.sessionStats = self:GetChecked()
-        local status = HealIQ.db.logging.sessionStats and "enabled" or "disabled"
-        HealIQ:Message("Session statistics " .. status)
+        if HealIQ.db and HealIQ.db.logging then
+            HealIQ.db.logging.sessionStats = self:GetChecked()
+            local status = HealIQ.db.logging.sessionStats and "enabled" or "disabled"
+            HealIQ:Message("Session statistics " .. status)
+        end
     end)
     self:AddTooltip(statsCheck, "Session Statistics", "Track session statistics like suggestions generated, rules processed, etc.\nView statistics with /healiq status or /healiq dump.")
     optionsFrame.statsCheck = statsCheck
@@ -601,9 +629,11 @@ function UI:CreateGeneralTab(panel)
     showFrameCheck.text:SetPoint("LEFT", showFrameCheck, "RIGHT", 5, 0)
     showFrameCheck.text:SetText("Show frame positioning border")
     showFrameCheck:SetScript("OnClick", function(self)
-        HealIQ.db.ui.showPositionBorder = self:GetChecked()
-        if HealIQ.UI then
-            HealIQ.UI:UpdatePositionBorder()
+        if HealIQ.db and HealIQ.db.ui then
+            HealIQ.db.ui.showPositionBorder = self:GetChecked()
+            if HealIQ.UI then
+                HealIQ.UI:UpdatePositionBorder()
+            end
         end
     end)
     self:AddTooltip(showFrameCheck, "Show Frame Position Border", "Shows a visible border around the main frame for easier positioning.\nHelpful when arranging the UI layout.")
@@ -658,9 +688,11 @@ function UI:CreateDisplayTab(panel)
     showNameCheck.text:SetPoint("LEFT", showNameCheck, "RIGHT", 5, 0)
     showNameCheck.text:SetText("Show spell names")
     showNameCheck:SetScript("OnClick", function(self)
-        HealIQ.db.ui.showSpellName = self:GetChecked()
-        if HealIQ.UI then
-            HealIQ.UI:SetShowSpellName(self:GetChecked())
+        if HealIQ.db and HealIQ.db.ui then
+            HealIQ.db.ui.showSpellName = self:GetChecked()
+            if HealIQ.UI then
+                HealIQ.UI:SetShowSpellName(self:GetChecked())
+            end
         end
     end)
     self:AddTooltip(showNameCheck, "Show Spell Names", "Display the name of the suggested spell below the icon.")
@@ -673,9 +705,11 @@ function UI:CreateDisplayTab(panel)
     showCooldownCheck.text:SetPoint("LEFT", showCooldownCheck, "RIGHT", 5, 0)
     showCooldownCheck.text:SetText("Show cooldown spirals")
     showCooldownCheck:SetScript("OnClick", function(self)
-        HealIQ.db.ui.showCooldown = self:GetChecked()
-        if HealIQ.UI then
-            HealIQ.UI:SetShowCooldown(self:GetChecked())
+        if HealIQ.db and HealIQ.db.ui then
+            HealIQ.db.ui.showCooldown = self:GetChecked()
+            if HealIQ.UI then
+                HealIQ.UI:SetShowCooldown(self:GetChecked())
+            end
         end
     end)
     self:AddTooltip(showCooldownCheck, "Show Cooldown Spirals", "Display cooldown sweep animations on suggestion icons.")
@@ -699,9 +733,11 @@ function UI:CreateQueueTab(panel)
     showQueueCheck.text:SetPoint("LEFT", showQueueCheck, "RIGHT", 5, 0)
     showQueueCheck.text:SetText("Show suggestion queue")
     showQueueCheck:SetScript("OnClick", function(self)
-        HealIQ.db.ui.showQueue = self:GetChecked()
-        if HealIQ.UI then
-            HealIQ.UI:RecreateFrames()
+        if HealIQ.db and HealIQ.db.ui then
+            HealIQ.db.ui.showQueue = self:GetChecked()
+            if HealIQ.UI then
+                HealIQ.UI:RecreateFrames()
+            end
         end
     end)
     self:AddTooltip(showQueueCheck, "Show Suggestion Queue", "Display upcoming spell suggestions in a queue next to the main icon.")
@@ -719,9 +755,11 @@ function UI:CreateQueueTab(panel)
     _G[queueScaleSlider:GetName() .. "High"]:SetText("1.5")
     _G[queueScaleSlider:GetName() .. "Text"]:SetText("Queue Scale")
     queueScaleSlider:SetScript("OnValueChanged", function(self, value)
-        HealIQ.db.ui.queueScale = value
-        if HealIQ.UI then
-            HealIQ.UI:RecreateFrames()
+        if HealIQ.db and HealIQ.db.ui then
+            HealIQ.db.ui.queueScale = value
+            if HealIQ.UI then
+                HealIQ.UI:RecreateFrames()
+            end
         end
     end)
     self:AddTooltip(queueScaleSlider, "Queue Scale", "Adjust the scale of queue icons relative to the main icon (0.5-1.5).")
@@ -739,9 +777,11 @@ function UI:CreateQueueTab(panel)
     _G[queueSizeSlider:GetName() .. "High"]:SetText("5")
     _G[queueSizeSlider:GetName() .. "Text"]:SetText("Queue Size")
     queueSizeSlider:SetScript("OnValueChanged", function(self, value)
-        HealIQ.db.ui.queueSize = math.floor(value)
-        if HealIQ.UI then
-            HealIQ.UI:RecreateFrames()
+        if HealIQ.db and HealIQ.db.ui then
+            HealIQ.db.ui.queueSize = math.floor(value)
+            if HealIQ.UI then
+                HealIQ.UI:RecreateFrames()
+            end
         end
     end)
     self:AddTooltip(queueSizeSlider, "Queue Size", "Number of spell suggestions to show in the queue (2-5).")
@@ -758,11 +798,13 @@ function UI:CreateQueueTab(panel)
     queueLayoutButton:SetPoint("LEFT", queueLayoutLabel, "RIGHT", 10, 0)
     queueLayoutButton:SetText("Horizontal")
     queueLayoutButton:SetScript("OnClick", function(self)
-        local newLayout = HealIQ.db.ui.queueLayout == "horizontal" and "vertical" or "horizontal"
-        HealIQ.db.ui.queueLayout = newLayout
-        self:SetText(newLayout:sub(1,1):upper() .. newLayout:sub(2))
-        if HealIQ.UI then
-            HealIQ.UI:RecreateFrames()
+        if HealIQ.db and HealIQ.db.ui then
+            local newLayout = HealIQ.db.ui.queueLayout == "horizontal" and "vertical" or "horizontal"
+            HealIQ.db.ui.queueLayout = newLayout
+            self:SetText(newLayout:sub(1,1):upper() .. newLayout:sub(2))
+            if HealIQ.UI then
+                HealIQ.UI:RecreateFrames()
+            end
         end
     end)
     self:AddTooltip(queueLayoutButton, "Queue Layout", "Choose whether to display the queue horizontally or vertically.")
@@ -831,7 +873,9 @@ function UI:CreateRulesTab(panel)
         check.text:SetPoint("LEFT", check, "RIGHT", 5, 0)
         check.text:SetText(rule.name)
         check:SetScript("OnClick", function(self)
-            HealIQ.db.rules[rule.key] = self:GetChecked()
+            if HealIQ.db and HealIQ.db.rules then
+                HealIQ.db.rules[rule.key] = self:GetChecked()
+            end
         end)
         
         -- Add tooltip for each rule
@@ -906,7 +950,7 @@ function UI:MakeFrameDraggable()
     mainFrame:RegisterForDrag("LeftButton")
     
     mainFrame:SetScript("OnDragStart", function(self)
-        if not HealIQ.db.ui.locked then
+        if not HealIQ.db or not HealIQ.db.ui or not HealIQ.db.ui.locked then
             self:StartMoving()
             isDragging = true
         end
@@ -917,12 +961,13 @@ function UI:MakeFrameDraggable()
             self:StopMovingOrSizing()
             isDragging = false
             
-            -- Save position
-            local point, relativeTo, relativePoint, xOfs, yOfs = self:GetPoint()
-            HealIQ.db.ui.x = xOfs
-            HealIQ.db.ui.y = yOfs
-            
-            HealIQ:Print("UI position saved")
+            -- Save position if database is available
+            if HealIQ.db and HealIQ.db.ui then
+                local point, relativeTo, relativePoint, xOfs, yOfs = self:GetPoint()
+                HealIQ.db.ui.x = xOfs
+                HealIQ.db.ui.y = yOfs
+                HealIQ:Print("UI position saved")
+            end
         end
     end)
     
@@ -972,7 +1017,7 @@ function UI:UpdateSuggestion(suggestion)
         end
         
         -- Update spell name
-        if spellNameText and HealIQ.db.ui.showSpellName then
+        if spellNameText and HealIQ.db and HealIQ.db.ui and HealIQ.db.ui.showSpellName then
             spellNameText:SetText(suggestion.name)
             spellNameText:Show()
         else
@@ -982,7 +1027,7 @@ function UI:UpdateSuggestion(suggestion)
         end
         
         -- Update cooldown display
-        if cooldownFrame and HealIQ.db.ui.showCooldown then
+        if cooldownFrame and HealIQ.db and HealIQ.db.ui and HealIQ.db.ui.showCooldown then
             self:UpdateCooldownDisplay(suggestion)
         end
     end)
@@ -995,7 +1040,7 @@ function UI:UpdateQueue(queue)
     
     -- Show/hide queue frame based on settings
     if queueFrame then
-        if HealIQ.db.ui.showQueue then
+        if HealIQ.db and HealIQ.db.ui and HealIQ.db.ui.showQueue then
             queueFrame:Show()
         else
             queueFrame:Hide()
@@ -1097,19 +1142,24 @@ function UI:UpdateCooldownDisplay(suggestion)
 end
 
 function UI:UpdateScale()
-    if mainFrame then
+    if mainFrame and HealIQ.db and HealIQ.db.ui then
         mainFrame:SetScale(HealIQ.db.ui.scale)
     end
 end
 
 function UI:UpdatePosition()
-    if mainFrame then
+    if mainFrame and HealIQ.db and HealIQ.db.ui then
         mainFrame:ClearAllPoints()
         mainFrame:SetPoint("CENTER", UIParent, "CENTER", HealIQ.db.ui.x, HealIQ.db.ui.y)
     end
 end
 
 function UI:ToggleLock()
+    if not HealIQ.db or not HealIQ.db.ui then
+        HealIQ:Print("UI database not yet initialized")
+        return
+    end
+    
     HealIQ.db.ui.locked = not HealIQ.db.ui.locked
     
     if HealIQ.db.ui.locked then
@@ -1154,7 +1204,7 @@ end
 
 -- Configuration methods
 function UI:SetScale(scale)
-    if scale and scale > 0.5 and scale <= 2.0 then
+    if scale and scale > 0.5 and scale <= 2.0 and HealIQ.db and HealIQ.db.ui then
         HealIQ.db.ui.scale = scale
         self:UpdateScale()
         HealIQ:Print("UI scale set to " .. scale)
@@ -1162,46 +1212,54 @@ function UI:SetScale(scale)
 end
 
 function UI:SetShowSpellName(show)
-    HealIQ.db.ui.showSpellName = show
-    if spellNameText then
-        if show then
-            spellNameText:Show()
-        else
-            spellNameText:Hide()
+    if HealIQ.db and HealIQ.db.ui then
+        HealIQ.db.ui.showSpellName = show
+        if spellNameText then
+            if show then
+                spellNameText:Show()
+            else
+                spellNameText:Hide()
+            end
         end
     end
 end
 
 function UI:SetShowCooldown(show)
-    HealIQ.db.ui.showCooldown = show
-    if cooldownFrame then
-        if show then
-            cooldownFrame:Show()
-        else
-            cooldownFrame:Hide()
+    if HealIQ.db and HealIQ.db.ui then
+        HealIQ.db.ui.showCooldown = show
+        if cooldownFrame then
+            if show then
+                cooldownFrame:Show()
+            else
+                cooldownFrame:Hide()
+            end
         end
     end
 end
 
 function UI:ResetPosition()
-    HealIQ.db.ui.x = 0
-    HealIQ.db.ui.y = 0
-    self:UpdatePosition()
-    HealIQ:Print("UI position reset to center")
+    if HealIQ.db and HealIQ.db.ui then
+        HealIQ.db.ui.x = 0
+        HealIQ.db.ui.y = 0
+        self:UpdatePosition()
+        HealIQ:Print("UI position reset to center")
+    end
 end
 
 function UI:ResetMinimapPosition()
-    HealIQ.db.ui.minimapAngle = -math.pi/4 -- Reset to default angle (top-right)
-    if minimapButton then
-        local mx, my = Minimap:GetCenter()
-        local radius = self:CalculateMinimapButtonRadius()
-        
-        local x = mx + radius * math.cos(HealIQ.db.ui.minimapAngle)
-        local y = my + radius * math.sin(HealIQ.db.ui.minimapAngle)
-        minimapButton:ClearAllPoints()
-        minimapButton:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
+    if HealIQ.db and HealIQ.db.ui then
+        HealIQ.db.ui.minimapAngle = -math.pi/4 -- Reset to default angle (top-right)
+        if minimapButton then
+            local mx, my = Minimap:GetCenter()
+            local radius = self:CalculateMinimapButtonRadius()
+            
+            local x = mx + radius * math.cos(HealIQ.db.ui.minimapAngle)
+            local y = my + radius * math.sin(HealIQ.db.ui.minimapAngle)
+            minimapButton:ClearAllPoints()
+            minimapButton:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
+        end
+        HealIQ:Print("Minimap icon position reset")
     end
-    HealIQ:Print("Minimap icon position reset")
 end
 
 -- Debug/testing functions
@@ -1261,7 +1319,7 @@ function UI:GetFrameInfo()
             y = yOfs,
             scale = mainFrame:GetScale(),
             shown = mainFrame:IsShown(),
-            locked = HealIQ.db.ui.locked
+            locked = HealIQ.db and HealIQ.db.ui and HealIQ.db.ui.locked or false
         }
     end
     return nil
@@ -1303,7 +1361,7 @@ function UI:RecreateFrames()
 end
 
 function UI:UpdatePositionBorder()
-    if not mainFrame or not mainFrame.border then
+    if not mainFrame or not mainFrame.border or not HealIQ.db or not HealIQ.db.ui then
         return
     end
     
@@ -1338,6 +1396,11 @@ function UI:UpdateOptionsFrame()
         return
     end
     
+    -- Only update if database is available
+    if not HealIQ.db then
+        return
+    end
+    
     -- Update enable checkbox
     if optionsFrame.enableCheck then
         optionsFrame.enableCheck:SetChecked(HealIQ.db.enabled)
@@ -1349,66 +1412,71 @@ function UI:UpdateOptionsFrame()
     end
     
     -- Update logging checkboxes
-    if optionsFrame.loggingCheck then
-        optionsFrame.loggingCheck:SetChecked(HealIQ.db.logging.enabled)
-    end
-    
-    if optionsFrame.verboseCheck then
-        optionsFrame.verboseCheck:SetChecked(HealIQ.db.logging.verbose)
-    end
-    
-    if optionsFrame.statsCheck then
-        optionsFrame.statsCheck:SetChecked(HealIQ.db.logging.sessionStats)
-    end
-    
-    -- Update scale slider
-    if optionsFrame.scaleSlider then
-        optionsFrame.scaleSlider:SetValue(HealIQ.db.ui.scale)
-    end
-    
-    -- Update queue scale slider
-    if optionsFrame.queueScaleSlider then
-        optionsFrame.queueScaleSlider:SetValue(HealIQ.db.ui.queueScale or 0.75)
-    end
-    
-    -- Update lock button text
-    if optionsFrame.lockButton then
-        optionsFrame.lockButton:SetText(HealIQ.db.ui.locked and "Unlock UI" or "Lock UI")
-    end
-    
-    -- Update rule checkboxes
-    if optionsFrame.ruleChecks then
-        for rule, checkbox in pairs(optionsFrame.ruleChecks) do
-            checkbox:SetChecked(HealIQ.db.rules[rule])
+    if HealIQ.db.logging then
+        if optionsFrame.loggingCheck then
+            optionsFrame.loggingCheck:SetChecked(HealIQ.db.logging.enabled)
+        end
+        
+        if optionsFrame.verboseCheck then
+            optionsFrame.verboseCheck:SetChecked(HealIQ.db.logging.verbose)
+        end
+        
+        if optionsFrame.statsCheck then
+            optionsFrame.statsCheck:SetChecked(HealIQ.db.logging.sessionStats)
         end
     end
     
-    -- Update display option checkboxes
-    if optionsFrame.showNameCheck then
-        optionsFrame.showNameCheck:SetChecked(HealIQ.db.ui.showSpellName)
+    -- Update UI options
+    if HealIQ.db.ui then
+        -- Update scale slider
+        if optionsFrame.scaleSlider then
+            optionsFrame.scaleSlider:SetValue(HealIQ.db.ui.scale)
+        end
+        
+        -- Update queue scale slider
+        if optionsFrame.queueScaleSlider then
+            optionsFrame.queueScaleSlider:SetValue(HealIQ.db.ui.queueScale or 0.75)
+        end
+        
+        -- Update lock button text
+        if optionsFrame.lockButton then
+            optionsFrame.lockButton:SetText(HealIQ.db.ui.locked and "Unlock UI" or "Lock UI")
+        end
+        
+        -- Update display option checkboxes
+        if optionsFrame.showNameCheck then
+            optionsFrame.showNameCheck:SetChecked(HealIQ.db.ui.showSpellName)
+        end
+        
+        if optionsFrame.showCooldownCheck then
+            optionsFrame.showCooldownCheck:SetChecked(HealIQ.db.ui.showCooldown)
+        end
+        
+        -- Update frame positioning checkbox
+        if optionsFrame.showFrameCheck then
+            optionsFrame.showFrameCheck:SetChecked(HealIQ.db.ui.showPositionBorder)
+        end
+        
+        -- Update queue options
+        if optionsFrame.showQueueCheck then
+            optionsFrame.showQueueCheck:SetChecked(HealIQ.db.ui.showQueue)
+        end
+        
+        if optionsFrame.queueSizeSlider then
+            optionsFrame.queueSizeSlider:SetValue(HealIQ.db.ui.queueSize or 3)
+        end
+        
+        if optionsFrame.queueLayoutButton then
+            local layout = HealIQ.db.ui.queueLayout or "horizontal"
+            optionsFrame.queueLayoutButton:SetText(layout:sub(1,1):upper() .. layout:sub(2))
+        end
     end
     
-    if optionsFrame.showCooldownCheck then
-        optionsFrame.showCooldownCheck:SetChecked(HealIQ.db.ui.showCooldown)
-    end
-    
-    -- Update frame positioning checkbox
-    if optionsFrame.showFrameCheck then
-        optionsFrame.showFrameCheck:SetChecked(HealIQ.db.ui.showPositionBorder)
-    end
-    
-    -- Update queue options
-    if optionsFrame.showQueueCheck then
-        optionsFrame.showQueueCheck:SetChecked(HealIQ.db.ui.showQueue)
-    end
-    
-    if optionsFrame.queueSizeSlider then
-        optionsFrame.queueSizeSlider:SetValue(HealIQ.db.ui.queueSize or 3)
-    end
-    
-    if optionsFrame.queueLayoutButton then
-        local layout = HealIQ.db.ui.queueLayout or "horizontal"
-        optionsFrame.queueLayoutButton:SetText(layout:sub(1,1):upper() .. layout:sub(2))
+    -- Update rule checkboxes
+    if optionsFrame.ruleChecks and HealIQ.db.rules then
+        for rule, checkbox in pairs(optionsFrame.ruleChecks) do
+            checkbox:SetChecked(HealIQ.db.rules[rule])
+        end
     end
 end
 
