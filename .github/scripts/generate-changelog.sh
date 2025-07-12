@@ -133,37 +133,31 @@ generate_changelog_entries() {
     # Generate changelog content
     local changelog_content=""
     
-    # Added section
+    # Added section - only include if there are items
     if [ ${#added_items[@]} -gt 0 ]; then
         changelog_content+="### Added\n"
         for item in "${added_items[@]}"; do
             changelog_content+="- $item\n"
         done
         changelog_content+="\n"
-    else
-        changelog_content+="### Added\n- \n\n"
     fi
     
-    # Changed section
+    # Changed section - only include if there are items
     if [ ${#changed_items[@]} -gt 0 ]; then
         changelog_content+="### Changed\n"
         for item in "${changed_items[@]}"; do
             changelog_content+="- $item\n"
         done
         changelog_content+="\n"
-    else
-        changelog_content+="### Changed\n- \n\n"
     fi
     
-    # Fixed section
+    # Fixed section - only include if there are items
     if [ ${#fixed_items[@]} -gt 0 ]; then
         changelog_content+="### Fixed\n"
         for item in "${fixed_items[@]}"; do
             changelog_content+="- $item\n"
         done
         changelog_content+="\n"
-    else
-        changelog_content+="### Fixed\n- \n\n"
     fi
     
     echo -e "$changelog_content"
@@ -222,19 +216,31 @@ validate_changelog_entry() {
     # Extract the changelog section for this version
     local section=$(sed -n "/## \[$version\]/,/## \[/p" CHANGELOG.md | head -n -1)
     
-    # Count non-empty entries (exclude lines that are just "- " or "- " with whitespace)
-    local added_content=$(echo "$section" | grep -A20 "### Added" | grep -E "^- .+$" | grep -v -E "^- *$" | wc -l)
-    local changed_content=$(echo "$section" | grep -A20 "### Changed" | grep -E "^- .+$" | grep -v -E "^- *$" | wc -l)
-    local fixed_content=$(echo "$section" | grep -A20 "### Fixed" | grep -E "^- .+$" | grep -v -E "^- *$" | wc -l)
+    # Count non-empty entries in each section (if they exist)
+    local added_content=0
+    local changed_content=0
+    local fixed_content=0
+    
+    if echo "$section" | grep -q "### Added"; then
+        added_content=$(echo "$section" | grep -A20 "### Added" | grep -E "^- .+$" | grep -v -E "^- *$" | wc -l)
+    fi
+    
+    if echo "$section" | grep -q "### Changed"; then
+        changed_content=$(echo "$section" | grep -A20 "### Changed" | grep -E "^- .+$" | grep -v -E "^- *$" | wc -l)
+    fi
+    
+    if echo "$section" | grep -q "### Fixed"; then
+        fixed_content=$(echo "$section" | grep -A20 "### Fixed" | grep -E "^- .+$" | grep -v -E "^- *$" | wc -l)
+    fi
     
     local total_content=$((added_content + changed_content + fixed_content))
     
     if [ $total_content -eq 0 ]; then
-        echo "WARNING: Changelog entry for version $version appears to be empty (all sections have empty bullets)"
+        echo "WARNING: Changelog entry for version $version appears to be empty (no content in any sections)"
         return 1
     fi
     
-    echo "Changelog entry for version $version has $total_content entries"
+    echo "Changelog entry for version $version has $total_content entries (Added: $added_content, Changed: $changed_content, Fixed: $fixed_content)"
     return 0
 }
 
