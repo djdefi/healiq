@@ -25,6 +25,10 @@ local SPELL_IDS = {
     BARKSKIN = 22812,
     FLOURISH = 197721,
     
+    -- New spells from strategy review
+    GROVE_GUARDIANS = 102693,
+    WRATH = 5176,
+    
     -- Buffs
     CLEARCASTING_BUFF = 16870,
     IRONBARK_BUFF = 102342,
@@ -114,6 +118,10 @@ function Tracker:UpdateCooldowns()
     updateCooldown(SPELL_IDS.NATURES_SWIFTNESS, "naturesSwiftness")
     updateCooldown(SPELL_IDS.BARKSKIN, "barkskin")
     updateCooldown(SPELL_IDS.FLOURISH, "flourish")
+    
+    -- Track new spells from strategy review
+    updateCooldown(SPELL_IDS.GROVE_GUARDIANS, "groveGuardians")
+    updateCooldown(SPELL_IDS.WRATH, "wrath")
     
     -- Track trinket cooldowns (slot 13 and 14)
     for slot = 13, 14 do
@@ -310,8 +318,12 @@ function Tracker:GetRecentDamageCount()
     local count = 0
     local currentTime = GetTime()
     
+    -- Use configurable time window from strategy settings
+    local strategy = HealIQ.db and HealIQ.db.strategy or {}
+    local timeWindow = strategy.recentDamageWindow or 3 -- default 3 seconds
+    
     for guid, time in pairs(trackedData.recentDamage) do
-        if currentTime - time <= 3 then -- Count damage within last 3 seconds
+        if currentTime - time <= timeWindow then
             count = count + 1
         end
     end
@@ -384,7 +396,11 @@ function Tracker:ShouldUseEfflorescence()
     local notActive = not trackedData.efflorescenceActive
     local recentDamageCount = self:GetRecentDamageCount()
     
-    return efflorescenceReady and notActive and recentDamageCount >= 2
+    -- Use configurable threshold
+    local strategy = HealIQ.db and HealIQ.db.strategy or {}
+    local minTargets = strategy.efflorescenceMinTargets or 2
+    
+    return efflorescenceReady and notActive and recentDamageCount >= minTargets
 end
 
 function Tracker:ShouldUseTranquility()
@@ -392,7 +408,11 @@ function Tracker:ShouldUseTranquility()
     local tranquilityReady = self:IsSpellReady("tranquility")
     local recentDamageCount = self:GetRecentDamageCount()
     
-    return tranquilityReady and recentDamageCount >= 4
+    -- Use configurable threshold
+    local strategy = HealIQ.db and HealIQ.db.strategy or {}
+    local minTargets = strategy.tranquilityMinTargets or 4
+    
+    return tranquilityReady and recentDamageCount >= minTargets
 end
 
 function Tracker:ShouldUseFlourish()
@@ -400,24 +420,29 @@ function Tracker:ShouldUseFlourish()
     local flourishReady = self:IsSpellReady("flourish")
     local expiringHots = 0
     
+    -- Use configurable threshold for expiring HoTs
+    local strategy = HealIQ.db and HealIQ.db.strategy or {}
+    local minHots = strategy.flourishMinHots or 2
+    local expirationWindow = 6 -- HoTs expiring in next 6 seconds
+    
     -- Check for expiring HoTs on target
     if UnitExists("target") then
         local rejuv = trackedData.targetHots.rejuvenation
         local regrowth = trackedData.targetHots.regrowth
         local lifebloom = trackedData.targetHots.lifebloom
         
-        if rejuv and rejuv.active and rejuv.remaining < 6 then
+        if rejuv and rejuv.active and rejuv.remaining < expirationWindow then
             expiringHots = expiringHots + 1
         end
-        if regrowth and regrowth.active and regrowth.remaining < 6 then
+        if regrowth and regrowth.active and regrowth.remaining < expirationWindow then
             expiringHots = expiringHots + 1
         end
-        if lifebloom and lifebloom.active and lifebloom.remaining < 6 then
+        if lifebloom and lifebloom.active and lifebloom.remaining < expirationWindow then
             expiringHots = expiringHots + 1
         end
     end
     
-    return flourishReady and expiringHots >= 2
+    return flourishReady and expiringHots >= minHots
 end
 
 function Tracker:ShouldUseIncarnation()
@@ -425,7 +450,11 @@ function Tracker:ShouldUseIncarnation()
     local incarnationReady = self:IsSpellReady("incarnationTree")
     local recentDamageCount = self:GetRecentDamageCount()
     
-    return incarnationReady and recentDamageCount >= 3
+    -- Use configurable threshold, but typically lower than Tranquility
+    local strategy = HealIQ.db and HealIQ.db.strategy or {}
+    local minTargets = strategy.wildGrowthMinTargets or 3
+    
+    return incarnationReady and recentDamageCount >= minTargets
 end
 
 function Tracker:ShouldUseNaturesSwiftness()
@@ -434,7 +463,21 @@ function Tracker:ShouldUseNaturesSwiftness()
     local targetExists = UnitExists("target")
     local targetIsFriendly = targetExists and UnitIsFriend("player", "target")
     
-    return naturesSwiftnessReady and targetIsFriendly
+    -- Enhanced logic: consider emergency situations and strategy settings
+    local strategy = HealIQ.db and HealIQ.db.strategy or {}
+    local isEmergency = false
+    
+    -- Check for emergency situations
+    if targetExists and targetIsFriendly then
+        local healthPercent = UnitHealth("target") / UnitHealthMax("target")
+        local lowHealthThreshold = strategy.lowHealthThreshold or 0.3
+        isEmergency = healthPercent <= lowHealthThreshold
+    end
+    
+    -- Also consider emergency use based on strategy setting
+    local emergencyUse = strategy.emergencyNaturesSwiftness ~= false -- default true
+    
+    return naturesSwiftnessReady and targetIsFriendly and (isEmergency or not emergencyUse)
 end
 
 function Tracker:ShouldUseBarkskin()
@@ -442,7 +485,97 @@ function Tracker:ShouldUseBarkskin()
     local barkskinReady = self:IsSpellReady("barkskin")
     local inCombat = InCombatLockdown()
     
-    return barkskinReady and inCombat
+    -- Enhanced logic: consider player health and threat
+    local playerHealthPercent = UnitHealth("player") / UnitHealthMax("player")
+    local lowHealthThreshold = (HealIQ.db and HealIQ.db.strategy and HealIQ.db.strategy.lowHealthThreshold) or 0.5
+    
+    return barkskinReady and inCombat and (playerHealthPercent <= lowHealthThreshold)
+end
+
+function Tracker:ShouldUseGroveGuardians()
+    -- Suggest Grove Guardians based on strategy - pool charges for big cooldowns
+    local groveGuardiansReady = self:IsSpellReady("groveGuardians")
+    local strategy = HealIQ.db and HealIQ.db.strategy or {}
+    local poolCharges = strategy.poolGroveGuardians ~= false -- default true
+    
+    if not groveGuardiansReady then
+        return false
+    end
+    
+    -- If pooling is disabled, suggest whenever ready
+    if not poolCharges then
+        return true
+    end
+    
+    -- Pool charges logic: only suggest during high damage phases or when other cooldowns are active
+    local recentDamageCount = self:GetRecentDamageCount()
+    local minTargets = strategy.wildGrowthMinTargets or 3
+    local hasOtherCooldowns = self:HasPlayerBuff("incarnationTree") or self:HasPlayerBuff("naturesSwiftness")
+    
+    return recentDamageCount >= minTargets or hasOtherCooldowns
+end
+
+function Tracker:ShouldUseWrath()
+    -- Suggest Wrath for mana restoration during downtime
+    local wrathReady = not self:IsSpellReady("wrath") or true -- Wrath has no cooldown typically
+    local strategy = HealIQ.db and HealIQ.db.strategy or {}
+    local useForMana = strategy.useWrathForMana ~= false -- default true
+    
+    if not useForMana then
+        return false
+    end
+    
+    -- Only suggest Wrath during low activity periods
+    local inCombat = InCombatLockdown()
+    local recentDamageCount = self:GetRecentDamageCount()
+    local hasTarget = UnitExists("target")
+    local targetIsEnemy = hasTarget and UnitIsEnemy("player", "target")
+    
+    -- Suggest if:
+    -- 1. Not in combat and have enemy target, OR
+    -- 2. In combat but low damage activity and have enemy target, OR
+    -- 3. No immediate healing needs
+    local lowActivity = recentDamageCount == 0
+    local noHealingNeeds = not self:HasImmediateHealingNeeds()
+    
+    return wrathReady and ((not inCombat and targetIsEnemy) or (inCombat and lowActivity and targetIsEnemy) or (inCombat and noHealingNeeds and targetIsEnemy))
+end
+
+function Tracker:HasImmediateHealingNeeds()
+    -- Check if there are immediate healing needs
+    local hasTarget = UnitExists("target")
+    local targetIsFriendly = hasTarget and UnitIsFriend("player", "target")
+    
+    if targetIsFriendly then
+        -- Check if target has low health
+        local healthPercent = UnitHealth("target") / UnitHealthMax("target")
+        local strategy = HealIQ.db and HealIQ.db.strategy or {}
+        local lowHealthThreshold = strategy.lowHealthThreshold or 0.3
+        
+        if healthPercent <= lowHealthThreshold then
+            return true
+        end
+        
+        -- Check if target is missing important buffs
+        local lifeboomInfo = self:GetTargetHotInfo("lifebloom")
+        local rejuvInfo = self:GetTargetHotInfo("rejuvenation")
+        local isTank = UnitGroupRolesAssigned("target") == "TANK"
+        local isFocus = UnitIsUnit("target", "focus")
+        
+        -- Tank missing Lifebloom is high priority
+        if (isTank or isFocus) and (not lifeboomInfo or not lifeboomInfo.active) then
+            return true
+        end
+        
+        -- Missing Rejuvenation during combat
+        if InCombatLockdown() and (not rejuvInfo or not rejuvInfo.active) then
+            return true
+        end
+    end
+    
+    -- Check for group damage
+    local recentDamageCount = self:GetRecentDamageCount()
+    return recentDamageCount >= 2
 end
 
 function Tracker:HasActiveTrinket()
