@@ -80,12 +80,6 @@ local SPELLS = {
         icon = "Interface\\Icons\\Spell_Nature_Rejuvenation",
         priority = 12,
     },
-    TRINKET = {
-        id = 0, -- Variable
-        name = "Use Trinket",
-        icon = "Interface\\Icons\\INV_Jewelry_Trinket_03",
-        priority = 13,
-    },
 }
 
 -- Current suggestion state
@@ -280,14 +274,6 @@ function Engine:EvaluateRules()
         end
     end
     
-    -- Rule 14: Trinket usage
-    if HealIQ.db.rules.trinket then
-        local hasTrinket, slot = tracker:HasActiveTrinket()
-        if hasTrinket then
-            table.insert(suggestions, SPELLS.TRINKET)
-        end
-    end
-    
     HealIQ:DebugLog("Rule evaluation completed, " .. #suggestions .. " suggestions found")
     
     -- Return the top suggestion for backward compatibility
@@ -385,14 +371,6 @@ function Engine:EvaluateRulesQueue()
         -- Rule 13: Swiftmend is usable and HoTs are active → Suggest Swiftmend
         if HealIQ.db.rules.swiftmend and tracker:CanSwiftmend() then
             table.insert(suggestions, SPELLS.SWIFTMEND)
-        end
-    end
-    
-    -- Rule 14: Trinket usage
-    if HealIQ.db.rules.trinket then
-        local hasTrinket, slot = tracker:HasActiveTrinket()
-        if hasTrinket then
-            table.insert(suggestions, SPELLS.TRINKET)
         end
     end
     
@@ -528,9 +506,6 @@ function Engine:TestRule(ruleName, ...)
         return tracker:ShouldUseNaturesSwiftness()
     elseif ruleName == "barkskin" then
         return tracker:ShouldUseBarkskin()
-    elseif ruleName == "trinket" then
-        local hasTrinket, slot = tracker:HasActiveTrinket()
-        return hasTrinket
     end
     
     return false

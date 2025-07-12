@@ -62,8 +62,6 @@ commands.help = function()
     print("|cFFFFFF00/healiq dump|r - Generate diagnostic dump")
     print("|cFFFFFF00/healiq reset|r - Reset all settings")
     print("|cFFFFFF00/healiq reload|r - Reload addon configuration")
-    print("|cFFFFFF00/healiq backup|r - Create settings backup")
-    print("|cFFFFFF00/healiq restore|r - Restore settings from backup")
     print("|cFFFFFF00/healiq status|r - Show current status")
 end
 
@@ -237,7 +235,7 @@ commands.rules = function(subcommand, ...)
         print("|cFFFFFF00/healiq rules disable <rule>|r - Disable a specific rule")
         print("|cFFFFFF00Rules:|r wildGrowth, clearcasting, lifebloom, swiftmend, rejuvenation,")
         print("  ironbark, efflorescence, tranquility, incarnationTree, naturesSwiftness,")
-        print("  barkskin, flourish, trinket")
+        print("  barkskin, flourish")
     end
 end
 
@@ -342,7 +340,6 @@ commands.reset = function()
         HealIQ.db.ui.queueScale = 0.75
         HealIQ.db.ui.minimapAngle = -math.pi/4
         HealIQ.db.ui.showPositionBorder = false
-        HealIQ.db.ui.castOnSelfWhenNoTarget = true
     end
     
     if HealIQ.db.rules then
@@ -380,90 +377,6 @@ commands.reload = function()
     end
     
     print("|cFF00FF00HealIQ|r Addon reloaded successfully")
-end
-
-commands.backup = function()
-    if not HealIQ.db then
-        print("|cFFFF0000HealIQ|r Database not yet initialized")
-        return
-    end
-    
-    -- Create a backup of current settings
-    if not HealIQDB.backups then
-        HealIQDB.backups = {}
-    end
-    
-    local backupKey = "backup_" .. date("%Y%m%d_%H%M%S")
-    HealIQDB.backups[backupKey] = {
-        enabled = HealIQ.db.enabled,
-        ui = {},
-        rules = {}
-    }
-    
-    -- Copy UI settings
-    if HealIQ.db.ui then
-        for key, value in pairs(HealIQ.db.ui) do
-            HealIQDB.backups[backupKey].ui[key] = value
-        end
-    end
-    
-    -- Copy rule settings
-    if HealIQ.db.rules then
-        for key, value in pairs(HealIQ.db.rules) do
-            HealIQDB.backups[backupKey].rules[key] = value
-        end
-    end
-    
-    print("|cFF00FF00HealIQ|r Settings backed up as: " .. backupKey)
-end
-
-commands.restore = function()
-    if not HealIQ.db then
-        print("|cFFFF0000HealIQ|r Database not yet initialized")
-        return
-    end
-    
-    if not HealIQDB.backups then
-        print("|cFF00FF00HealIQ|r No backups found")
-        return
-    end
-    
-    -- Find the most recent backup
-    local mostRecent = nil
-    local mostRecentKey = nil
-    
-    for key, backup in pairs(HealIQDB.backups) do
-        if not mostRecent or key > mostRecentKey then
-            mostRecent = backup
-            mostRecentKey = key
-        end
-    end
-    
-    if mostRecent then
-        -- Restore settings
-        HealIQ.db.enabled = mostRecent.enabled
-        
-        if HealIQ.db.ui and mostRecent.ui then
-            for key, value in pairs(mostRecent.ui) do
-                HealIQ.db.ui[key] = value
-            end
-        end
-        
-        if HealIQ.db.rules and mostRecent.rules then
-            for key, value in pairs(mostRecent.rules) do
-                HealIQ.db.rules[key] = value
-            end
-        end
-        
-        -- Recreate UI with restored settings
-        if HealIQ.UI then
-            HealIQ.UI:RecreateFrames()
-        end
-        
-        print("|cFF00FF00HealIQ|r Settings restored from: " .. mostRecentKey)
-    else
-        print("|cFF00FF00HealIQ|r No valid backups found")
-    end
 end
 
 commands.status = function()

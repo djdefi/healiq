@@ -29,7 +29,6 @@ local defaults = {
         minimapY = -10,
         minimapAngle = -math.pi/4, -- Default angle for minimap positioning
         showPositionBorder = false, -- Show frame positioning border
-        castOnSelfWhenNoTarget = true, -- Cast spells on self when no target exists
     },
     rules = {
         -- Existing rules
@@ -47,7 +46,6 @@ local defaults = {
         naturesSwiftness = true,
         barkskin = true,
         flourish = true,
-        trinket = true,
     }
 }
 
