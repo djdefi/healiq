@@ -1161,7 +1161,7 @@ function UI:UpdateQueue(queue)
                     GameTooltip:AddLine(" ")
                     
                     -- Add contextual information about why this spell is suggested
-                    local context = self:GetSpellContext(suggestion)
+                    local context = UI:GetSpellContext(suggestion)
                     if context then
                         GameTooltip:AddLine(context, 0.6, 0.6, 0.6)
                     end
