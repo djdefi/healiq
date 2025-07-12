@@ -58,6 +58,7 @@ commands.help = function()
     print("|cFFFFFF00/healiq test|r - Test suggestion display")
     print("|cFFFFFF00/healiq test queue|r - Test queue display")
     print("|cFFFFFF00/healiq test ui|r - Test UI with sample queue")
+    print("|cFFFFFF00/healiq test targeting|r - Test targeting suggestions")
     print("|cFFFFFF00/healiq debug|r - Toggle debug mode")
     print("|cFFFFFF00/healiq dump|r - Generate diagnostic dump")
     print("|cFFFFFF00/healiq reset|r - Reset all settings")
@@ -186,6 +187,20 @@ commands.ui = function(subcommand, ...)
         else
             print("|cFF00FF00HealIQ|r Usage: /healiq ui layout <horizontal|vertical>")
         end
+    elseif subcommand == "targeting" then
+        local show = ... == "show"
+        HealIQ.db.ui.showTargeting = show
+        if HealIQ.Engine then
+            HealIQ.Engine:ForceUpdate()
+        end
+        print("|cFF00FF00HealIQ|r Targeting suggestions " .. (show and "enabled" or "disabled"))
+    elseif subcommand == "targetingicon" then
+        local show = ... == "show"
+        HealIQ.db.ui.showTargetingIcon = show
+        if HealIQ.Engine then
+            HealIQ.Engine:ForceUpdate()
+        end
+        print("|cFF00FF00HealIQ|r Targeting icons " .. (show and "enabled" or "disabled"))
     else
         print("|cFF00FF00HealIQ UI Commands:|r")
         print("|cFFFFFF00/healiq ui lock|r - Lock UI position")
@@ -197,6 +212,8 @@ commands.ui = function(subcommand, ...)
         print("|cFFFFFF00/healiq ui queue show/hide|r - Show/hide queue display")
         print("|cFFFFFF00/healiq ui queuesize <2-5>|r - Set queue size")
         print("|cFFFFFF00/healiq ui layout horizontal/vertical|r - Set queue layout")
+        print("|cFFFFFF00/healiq ui targeting show/hide|r - Show/hide targeting suggestions")
+        print("|cFFFFFF00/healiq ui targetingicon show/hide|r - Show/hide targeting icons")
     end
 end
 
@@ -281,6 +298,33 @@ commands.test = function(subcommand)
             HealIQ.UI:TestQueue()
         else
             print("|cFFFF0000HealIQ|r UI not yet initialized")
+        end
+    elseif subcommand == "targeting" then
+        if HealIQ.Engine and HealIQ.UI then
+            print("|cFF00FF00HealIQ|r Testing targeting suggestions...")
+            
+            -- Test each spell's targeting suggestions
+            for spellName, spellData in pairs(HealIQ.Engine.SPELLS) do
+                local targetText = HealIQ.Engine:GetTargetingSuggestionsText(spellData)
+                local targetDesc = HealIQ.Engine:GetTargetingSuggestionsDescription(spellData)
+                
+                print("  " .. spellData.name .. ":")
+                if targetText then
+                    print("    → " .. targetText)
+                    if targetDesc then
+                        print("    " .. targetDesc)
+                    end
+                else
+                    print("    → No targeting suggestion")
+                end
+            end
+            
+            -- Show a test suggestion with targeting
+            local testSuggestion = HealIQ.Engine.SPELLS.REJUVENATION
+            HealIQ.UI:UpdateSuggestion(testSuggestion)
+            print("Test targeting display activated with Rejuvenation")
+        else
+            print("|cFFFF0000HealIQ|r Engine or UI not yet initialized")
         end
     else
         if HealIQ.UI then

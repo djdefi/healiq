@@ -6,79 +6,147 @@ local addonName, HealIQ = ...
 HealIQ.Engine = {}
 local Engine = HealIQ.Engine
 
--- Spell information for suggestions
+-- Targeting types and their associated icons
+local TARGET_TYPES = {
+    SELF = {
+        name = "Self",
+        icon = "Interface\\Icons\\Ability_Warrior_BattleShout",
+        description = "Cast on yourself"
+    },
+    TANK = {
+        name = "Tank",
+        icon = "Interface\\Icons\\Ability_Warrior_DefensiveStance",
+        description = "Cast on main tank"
+    },
+    CURRENT_TARGET = {
+        name = "Current Target",
+        icon = "Interface\\Icons\\Ability_Hunter_MarkedForDeath",
+        description = "Cast on current target"
+    },
+    FOCUS = {
+        name = "Focus",
+        icon = "Interface\\Icons\\Spell_Shadow_Teleport",
+        description = "Cast on focus target"
+    },
+    PARTY_MEMBER = {
+        name = "Party Member",
+        icon = "Interface\\Icons\\Achievement_Guildperk_EverybodysFriend",
+        description = "Cast on any party member"
+    },
+    LOWEST_HEALTH = {
+        name = "Lowest Health",
+        icon = "Interface\\Icons\\Spell_ChargeNegative",
+        description = "Target with lowest health"
+    },
+    TARGET_OF_TARGET = {
+        name = "Target's Target",
+        icon = "Interface\\Icons\\Ability_Hunter_SniperShot",
+        description = "Cast on target's target"
+    },
+    GROUND_TARGET = {
+        name = "Ground Target",
+        icon = "Interface\\Icons\\Spell_Arcane_TeleportBoralus",
+        description = "Place on ground"
+    }
+}
+
+-- Spell information for suggestions with targeting recommendations
 local SPELLS = {
     TRANQUILITY = {
         id = 740,
         name = "Tranquility",
         icon = "Interface\\Icons\\Spell_Nature_Tranquility",
         priority = 1,
+        targets = {TARGET_TYPES.SELF}, -- Channel on self, affects all nearby allies
+        targetingDescription = "Channel while positioned near injured allies"
     },
     INCARNATION_TREE = {
         id = 33891,
         name = "Incarnation",
         icon = "Interface\\Icons\\Spell_Druid_Incarnation",
         priority = 2,
+        targets = {TARGET_TYPES.SELF}, -- Self-buff
+        targetingDescription = "Activate when group healing is needed"
     },
     IRONBARK = {
         id = 102342,
         name = "Ironbark",
         icon = "Interface\\Icons\\Spell_Druid_IronBark",
         priority = 3,
+        targets = {TARGET_TYPES.TANK, TARGET_TYPES.CURRENT_TARGET, TARGET_TYPES.FOCUS}, -- Damage reduction
+        targetingDescription = "Prioritize tanks or targets taking heavy damage"
     },
     WILD_GROWTH = {
         id = 48438,
         name = "Wild Growth",
         icon = "Interface\\Icons\\Ability_Druid_WildGrowth",
         priority = 4,
+        targets = {TARGET_TYPES.PARTY_MEMBER, TARGET_TYPES.CURRENT_TARGET}, -- Smart heal around target
+        targetingDescription = "Target near damaged party members"
     },
     EFFLORESCENCE = {
         id = 145205,
         name = "Efflorescence",
         icon = "Interface\\Icons\\Ability_Druid_Efflorescence",
         priority = 5,
+        targets = {TARGET_TYPES.GROUND_TARGET}, -- Ground-targeted spell
+        targetingDescription = "Place where group will be standing"
     },
     FLOURISH = {
         id = 197721,
         name = "Flourish",
         icon = "Interface\\Icons\\Spell_Druid_WildGrowth",
         priority = 6,
+        targets = {TARGET_TYPES.SELF}, -- Affects all your HoTs
+        targetingDescription = "Use when multiple HoTs are active"
     },
     NATURES_SWIFTNESS = {
         id = 132158,
         name = "Nature's Swiftness",
         icon = "Interface\\Icons\\Spell_Nature_RavenForm",
         priority = 7,
+        targets = {TARGET_TYPES.SELF}, -- Self-buff for next spell
+        targetingDescription = "Use before emergency heal cast"
     },
     REGROWTH = {
         id = 8936,
         name = "Regrowth",
         icon = "Interface\\Icons\\Spell_Nature_ResistNature",
         priority = 8,
+        targets = {TARGET_TYPES.LOWEST_HEALTH, TARGET_TYPES.CURRENT_TARGET, TARGET_TYPES.TANK}, -- Direct heal
+        targetingDescription = "Target needs immediate healing"
     },
     BARKSKIN = {
         id = 22812,
         name = "Barkskin",
         icon = "Interface\\Icons\\Spell_Nature_StoneSkinTotem",
         priority = 9,
+        targets = {TARGET_TYPES.SELF}, -- Self-defensive
+        targetingDescription = "Use when taking damage"
     },
     LIFEBLOOM = {
         id = 33763,
         name = "Lifebloom",
         icon = "Interface\\Icons\\INV_Misc_Herb_Felblossom",
         priority = 10,
+        targets = {TARGET_TYPES.TANK, TARGET_TYPES.FOCUS, TARGET_TYPES.CURRENT_TARGET}, -- Tank maintenance
+        targetingDescription = "Keep active on main tank or focus target"
     },
     SWIFTMEND = {
         id = 18562,
         name = "Swiftmend",
         icon = "Interface\\Icons\\INV_Relics_IdolofRejuvenation",
         priority = 11,
+        targets = {TARGET_TYPES.CURRENT_TARGET, TARGET_TYPES.LOWEST_HEALTH}, -- Target with HoTs
+        targetingDescription = "Target must have Rejuvenation or Regrowth"
     },
     REJUVENATION = {
         id = 774,
         name = "Rejuvenation",
         icon = "Interface\\Icons\\Spell_Nature_Rejuvenation",
         priority = 12,
+        targets = {TARGET_TYPES.PARTY_MEMBER, TARGET_TYPES.CURRENT_TARGET, TARGET_TYPES.TANK}, -- Basic HoT
+        targetingDescription = "Apply to targets without HoT coverage"
     },
 }
 
@@ -392,6 +460,150 @@ function Engine:EvaluateRulesQueue()
     end
 end
 
+-- Targeting evaluation functions
+function Engine:EvaluateTargetingSuggestion(spell)
+    if not spell or not spell.targets then
+        return nil
+    end
+    
+    local bestTarget = nil
+    local targetingContext = {
+        hasTarget = UnitExists("target"),
+        targetIsFriendly = UnitExists("target") and UnitIsFriend("player", "target"),
+        hasFocus = UnitExists("focus"),
+        focusIsFriendly = UnitExists("focus") and UnitIsFriend("player", "focus"),
+        inParty = IsInGroup(),
+        inRaid = IsInRaid(),
+        inCombat = InCombatLockdown()
+    }
+    
+    -- Evaluate each potential target type for this spell
+    for _, targetType in ipairs(spell.targets) do
+        local targetPriority = self:EvaluateTargetPriority(targetType, spell, targetingContext)
+        if targetPriority > 0 and (not bestTarget or targetPriority > bestTarget.priority) then
+            bestTarget = {
+                type = targetType,
+                priority = targetPriority,
+                available = true
+            }
+        end
+    end
+    
+    return bestTarget
+end
+
+function Engine:EvaluateTargetPriority(targetType, spell, context)
+    -- Return priority score (higher = better target choice)
+    
+    if targetType == TARGET_TYPES.SELF then
+        return 100 -- Always available
+    end
+    
+    if targetType == TARGET_TYPES.CURRENT_TARGET then
+        if context.targetIsFriendly then
+            return 90 -- High priority if we have a friendly target
+        else
+            return 0 -- Not available
+        end
+    end
+    
+    if targetType == TARGET_TYPES.FOCUS then
+        if context.focusIsFriendly then
+            return 85 -- Good priority for focus target
+        else
+            return 0 -- Not available
+        end
+    end
+    
+    if targetType == TARGET_TYPES.TANK then
+        -- Check if current target or focus is a tank
+        local targetIsTank = context.targetIsFriendly and UnitGroupRolesAssigned("target") == "TANK"
+        local focusIsTank = context.focusIsFriendly and UnitGroupRolesAssigned("focus") == "TANK"
+        
+        if targetIsTank then
+            return 95 -- Very high priority for tank targeting spells
+        elseif focusIsTank then
+            return 90 -- Also high priority if focus is tank
+        elseif context.inParty or context.inRaid then
+            return 70 -- Medium priority, assume tank exists in group
+        else
+            return 0 -- No tank available
+        end
+    end
+    
+    if targetType == TARGET_TYPES.PARTY_MEMBER then
+        if context.inParty or context.inRaid then
+            return 75 -- Good priority if in group
+        else
+            return 0 -- Not in party
+        end
+    end
+    
+    if targetType == TARGET_TYPES.LOWEST_HEALTH then
+        -- We can't read health during combat, so this is contextual
+        if context.targetIsFriendly then
+            return 80 -- Assume current target needs healing
+        elseif context.inParty or context.inRaid then
+            return 60 -- Medium priority, would need to target manually
+        else
+            return 0 -- No one to heal
+        end
+    end
+    
+    if targetType == TARGET_TYPES.TARGET_OF_TARGET then
+        if context.hasTarget and UnitExists("targettarget") and UnitIsFriend("player", "targettarget") then
+            return 70 -- Available and useful for some situations
+        else
+            return 0 -- Not available
+        end
+    end
+    
+    if targetType == TARGET_TYPES.GROUND_TARGET then
+        return 80 -- Always available for ground-targeted spells
+    end
+    
+    return 0 -- Unknown target type
+end
+
+function Engine:GetTargetingSuggestionsText(suggestion)
+    if not suggestion then
+        return nil
+    end
+    
+    local targetSuggestion = self:EvaluateTargetingSuggestion(suggestion)
+    if targetSuggestion and targetSuggestion.type then
+        return targetSuggestion.type.name
+    end
+    
+    return nil
+end
+
+function Engine:GetTargetingSuggestionsIcon(suggestion)
+    if not suggestion then
+        return nil
+    end
+    
+    local targetSuggestion = self:EvaluateTargetingSuggestion(suggestion)
+    if targetSuggestion and targetSuggestion.type then
+        return targetSuggestion.type.icon
+    end
+    
+    return nil
+end
+
+function Engine:GetTargetingSuggestionsDescription(suggestion)
+    if not suggestion then
+        return nil
+    end
+    
+    local targetSuggestion = self:EvaluateTargetingSuggestion(suggestion)
+    if targetSuggestion and targetSuggestion.type then
+        return targetSuggestion.type.description
+    end
+    
+    return suggestion.targetingDescription or nil
+end
+
 function Engine:SetSuggestion(suggestion)
     if suggestion ~= currentSuggestion then
         currentSuggestion = suggestion
@@ -404,8 +616,13 @@ function Engine:SetSuggestion(suggestion)
         -- Debug output (only when debug mode is on)
         if HealIQ.debug then
             if suggestion then
-                HealIQ:Print("Suggesting: " .. suggestion.name)
-                HealIQ:DebugLog("Generated suggestion: " .. suggestion.name .. " (priority: " .. suggestion.priority .. ")")
+                local targetText = self:GetTargetingSuggestionsText(suggestion)
+                local suggestionText = suggestion.name
+                if targetText then
+                    suggestionText = suggestionText .. " → " .. targetText
+                end
+                HealIQ:Print("Suggesting: " .. suggestionText)
+                HealIQ:DebugLog("Generated suggestion: " .. suggestion.name .. " (priority: " .. suggestion.priority .. ", target: " .. (targetText or "none") .. ")")
             else
                 HealIQ:Print("No suggestion")
                 HealIQ:DebugLog("No suggestion generated")
@@ -512,3 +729,5 @@ function Engine:TestRule(ruleName, ...)
 end
 
 HealIQ.Engine = Engine
+HealIQ.Engine.TARGET_TYPES = TARGET_TYPES
+HealIQ.Engine.SPELLS = SPELLS
