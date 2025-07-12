@@ -52,22 +52,29 @@ jobs:
         
     - name: Generate and update changelog
       if: steps.check_tag.outputs.exists == 'false'
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
-        echo "Generating changelog entries for version ${{ steps.version.outputs.version }}..."
+        echo "Generating enhanced changelog entries with AI WoW flair for version ${{ steps.version.outputs.version }}..."
         
-        # Make sure the changelog script is executable
-        chmod +x .github/scripts/generate-changelog.sh
+        # Install GitHub models extension for AI functionality
+        echo "Installing GitHub models extension for AI enhancement..."
+        gh extension install github/gh-models || echo "Failed to install models extension, AI enhancement may not work"
         
-        # Generate changelog from previous version to current
+        # Make sure the enhanced changelog script is executable
+        chmod +x .github/scripts/generate-changelog-enhanced.sh
+        chmod +x .github/scripts/enhance-changelog-with-wow-flair.sh
+        
+        # Generate enhanced changelog from previous version to current
         if [ "${{ steps.prev_version.outputs.prev_tag }}" = "initial" ]; then
-          echo "Generating changelog from initial commit..."
-          ./.github/scripts/generate-changelog.sh initial ${{ steps.version.outputs.version }}
+          echo "Generating enhanced changelog from initial commit..."
+          ./.github/scripts/generate-changelog-enhanced.sh initial ${{ steps.version.outputs.version }}
         else
-          echo "Generating changelog from ${{ steps.prev_version.outputs.prev_tag }} to ${{ steps.version.outputs.version }}..."
-          ./.github/scripts/generate-changelog.sh ${{ steps.prev_version.outputs.prev_tag }} ${{ steps.version.outputs.version }}
+          echo "Generating enhanced changelog from ${{ steps.prev_version.outputs.prev_tag }} to ${{ steps.version.outputs.version }}..."
+          ./.github/scripts/generate-changelog-enhanced.sh ${{ steps.prev_version.outputs.prev_tag }} ${{ steps.version.outputs.version }}
         fi
         
-        echo "Changelog generation completed"
+        echo "Enhanced changelog generation completed with AI WoW flair"
         
     - name: Validate changelog entry
       if: steps.check_tag.outputs.exists == 'false'
