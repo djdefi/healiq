@@ -30,7 +30,8 @@ local MINIMAP_BUTTON_PIXEL_BUFFER = 2
 local BORDER_COLORS = {
     positioning = {0, 1, 1, 0.8},     -- Cyan for positioning aid
     locked = {1, 0, 0, 0.5},          -- Red when UI is locked
-    unlocked = {0, 1, 0, 0.5}         -- Green when UI is unlocked
+    unlocked = {0, 1, 0, 0.5},        -- Green when UI is unlocked
+    targeting = {0, 0, 0, 0.8}        -- Dark border for targeting indicators
 }
 
 -- Texture paths
@@ -114,6 +115,25 @@ function UI:CreateMainFrame()
     iconTexture:SetTexCoord(0.1, 0.9, 0.1, 0.9) -- Crop edges for cleaner look
     iconFrame.icon = iconTexture
     
+    -- Create targeting indicator (small icon in corner)
+    local targetingIcon = CreateFrame("Frame", "HealIQTargetingIcon", iconFrame)
+    targetingIcon:SetSize(16, 16)
+    targetingIcon:SetPoint("BOTTOMRIGHT", iconFrame, "BOTTOMRIGHT", -2, 2)
+    
+    local targetingTexture = targetingIcon:CreateTexture(nil, "OVERLAY")
+    targetingTexture:SetAllPoints()
+    targetingTexture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+    targetingIcon.icon = targetingTexture
+    
+    -- Create targeting indicator border
+    local targetingBorder = targetingIcon:CreateTexture(nil, "BORDER")
+    targetingBorder:SetSize(18, 18)
+    targetingBorder:SetPoint("CENTER")
+    targetingBorder:SetColorTexture(unpack(BORDER_COLORS.targeting))
+    targetingIcon.border = targetingBorder
+    
+    iconFrame.targetingIcon = targetingIcon
+    
     -- Create glow effect for primary icon
     local glow = iconFrame:CreateTexture(nil, "OVERLAY")
     glow:SetSize(ICON_SIZE + 8, ICON_SIZE + 8)
@@ -159,6 +179,21 @@ function UI:CreateMainFrame()
             if self.currentSuggestion.priority then
                 GameTooltip:AddLine("Priority: " .. self.currentSuggestion.priority, 0.5, 0.8, 1)
             end
+            
+            -- Add targeting suggestions
+            if HealIQ.Engine then
+                local targetText = HealIQ.Engine:GetTargetingSuggestionsText(self.currentSuggestion)
+                local targetDesc = HealIQ.Engine:GetTargetingSuggestionsDescription(self.currentSuggestion)
+                
+                if targetText then
+                    GameTooltip:AddLine(" ")
+                    GameTooltip:AddLine("Suggested Target: " .. targetText, 1, 0.8, 0)
+                    if targetDesc then
+                        GameTooltip:AddLine(targetDesc, 0.8, 0.8, 0.8)
+                    end
+                end
+            end
+            
             GameTooltip:Show()
         end
     end)
@@ -799,6 +834,43 @@ function UI:CreateDisplayTab(panel)
     end)
     self:AddTooltip(showIconCheck, "Show Minimap Icon", "Display the HealIQ minimap button.")
     optionsFrame.showIconCheck = showIconCheck
+    yOffset = yOffset - 30
+    
+    -- Targeting display options
+    local showTargetingCheck = CreateFrame("CheckButton", "HealIQShowTargetingCheck", panel, "UICheckButtonTemplate")
+    showTargetingCheck:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    showTargetingCheck.text = showTargetingCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    showTargetingCheck.text:SetPoint("LEFT", showTargetingCheck, "RIGHT", 5, 0)
+    showTargetingCheck.text:SetText("Show targeting suggestions")
+    showTargetingCheck:SetScript("OnClick", function(self)
+        if HealIQ.db and HealIQ.db.ui then
+            HealIQ.db.ui.showTargeting = self:GetChecked()
+            -- Force UI update to refresh targeting display
+            if HealIQ.Engine then
+                HealIQ.Engine:ForceUpdate()
+            end
+        end
+    end)
+    self:AddTooltip(showTargetingCheck, "Show Targeting Suggestions", "Display suggested targets for spells in the spell name and tooltips.")
+    optionsFrame.showTargetingCheck = showTargetingCheck
+    yOffset = yOffset - 30
+    
+    local showTargetingIconCheck = CreateFrame("CheckButton", "HealIQShowTargetingIconCheck", panel, "UICheckButtonTemplate")
+    showTargetingIconCheck:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    showTargetingIconCheck.text = showTargetingIconCheck:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    showTargetingIconCheck.text:SetPoint("LEFT", showTargetingIconCheck, "RIGHT", 5, 0)
+    showTargetingIconCheck.text:SetText("Show targeting icons")
+    showTargetingIconCheck:SetScript("OnClick", function(self)
+        if HealIQ.db and HealIQ.db.ui then
+            HealIQ.db.ui.showTargetingIcon = self:GetChecked()
+            -- Force UI update to refresh targeting display
+            if HealIQ.Engine then
+                HealIQ.Engine:ForceUpdate()
+            end
+        end
+    end)
+    self:AddTooltip(showTargetingIconCheck, "Show Targeting Icons", "Display small targeting indicator icons overlaid on spell suggestions.")
+    optionsFrame.showTargetingIconCheck = showTargetingIconCheck
 end
 
 function UI:CreateQueueTab(panel)
@@ -1100,11 +1172,35 @@ function UI:UpdateSuggestion(suggestion)
                     iconFrame.glowAnimation:Play()
                 end
             end
+            
+            -- Update targeting indicator
+            if iconFrame.targetingIcon and HealIQ.Engine and HealIQ.db.ui.showTargetingIcon ~= false then
+                local targetIcon = HealIQ.Engine:GetTargetingSuggestionsIcon(suggestion)
+                if targetIcon then
+                    iconFrame.targetingIcon.icon:SetTexture(targetIcon)
+                    iconFrame.targetingIcon:Show()
+                else
+                    iconFrame.targetingIcon:Hide()
+                end
+            elseif iconFrame.targetingIcon then
+                iconFrame.targetingIcon:Hide()
+            end
         end
         
-        -- Update spell name
+        -- Update spell name with targeting info
         if spellNameText and HealIQ.db and HealIQ.db.ui and HealIQ.db.ui.showSpellName then
-            spellNameText:SetText(suggestion.name)
+            local displayText = suggestion.name
+            
+            -- Add targeting suggestion to spell name if enabled
+            local showTargeting = HealIQ.db.ui.showTargeting
+            if (showTargeting == nil or showTargeting) and HealIQ.Engine then
+                local targetText = HealIQ.Engine:GetTargetingSuggestionsText(suggestion)
+                if targetText then
+                    displayText = displayText .. " → " .. targetText
+                end
+            end
+            
+            spellNameText:SetText(displayText)
             spellNameText:Show()
         else
             if spellNameText then
@@ -1531,6 +1627,14 @@ function UI:UpdateOptionsFrame()
         
         if optionsFrame.showIconCheck then
             optionsFrame.showIconCheck:SetChecked(HealIQ.db.ui.showIcon)
+        end
+        
+        if optionsFrame.showTargetingCheck then
+            optionsFrame.showTargetingCheck:SetChecked(HealIQ.db.ui.showTargeting ~= false) -- Default to true
+        end
+        
+        if optionsFrame.showTargetingIconCheck then
+            optionsFrame.showTargetingIconCheck:SetChecked(HealIQ.db.ui.showTargetingIcon ~= false) -- Default to true
         end
         
         -- Update frame positioning checkbox

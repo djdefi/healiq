@@ -21,6 +21,8 @@ local defaults = {
         showSpellName = true,
         showCooldown = true,
         showQueue = true,
+        showTargeting = true, -- Show targeting suggestions
+        showTargetingIcon = true, -- Show targeting icon overlay
         queueSize = 3,
         queueLayout = "horizontal", -- horizontal or vertical
         queueSpacing = 8,
@@ -121,6 +123,17 @@ function HealIQ:CountSettings()
     end
     
     return count
+end
+
+-- Initialize session statistics
+function HealIQ:InitializeSessionStats()
+    self.sessionStats = {
+        startTime = time(),
+        suggestions = 0,
+        rulesProcessed = 0,
+        errorsLogged = 0,
+        eventsHandled = 0,
+    }
 end
 
 -- Debug print function
