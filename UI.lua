@@ -1200,6 +1200,51 @@ function UI:CreateStrategyTab(panel)
     
     scrollYOffset = scrollYOffset - 15
     
+    -- Talent Optimization Section
+    local talentHeader = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    talentHeader:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
+    talentHeader:SetText("Talent Optimization:")
+    talentHeader:SetTextColor(0.8, 1, 0.8, 1)
+    scrollYOffset = scrollYOffset - 25
+    
+    -- Talent status frame
+    local talentFrame = CreateFrame("Frame", "HealIQTalentFrame", scrollChild)
+    talentFrame:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
+    talentFrame:SetSize(350, 120)
+    talentFrame:SetBackdrop({
+        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileSize = 8,
+        edgeSize = 8,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 }
+    })
+    talentFrame:SetBackdropColor(0.1, 0.1, 0.2, 0.8)
+    talentFrame:SetBackdropBorderColor(0.4, 0.4, 0.6, 1)
+    
+    -- Talent status text
+    local talentStatusText = talentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    talentStatusText:SetPoint("TOPLEFT", talentFrame, "TOPLEFT", 8, -8)
+    talentStatusText:SetText("Checking talents...")
+    talentStatusText:SetTextColor(1, 1, 1, 1)
+    talentStatusText:SetWidth(330)
+    talentStatusText:SetJustifyH("LEFT")
+    
+    -- Refresh button for talent check
+    local refreshButton = CreateFrame("Button", "HealIQTalentRefreshButton", talentFrame, "UIPanelButtonTemplate")
+    refreshButton:SetSize(80, 20)
+    refreshButton:SetPoint("BOTTOMRIGHT", talentFrame, "BOTTOMRIGHT", -5, 5)
+    refreshButton:SetText("Refresh")
+    refreshButton:SetScript("OnClick", function()
+        UI:UpdateTalentStatus(talentStatusText)
+    end)
+    self:AddTooltip(refreshButton, "Refresh Talent Check", "Updates the talent optimization status based on your current talent build.")
+    
+    -- Store reference for updates
+    optionsFrame.talentStatusText = talentStatusText
+    
+    scrollYOffset = scrollYOffset - 130
+    
     -- Reset button
     local resetButton = CreateFrame("Button", "HealIQStrategyResetButton", scrollChild, "UIPanelButtonTemplate")
     resetButton:SetSize(120, 22)
@@ -1253,6 +1298,52 @@ function UI:CreateStrategyTab(panel)
     helpText:SetTextColor(0.7, 0.7, 0.7, 1)
     helpText:SetWidth(320)
     helpText:SetJustifyH("LEFT")
+end
+
+function UI:UpdateTalentStatus(talentStatusText)
+    if not HealIQ.Engine then
+        talentStatusText:SetText("Engine not available")
+        return
+    end
+    
+    local recommendations = HealIQ.Engine:GetTalentRecommendations()
+    local statusLines = {}
+    
+    -- Add summary line
+    table.insert(statusLines, recommendations.summary)
+    table.insert(statusLines, "")
+    
+    -- Add critical missing talents (if any)
+    if #recommendations.critical > 0 then
+        table.insert(statusLines, "|cFFFF4444Critical Missing Talents:|r")
+        for _, talent in ipairs(recommendations.critical) do
+            table.insert(statusLines, "• " .. talent.name .. " - " .. talent.description)
+        end
+        table.insert(statusLines, "")
+    end
+    
+    -- Add suggested missing talents (if any)
+    if #recommendations.suggested > 0 then
+        table.insert(statusLines, "|cFFFFAA44Recommended Talents:|r")
+        for i, talent in ipairs(recommendations.suggested) do
+            if i <= 3 then -- Limit to first 3 to fit in the frame
+                table.insert(statusLines, "• " .. talent.name .. " (" .. talent.category .. ")")
+            end
+        end
+        if #recommendations.suggested > 3 then
+            table.insert(statusLines, "• ..." .. (#recommendations.suggested - 3) .. " more recommended talents")
+        end
+    end
+    
+    -- If everything is optimal, show a positive message
+    if #recommendations.critical == 0 and #recommendations.suggested == 0 then
+        table.insert(statusLines, "|cFF44FF44Your talent build is optimized for the healing strategy!|r")
+        table.insert(statusLines, "")
+        table.insert(statusLines, "All key talents for HealIQ's healing priority system are available.")
+    end
+    
+    local statusText = table.concat(statusLines, "\n")
+    talentStatusText:SetText(statusText)
 end
 
 function UI:AddTooltip(frame, title, description)
@@ -1900,6 +1991,11 @@ function UI:UpdateOptionsFrame()
                 control:SetChecked(value)
             end
         end
+    end
+    
+    -- Update talent status
+    if optionsFrame.talentStatusText then
+        self:UpdateTalentStatus(optionsFrame.talentStatusText)
     end
 end
 

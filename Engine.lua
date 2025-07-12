@@ -274,6 +274,168 @@ function Engine:ShouldSuggest()
     return inCombat or (hasTarget and targetIsFriendly)
 end
 
+-- Talent validation and detection system
+function Engine:GetOptimalTalents()
+    -- Define optimal Restoration Druid talents for the healing strategy
+    -- These are key talents that support the implemented healing strategy
+    local optimalTalents = {
+        -- Class Talents (essential for the strategy)
+        {
+            name = "Wild Growth",
+            spellId = 48438,
+            description = "Essential AoE healing spell used in priority system",
+            category = "Core Healing",
+            required = true
+        },
+        {
+            name = "Efflorescence", 
+            spellId = 145205,
+            description = "Ground AoE healing - high priority in strategy",
+            category = "Core Healing",
+            required = true
+        },
+        {
+            name = "Lifebloom",
+            spellId = 33763,
+            description = "Tank maintenance HoT with refresh timing logic",
+            category = "Core Healing", 
+            required = true
+        },
+        {
+            name = "Swiftmend",
+            spellId = 18562,
+            description = "Instant heal used for Wild Growth combo setup",
+            category = "Core Healing",
+            required = true
+        },
+        {
+            name = "Nature's Swiftness",
+            spellId = 132158,
+            description = "Emergency instant cast enabler",
+            category = "Emergency",
+            required = true
+        },
+        
+        -- Spec Talents (highly recommended for optimal performance)
+        {
+            name = "Flourish",
+            spellId = 197721,
+            description = "Extends multiple HoTs - part of priority system",
+            category = "HoT Management",
+            required = false
+        },
+        {
+            name = "Grove Guardians",
+            spellId = 102693,
+            description = "Charge pooling for cooldown coordination",
+            category = "Cooldown Management",
+            required = false
+        },
+        {
+            name = "Incarnation: Tree of Life",
+            spellId = 33891,
+            description = "Major healing cooldown in priority system",
+            category = "Major Cooldowns",
+            required = false
+        },
+        {
+            name = "Tranquility",
+            spellId = 740,
+            description = "Raid healing cooldown - highest priority spell",
+            category = "Major Cooldowns", 
+            required = false
+        }
+    }
+    
+    return optimalTalents
+end
+
+function Engine:CheckTalentAvailability(spellId)
+    -- Check if a talent/spell is known by the player
+    if not spellId then
+        return false
+    end
+    
+    -- Use IsSpellKnown for passive talents and active abilities
+    local isKnown = IsSpellKnown(spellId)
+    if isKnown then
+        return true
+    end
+    
+    -- For some talents, check if they're learned via GetSpellInfo
+    local spellName = GetSpellInfo(spellId)
+    if spellName then
+        return IsSpellKnown(spellId) or IsPlayerSpell(spellId)
+    end
+    
+    return false
+end
+
+function Engine:GetTalentStatus()
+    local talentStatus = {
+        missing = {},
+        present = {},
+        categories = {}
+    }
+    
+    local optimalTalents = self:GetOptimalTalents()
+    
+    for _, talent in ipairs(optimalTalents) do
+        local isAvailable = self:CheckTalentAvailability(talent.spellId)
+        
+        if isAvailable then
+            table.insert(talentStatus.present, talent)
+        else
+            table.insert(talentStatus.missing, talent)
+        end
+        
+        -- Organize by category
+        if not talentStatus.categories[talent.category] then
+            talentStatus.categories[talent.category] = {missing = {}, present = {}}
+        end
+        
+        if isAvailable then
+            table.insert(talentStatus.categories[talent.category].present, talent)
+        else
+            table.insert(talentStatus.categories[talent.category].missing, talent)
+        end
+    end
+    
+    return talentStatus
+end
+
+function Engine:GetTalentRecommendations()
+    local talentStatus = self:GetTalentStatus()
+    local recommendations = {
+        critical = {},
+        suggested = {},
+        summary = ""
+    }
+    
+    -- Separate critical missing talents from suggested ones
+    for _, talent in ipairs(talentStatus.missing) do
+        if talent.required then
+            table.insert(recommendations.critical, talent)
+        else
+            table.insert(recommendations.suggested, talent)
+        end
+    end
+    
+    -- Generate summary text
+    local criticalCount = #recommendations.critical
+    local suggestedCount = #recommendations.suggested
+    
+    if criticalCount > 0 then
+        recommendations.summary = string.format("Missing %d critical talents for optimal healing", criticalCount)
+    elseif suggestedCount > 0 then
+        recommendations.summary = string.format("Missing %d recommended talents for enhanced healing", suggestedCount)
+    else
+        recommendations.summary = "All optimal talents are available!"
+    end
+    
+    return recommendations
+end
+
 function Engine:EvaluateRules()
     local tracker = HealIQ.Tracker
     if not tracker then
