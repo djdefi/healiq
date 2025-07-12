@@ -502,6 +502,80 @@ function Engine:EvaluateTargetingSuggestion(spell)
     return bestTarget
 end
 
+-- Target priority evaluation lookup table for better performance
+local TARGET_PRIORITY_EVALUATORS = {
+    [TARGET_TYPES.SELF] = function(context)
+        return 100 -- Always available
+    end,
+    
+    [TARGET_TYPES.CURRENT_TARGET] = function(context)
+        if context.targetIsFriendly then
+            return 90 -- High priority if we have a friendly target
+        else
+            return 0 -- Not available
+        end
+    end,
+    
+    [TARGET_TYPES.FOCUS] = function(context)
+        if context.focusIsFriendly then
+            return 85 -- Good priority for focus target
+        else
+            return 0 -- Not available
+        end
+    end,
+    
+    [TARGET_TYPES.TANK] = function(context)
+        -- Check if current target or focus is a tank
+        local targetIsTank = context.targetIsFriendly and UnitGroupRolesAssigned("target") == "TANK"
+        local focusIsTank = context.focusIsFriendly and UnitGroupRolesAssigned("focus") == "TANK"
+        
+        if targetIsTank then
+            return 95 -- Very high priority for tank targeting spells
+        elseif focusIsTank then
+            return 90 -- Also high priority if focus is tank
+        elseif context.inParty or context.inRaid then
+            return 70 -- Medium priority, assume tank exists in group
+        else
+            return 0 -- No tank available
+        end
+    end,
+    
+    [TARGET_TYPES.PARTY_MEMBER] = function(context)
+        if context.inParty or context.inRaid then
+            return 75 -- Good priority if in group
+        else
+            return 0 -- Not in party
+        end
+    end,
+    
+    [TARGET_TYPES.LOWEST_HEALTH] = function(context)
+        -- We can't read health during combat due to WoW API limitations. 
+        -- As a fallback, we prioritize the current target if it is friendly, 
+        -- assuming it needs healing. If in a party or raid, we assign medium 
+        -- priority, as manual targeting may be required. If neither condition 
+        -- is met, we return 0, indicating no one is available to heal.
+        if context.targetIsFriendly then
+            return 80 -- Assume current target needs healing
+        elseif context.inParty or context.inRaid then
+            return 60 -- Medium priority, would need to target manually
+        else
+            return 0 -- No one to heal
+        end
+    end,
+    
+    [TARGET_TYPES.TARGET_OF_TARGET] = function(context)
+        if context.hasTarget and UnitExists("targettarget") and UnitIsFriend("player", "targettarget") then
+            return 70 -- Available and useful for some situations
+        else
+            return 0 -- Not available
+        end
+    end,
+    
+    [TARGET_TYPES.GROUND_TARGET] = function(context)
+        return 80 -- Always available for ground-targeted spells
+    end
+}
+
 function Engine:EvaluateTargetPriority(targetType, spell, context)
     --[[
         Evaluate the priority score for a given target type based on the spell and context.
@@ -522,75 +596,9 @@ function Engine:EvaluateTargetPriority(targetType, spell, context)
         - A numerical priority score (0-100) indicating the suitability of the target type.
     ]]
     
-    if targetType == TARGET_TYPES.SELF then
-        return 100 -- Always available
-    end
-    
-    if targetType == TARGET_TYPES.CURRENT_TARGET then
-        if context.targetIsFriendly then
-            return 90 -- High priority if we have a friendly target
-        else
-            return 0 -- Not available
-        end
-    end
-    
-    if targetType == TARGET_TYPES.FOCUS then
-        if context.focusIsFriendly then
-            return 85 -- Good priority for focus target
-        else
-            return 0 -- Not available
-        end
-    end
-    
-    if targetType == TARGET_TYPES.TANK then
-        -- Check if current target or focus is a tank
-        local targetIsTank = context.targetIsFriendly and UnitGroupRolesAssigned("target") == "TANK"
-        local focusIsTank = context.focusIsFriendly and UnitGroupRolesAssigned("focus") == "TANK"
-        
-        if targetIsTank then
-            return 95 -- Very high priority for tank targeting spells
-        elseif focusIsTank then
-            return 90 -- Also high priority if focus is tank
-        elseif context.inParty or context.inRaid then
-            return 70 -- Medium priority, assume tank exists in group
-        else
-            return 0 -- No tank available
-        end
-    end
-    
-    if targetType == TARGET_TYPES.PARTY_MEMBER then
-        if context.inParty or context.inRaid then
-            return 75 -- Good priority if in group
-        else
-            return 0 -- Not in party
-        end
-    end
-    
-    if targetType == TARGET_TYPES.LOWEST_HEALTH then
-        -- We can't read health during combat due to WoW API limitations. 
-        -- As a fallback, we prioritize the current target if it is friendly, 
-        -- assuming it needs healing. If in a party or raid, we assign medium 
-        -- priority, as manual targeting may be required. If neither condition 
-        -- is met, we return 0, indicating no one is available to heal.
-        if context.targetIsFriendly then
-            return 80 -- Assume current target needs healing
-        elseif context.inParty or context.inRaid then
-            return 60 -- Medium priority, would need to target manually
-        else
-            return 0 -- No one to heal
-        end
-    end
-    
-    if targetType == TARGET_TYPES.TARGET_OF_TARGET then
-        if context.hasTarget and UnitExists("targettarget") and UnitIsFriend("player", "targettarget") then
-            return 70 -- Available and useful for some situations
-        else
-            return 0 -- Not available
-        end
-    end
-    
-    if targetType == TARGET_TYPES.GROUND_TARGET then
-        return 80 -- Always available for ground-targeted spells
+    local evaluator = TARGET_PRIORITY_EVALUATORS[targetType]
+    if evaluator then
+        return evaluator(context)
     end
     
     return 0 -- Unknown target type

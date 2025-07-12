@@ -30,7 +30,8 @@ local MINIMAP_BUTTON_PIXEL_BUFFER = 2
 local BORDER_COLORS = {
     positioning = {0, 1, 1, 0.8},     -- Cyan for positioning aid
     locked = {1, 0, 0, 0.5},          -- Red when UI is locked
-    unlocked = {0, 1, 0, 0.5}         -- Green when UI is unlocked
+    unlocked = {0, 1, 0, 0.5},        -- Green when UI is unlocked
+    targeting = {0, 0, 0, 0.8}        -- Dark border for targeting indicators
 }
 
 -- Texture paths
@@ -128,7 +129,7 @@ function UI:CreateMainFrame()
     local targetingBorder = targetingIcon:CreateTexture(nil, "BORDER")
     targetingBorder:SetSize(18, 18)
     targetingBorder:SetPoint("CENTER")
-    targetingBorder:SetColorTexture(0, 0, 0, 0.8) -- Dark border
+    targetingBorder:SetColorTexture(unpack(BORDER_COLORS.targeting))
     targetingIcon.border = targetingBorder
     
     iconFrame.targetingIcon = targetingIcon
