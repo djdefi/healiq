@@ -1,5 +1,18 @@
 # HealIQ Changelog
 
+## [0.0.18] - 2025-07-12
+
+### Added
+- 
+
+### Changed
+- Initial plan
+- Remove button-based casting functionality and simplify addon
+- Final documentation updates and complete button-based casting removal
+
+### Fixed
+- 
+
 ## [0.0.17] - 2025-07-11
 
 ### Added
