@@ -288,7 +288,7 @@ function Engine:GetOptimalTalents()
             required = true
         },
         {
-            name = "Efflorescence", 
+            name = "Efflorescence",
             spellId = 145205,
             description = "Ground AoE healing - high priority in strategy",
             category = "Core Healing",
@@ -298,7 +298,7 @@ function Engine:GetOptimalTalents()
             name = "Lifebloom",
             spellId = 33763,
             description = "Tank maintenance HoT with refresh timing logic",
-            category = "Core Healing", 
+            category = "Core Healing",
             required = true
         },
         {
@@ -342,7 +342,7 @@ function Engine:GetOptimalTalents()
             name = "Tranquility",
             spellId = 740,
             description = "Raid healing cooldown - highest priority spell",
-            category = "Major Cooldowns", 
+            category = "Major Cooldowns",
             required = false
         }
     }
