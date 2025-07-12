@@ -40,7 +40,7 @@ local defaults = {
         swiftmend = true,
         rejuvenation = true,
         
-        -- New rules
+        -- Enhanced rules
         ironbark = true,
         efflorescence = true,
         tranquility = true,
@@ -48,6 +48,31 @@ local defaults = {
         naturesSwiftness = true,
         barkskin = true,
         flourish = true,
+        
+        -- New spells from strategy review
+        groveGuardians = true,
+        wrath = true,
+    },
+    strategy = {
+        -- Healing strategy settings based on Wowhead guide
+        prioritizeEfflorescence = true,          -- Keep Efflorescence active frequently
+        maintainLifebloomOnTank = true,          -- Always keep Lifebloom on tank
+        lifebloomRefreshWindow = 4.5,            -- Refresh Lifebloom in last 4.5s for bloom
+        preferClearcastingRegrowth = true,       -- Prioritize Regrowth with Clearcasting
+        swiftmendWildGrowthCombo = true,         -- Link Swiftmend and Wild Growth usage
+        rejuvenationRampThreshold = 15,          -- Start ramping Rejuv when damage expected in 15s
+        avoidRandomRejuvenationDowntime = true,  -- Don't cast random Rejuvs during downtime
+        useWrathForMana = true,                  -- Fill downtime with Wrath for mana
+        poolGroveGuardians = true,               -- Pool Grove Guardian charges for cooldowns
+        emergencyNaturesSwiftness = true,       -- Use Nature's Swiftness for emergency heals
+        
+        -- Tunable thresholds
+        wildGrowthMinTargets = 3,                -- Minimum targets damaged to suggest Wild Growth
+        tranquilityMinTargets = 4,               -- Minimum targets damaged to suggest Tranquility
+        efflorescenceMinTargets = 2,             -- Minimum targets damaged to suggest Efflorescence
+        flourishMinHots = 2,                     -- Minimum expiring HoTs to suggest Flourish
+        recentDamageWindow = 3,                  -- Time window to consider "recent damage" (seconds)
+        lowHealthThreshold = 0.3,                -- Health percentage to consider "emergency"
     }
 }
 

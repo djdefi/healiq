@@ -4,13 +4,23 @@
 
 ## 🧠 What It Does
 
-- Displays optimal healing spell suggestions
+- Displays optimal healing spell suggestions based on Wowhead Restoration Druid guide
 - Tracks HoT durations (e.g. Lifebloom, Rejuvenation)
-- Recognizes Clearcasting procs
-- Shows Swiftmend combo opportunities
-- Alerts for cooldown-based AoE healing (e.g. Wild Growth)
+- Recognizes Clearcasting procs and emergency situations
+- Shows Swiftmend combo opportunities and AoE healing priorities
+- Alerts for cooldown-based healing (e.g. Wild Growth, Tranquility)
 - Supports movement and configuration of suggestion UI
 - Shows upcoming suggestions in a queue display
+- Provides extensive strategy customization options
+
+**Enhanced Strategy Features:**
+- Efflorescence maintenance prioritization
+- Smart Lifebloom tank management with bloom timing
+- Clearcasting proc optimization
+- Swiftmend + Wild Growth combo suggestions
+- Grove Guardians charge pooling
+- Wrath filler for mana restoration
+- Configurable thresholds for all healing decisions
 
 **Note:** HealIQ provides visual suggestions only. Due to Blizzard restrictions, spell casting must be done manually using your normal keybinds or action bars.
 
@@ -33,7 +43,15 @@
 - UI icon is movable (drag-and-drop)
 - Suggestions shown via a single icon by default
 - Queue preview shows upcoming spell suggestions
-- Future: support for WeakAura export, config GUI, and profile-based tuning
+- Extensive strategy customization via `/healiq strategy` commands
+- Rule enable/disable via `/healiq rules` commands
+- All healing thresholds and priorities are tunable
+
+**Strategy Configuration:**
+- Access via `/healiq strategy list` to see all settings
+- Modify with `/healiq strategy set <setting> <value>`
+- Reset to optimal defaults with `/healiq strategy reset`
+- See [STRATEGY.md](STRATEGY.md) for detailed configuration guide
 
 ## 📜 Planned Features
 
