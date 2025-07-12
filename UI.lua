@@ -66,15 +66,15 @@ function UI:CreateMainFrame()
     
     if HealIQ.db.ui.showQueue then
         if queueLayout == "horizontal" then
-            -- Fix: Use corrected spacing calculation (same as CreateQueueFrame)
-            local totalWidth = (queueSize - 1) * queueIconSize + math.max(0, queueSize - 2) * queueSpacing
-            frameWidth = frameWidth + totalWidth
+            -- Fix: Add spacing between icon and queue, plus queue width
+            local queueWidth = (queueSize - 1) * queueIconSize + math.max(0, queueSize - 2) * queueSpacing
+            frameWidth = frameWidth + queueSpacing + queueWidth
         else
             -- Account for spell name text in vertical layout
-            local spellNameHeight = HealIQ.db.ui.showSpellName and 20 or 0
-            -- Fix: Use corrected spacing calculation (same as CreateQueueFrame)
-            local totalHeight = (queueSize - 1) * queueIconSize + math.max(0, queueSize - 2) * queueSpacing
-            frameHeight = frameHeight + totalHeight + spellNameHeight
+            local spellNameHeight = HealIQ.db.ui.showSpellName and 25 or 0  -- Match CreateQueueFrame offset
+            -- Fix: Add spacing between icon and queue, plus queue height
+            local queueHeight = (queueSize - 1) * queueIconSize + math.max(0, queueSize - 2) * queueSpacing
+            frameHeight = frameHeight + queueSpacing + spellNameHeight + queueHeight
         end
     end
     
@@ -1467,28 +1467,13 @@ function UI:UpdatePositionBorder()
         return
     end
     
-    -- Determine border color and visibility
-    local borderColor
-    local showBorder = false
-    
+    -- Only show border when explicitly requested via showPositionBorder setting
     if HealIQ.db.ui.showPositionBorder then
         -- Show positioning aid border (cyan)
-        borderColor = BORDER_COLORS.positioning
-        showBorder = true
-    elseif HealIQ.db.ui.locked then
-        -- Show locked state border (red)
-        borderColor = BORDER_COLORS.locked
-        showBorder = true
-    else
-        -- Show unlocked state border (green)
-        borderColor = BORDER_COLORS.unlocked
-        showBorder = true
-    end
-    
-    if showBorder then
-        mainFrame.border:SetColorTexture(unpack(borderColor))
+        mainFrame.border:SetColorTexture(unpack(BORDER_COLORS.positioning))
         mainFrame.border:Show()
     else
+        -- Hide border when not explicitly requested
         mainFrame.border:Hide()
     end
 end
