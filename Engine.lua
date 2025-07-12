@@ -503,7 +503,24 @@ function Engine:EvaluateTargetingSuggestion(spell)
 end
 
 function Engine:EvaluateTargetPriority(targetType, spell, context)
-    -- Return priority score (higher = better target choice)
+    --[[
+        Evaluate the priority score for a given target type based on the spell and context.
+        
+        Scoring System:
+        - Priority scores range from 0 to 100, where higher values indicate better target choices.
+        - A score of 0 means the target type is not available or applicable.
+        - Scores are assigned based on contextual factors such as whether the target is friendly,
+          whether the player is in a group, and the type of spell being cast.
+        
+        Parameters:
+        - targetType: The type of target being evaluated (e.g., SELF, CURRENT_TARGET, FOCUS).
+        - spell: The spell being considered for casting, which includes its target types.
+        - context: A table containing contextual information (e.g., whether the player is in combat,
+          whether a target exists, and whether the target is friendly).
+        
+        Returns:
+        - A numerical priority score (0-100) indicating the suitability of the target type.
+    ]]
     
     if targetType == TARGET_TYPES.SELF then
         return 100 -- Always available
