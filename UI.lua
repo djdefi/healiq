@@ -1191,7 +1191,8 @@ function UI:UpdateSuggestion(suggestion)
             local displayText = suggestion.name
             
             -- Add targeting suggestion to spell name if enabled
-            if HealIQ.db.ui.showTargeting ~= false and HealIQ.Engine then -- Default to true
+            local showTargeting = HealIQ.db.ui.showTargeting
+            if (showTargeting == nil or showTargeting) and HealIQ.Engine then
                 local targetText = HealIQ.Engine:GetTargetingSuggestionsText(suggestion)
                 if targetText then
                     displayText = displayText .. " → " .. targetText
