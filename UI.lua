@@ -85,10 +85,9 @@ function UI:CreateMainFrame()
     mainFrame:SetFrameStrata("MEDIUM")
     mainFrame:SetFrameLevel(100)
     
-    -- Create background with improved styling and consistent padding
+    -- Create background with improved styling that covers the entire frame for mouse events
     local bg = mainFrame:CreateTexture(nil, "BACKGROUND")
-    bg:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", padding, -padding)
-    bg:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -padding, padding)
+    bg:SetAllPoints(mainFrame)  -- Cover the entire frame area
     bg:SetColorTexture(0, 0, 0, 0.4)
     bg:SetAlpha(0.6)
     
@@ -256,12 +255,12 @@ function UI:CreateMinimapButton()
     
     -- Position on minimap using angle-based positioning
     local savedAngle = HealIQ.db.ui.minimapAngle or -math.pi/4 -- Default to top-right
-    local mx, my = Minimap:GetCenter()
     local radius = self:CalculateMinimapButtonRadius()
     
-    local x = mx + radius * math.cos(savedAngle)
-    local y = my + radius * math.sin(savedAngle)
-    minimapButton:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
+    -- Fixed: Position relative to Minimap center, not UIParent
+    local x = radius * math.cos(savedAngle)
+    local y = radius * math.sin(savedAngle)
+    minimapButton:SetPoint("CENTER", Minimap, "CENTER", x, y)
     
     -- Make it draggable around minimap
     minimapButton:SetMovable(true)
@@ -286,10 +285,11 @@ function UI:CreateMinimapButton()
         -- Use helper method for radius calculation
         local finalRadius = UI:CalculateMinimapButtonRadius()
         
-        local newX = mapX + finalRadius * math.cos(angle)
-        local newY = mapY + finalRadius * math.sin(angle)
+        -- Fixed: Position relative to Minimap center, not UIParent
+        local newX = finalRadius * math.cos(angle)
+        local newY = finalRadius * math.sin(angle)
         self:ClearAllPoints()
-        self:SetPoint("CENTER", UIParent, "BOTTOMLEFT", newX, newY)
+        self:SetPoint("CENTER", Minimap, "CENTER", newX, newY)
         
         -- Restore icon visibility if it was affected
         if self.icon and self.originalAlpha then
@@ -1337,13 +1337,13 @@ function UI:ResetMinimapPosition()
     if HealIQ.db and HealIQ.db.ui then
         HealIQ.db.ui.minimapAngle = -math.pi/4 -- Reset to default angle (top-right)
         if minimapButton then
-            local mx, my = Minimap:GetCenter()
             local radius = self:CalculateMinimapButtonRadius()
             
-            local x = mx + radius * math.cos(HealIQ.db.ui.minimapAngle)
-            local y = my + radius * math.sin(HealIQ.db.ui.minimapAngle)
+            -- Fixed: Position relative to Minimap center, not UIParent
+            local x = radius * math.cos(HealIQ.db.ui.minimapAngle)
+            local y = radius * math.sin(HealIQ.db.ui.minimapAngle)
             minimapButton:ClearAllPoints()
-            minimapButton:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
+            minimapButton:SetPoint("CENTER", Minimap, "CENTER", x, y)
         end
         HealIQ:Print("Minimap icon position reset")
     end
@@ -1424,6 +1424,9 @@ function UI:ToggleOptionsFrame()
 end
 
 function UI:RecreateFrames()
+    -- Store current visibility state before destroying frames
+    local wasVisible = mainFrame and mainFrame:IsShown()
+    
     -- Hide and remove existing frames
     if mainFrame then
         mainFrame:Hide()
@@ -1443,6 +1446,11 @@ function UI:RecreateFrames()
     -- Update position and scale
     self:UpdatePosition()
     self:UpdateScale()
+    
+    -- Restore visibility state if addon is enabled
+    if wasVisible and HealIQ.db and HealIQ.db.enabled then
+        self:Show()
+    end
     
     HealIQ:Print("UI frames recreated with new settings")
 end
