@@ -55,6 +55,7 @@ commands.help = function()
     print("|cFFFFFF00/healiq disable|r - Disable addon")
     print("|cFFFFFF00/healiq ui|r - Show UI commands")
     print("|cFFFFFF00/healiq rules|r - Show rule commands")
+    print("|cFFFFFF00/healiq strategy|r - Show strategy commands")
     print("|cFFFFFF00/healiq test|r - Test suggestion display")
     print("|cFFFFFF00/healiq test queue|r - Test queue display")
     print("|cFFFFFF00/healiq test ui|r - Test UI with sample queue")
@@ -252,7 +253,109 @@ commands.rules = function(subcommand, ...)
         print("|cFFFFFF00/healiq rules disable <rule>|r - Disable a specific rule")
         print("|cFFFFFF00Rules:|r wildGrowth, clearcasting, lifebloom, swiftmend, rejuvenation,")
         print("  ironbark, efflorescence, tranquility, incarnationTree, naturesSwiftness,")
-        print("  barkskin, flourish")
+        print("  barkskin, flourish, groveGuardians, wrath")
+        print("|cFFFFFF00/healiq strategy|r - Show strategy commands")
+    end
+end
+
+commands.strategy = function(subcommand, ...)
+    if not HealIQ.db or not HealIQ.db.strategy then
+        print("|cFFFF0000HealIQ|r Database not yet initialized")
+        return
+    end
+    
+    if subcommand == "list" then
+        print("|cFF00FF00HealIQ Strategy Settings:|r")
+        for setting, value in pairs(HealIQ.db.strategy) do
+            local valueStr = tostring(value)
+            if type(value) == "boolean" then
+                valueStr = value and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"
+            else
+                valueStr = "|cFFFFFF00" .. valueStr .. "|r"
+            end
+            print("  " .. setting .. ": " .. valueStr)
+        end
+    elseif subcommand == "set" then
+        local setting = (...)
+        local value = select(2, ...)
+        if setting and value and HealIQ.db.strategy[setting] ~= nil then
+            local oldValue = HealIQ.db.strategy[setting]
+            
+            -- Convert value based on current type
+            if type(oldValue) == "boolean" then
+                if value == "true" or value == "1" or value == "on" then
+                    HealIQ.db.strategy[setting] = true
+                elseif value == "false" or value == "0" or value == "off" then
+                    HealIQ.db.strategy[setting] = false
+                else
+                    print("|cFFFF0000HealIQ|r Invalid boolean value. Use true/false, 1/0, or on/off")
+                    return
+                end
+            elseif type(oldValue) == "number" then
+                local numValue = tonumber(value)
+                if numValue then
+                    HealIQ.db.strategy[setting] = numValue
+                else
+                    print("|cFFFF0000HealIQ|r Invalid number value: " .. value)
+                    return
+                end
+            else
+                print("|cFFFF0000HealIQ|r Cannot set setting of type: " .. type(oldValue))
+                return
+            end
+            
+            print("|cFF00FF00HealIQ|r Strategy setting '" .. setting .. "' set to " .. tostring(HealIQ.db.strategy[setting]))
+            
+            -- Force engine update to apply changes
+            if HealIQ.Engine then
+                HealIQ.Engine:ForceUpdate()
+            end
+        else
+            print("|cFFFF0000HealIQ|r Unknown strategy setting: " .. tostring(setting))
+        end
+    elseif subcommand == "reset" then
+        -- Reset strategy settings to defaults
+        if HealIQ.db and HealIQ.db.strategy then
+            -- Get defaults from Core.lua
+            local defaults = {
+                prioritizeEfflorescence = true,
+                maintainLifebloomOnTank = true,
+                lifebloomRefreshWindow = 4.5,
+                preferClearcastingRegrowth = true,
+                swiftmendWildGrowthCombo = true,
+                rejuvenationRampThreshold = 15,
+                avoidRandomRejuvenationDowntime = true,
+                useWrathForMana = true,
+                poolGroveGuardians = true,
+                emergencyNaturesSwiftness = true,
+                wildGrowthMinTargets = 3,
+                tranquilityMinTargets = 4,
+                efflorescenceMinTargets = 2,
+                flourishMinHots = 2,
+                recentDamageWindow = 3,
+                lowHealthThreshold = 0.3,
+            }
+            
+            for setting, defaultValue in pairs(defaults) do
+                HealIQ.db.strategy[setting] = defaultValue
+            end
+            
+            print("|cFF00FF00HealIQ|r Strategy settings reset to defaults")
+            
+            if HealIQ.Engine then
+                HealIQ.Engine:ForceUpdate()
+            end
+        end
+    else
+        print("|cFF00FF00HealIQ Strategy Commands:|r")
+        print("|cFFFFFF00/healiq strategy list|r - List all strategy settings")
+        print("|cFFFFFF00/healiq strategy set <setting> <value>|r - Set a strategy setting")
+        print("|cFFFFFF00/healiq strategy reset|r - Reset all strategy settings to defaults")
+        print("|cFFFFFF00Settings:|r prioritizeEfflorescence, maintainLifebloomOnTank,")
+        print("  preferClearcastingRegrowth, swiftmendWildGrowthCombo, useWrathForMana,")
+        print("  poolGroveGuardians, emergencyNaturesSwiftness, wildGrowthMinTargets,")
+        print("  tranquilityMinTargets, efflorescenceMinTargets, flourishMinHots,")
+        print("  recentDamageWindow, lowHealthThreshold, lifebloomRefreshWindow")
     end
 end
 
