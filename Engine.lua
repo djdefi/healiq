@@ -7,45 +7,55 @@ HealIQ.Engine = {}
 local Engine = HealIQ.Engine
 
 -- Targeting types and their associated icons
+-- Icon path constants
+local ICON_SELF = "Interface\\Icons\\Ability_Warrior_BattleShout"
+local ICON_TANK = "Interface\\Icons\\Ability_Warrior_DefensiveStance"
+local ICON_CURRENT_TARGET = "Interface\\Icons\\Ability_Hunter_MarkedForDeath"
+local ICON_FOCUS = "Interface\\Icons\\Spell_Shadow_Teleport"
+local ICON_PARTY_MEMBER = "Interface\\Icons\\Achievement_Guildperk_EverybodysFriend"
+local ICON_LOWEST_HEALTH = "Interface\\Icons\\Spell_ChargeNegative"
+local ICON_TARGET_OF_TARGET = "Interface\\Icons\\Ability_Hunter_SniperShot"
+local ICON_GROUND_TARGET = "Interface\\Icons\\Spell_Arcane_TeleportBoralus"
+
 local TARGET_TYPES = {
     SELF = {
         name = "Self",
-        icon = "Interface\\Icons\\Ability_Warrior_BattleShout",
+        icon = ICON_SELF,
         description = "Cast on yourself"
     },
     TANK = {
         name = "Tank",
-        icon = "Interface\\Icons\\Ability_Warrior_DefensiveStance",
+        icon = ICON_TANK,
         description = "Cast on main tank"
     },
     CURRENT_TARGET = {
         name = "Current Target",
-        icon = "Interface\\Icons\\Ability_Hunter_MarkedForDeath",
+        icon = ICON_CURRENT_TARGET,
         description = "Cast on current target"
     },
     FOCUS = {
         name = "Focus",
-        icon = "Interface\\Icons\\Spell_Shadow_Teleport",
+        icon = ICON_FOCUS,
         description = "Cast on focus target"
     },
     PARTY_MEMBER = {
         name = "Party Member",
-        icon = "Interface\\Icons\\Achievement_Guildperk_EverybodysFriend",
+        icon = ICON_PARTY_MEMBER,
         description = "Cast on any party member"
     },
     LOWEST_HEALTH = {
         name = "Lowest Health",
-        icon = "Interface\\Icons\\Spell_ChargeNegative",
+        icon = ICON_LOWEST_HEALTH,
         description = "Target with lowest health"
     },
     TARGET_OF_TARGET = {
         name = "Target's Target",
-        icon = "Interface\\Icons\\Ability_Hunter_SniperShot",
+        icon = ICON_TARGET_OF_TARGET,
         description = "Cast on target's target"
     },
     GROUND_TARGET = {
         name = "Ground Target",
-        icon = "Interface\\Icons\\Spell_Arcane_TeleportBoralus",
+        icon = ICON_GROUND_TARGET,
         description = "Place on ground"
     }
 }
