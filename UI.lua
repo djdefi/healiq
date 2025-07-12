@@ -208,6 +208,9 @@ function UI:CreateMainFrame()
     spellNameText:SetTextColor(1, 1, 1, 1)
     spellNameText:SetShadowColor(0, 0, 0, 1)
     spellNameText:SetShadowOffset(1, -1)
+    spellNameText:SetJustifyH("CENTER") -- Center-align the text
+    spellNameText:SetJustifyV("TOP") -- Top-align for multi-line support
+    spellNameText:SetWidth(120) -- Set a max width to prevent overflow
     
     -- Create cooldown frame
     cooldownFrame = CreateFrame("Cooldown", "HealIQCooldownFrame", iconFrame, "CooldownFrameTemplate")
@@ -1174,11 +1177,21 @@ function UI:UpdateSuggestion(suggestion)
             end
             
             -- Update targeting indicator
-            if iconFrame.targetingIcon and HealIQ.Engine and HealIQ.db.ui.showTargetingIcon ~= false then
-                local targetIcon = HealIQ.Engine:GetTargetingSuggestionsIcon(suggestion)
-                if targetIcon then
-                    iconFrame.targetingIcon.icon:SetTexture(targetIcon)
-                    iconFrame.targetingIcon:Show()
+            if iconFrame.targetingIcon and HealIQ.Engine then
+                -- Check if targeting icons are enabled (default to true if not set)
+                local showTargetingIcon = HealIQ.db.ui.showTargetingIcon
+                if showTargetingIcon == nil then
+                    showTargetingIcon = true -- Default to true
+                end
+                
+                if showTargetingIcon then
+                    local targetIcon = HealIQ.Engine:GetTargetingSuggestionsIcon(suggestion)
+                    if targetIcon then
+                        iconFrame.targetingIcon.icon:SetTexture(targetIcon)
+                        iconFrame.targetingIcon:Show()
+                    else
+                        iconFrame.targetingIcon:Hide()
+                    end
                 else
                     iconFrame.targetingIcon:Hide()
                 end
@@ -1193,10 +1206,21 @@ function UI:UpdateSuggestion(suggestion)
             
             -- Add targeting suggestion to spell name if enabled
             local showTargeting = HealIQ.db.ui.showTargeting
-            if (showTargeting == nil or showTargeting) and HealIQ.Engine then
+            if showTargeting == nil then
+                showTargeting = true -- Default to true if not set
+            end
+            
+            if showTargeting and HealIQ.Engine then
                 local targetText = HealIQ.Engine:GetTargetingSuggestionsText(suggestion)
                 if targetText then
-                    displayText = displayText .. " → " .. targetText
+                    -- Truncate target text if it's too long to prevent overflow
+                    local maxTargetLength = 12 -- Reasonable limit for target text
+                    if #targetText > maxTargetLength then
+                        targetText = targetText:sub(1, maxTargetLength - 2) .. ".."
+                    end
+                    
+                    -- Format the text with better spacing and color
+                    displayText = displayText .. "\n|cFFFFCC00→ " .. targetText .. "|r"
                 end
             end
             
@@ -1630,11 +1654,19 @@ function UI:UpdateOptionsFrame()
         end
         
         if optionsFrame.showTargetingCheck then
-            optionsFrame.showTargetingCheck:SetChecked(HealIQ.db.ui.showTargeting ~= false) -- Default to true
+            local showTargeting = HealIQ.db.ui.showTargeting
+            if showTargeting == nil then
+                showTargeting = true -- Default to true
+            end
+            optionsFrame.showTargetingCheck:SetChecked(showTargeting)
         end
         
         if optionsFrame.showTargetingIconCheck then
-            optionsFrame.showTargetingIconCheck:SetChecked(HealIQ.db.ui.showTargetingIcon ~= false) -- Default to true
+            local showTargetingIcon = HealIQ.db.ui.showTargetingIcon
+            if showTargetingIcon == nil then
+                showTargetingIcon = true -- Default to true
+            end
+            optionsFrame.showTargetingIconCheck:SetChecked(showTargetingIcon)
         end
         
         -- Update frame positioning checkbox
