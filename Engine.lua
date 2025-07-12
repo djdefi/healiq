@@ -549,10 +549,10 @@ local TARGET_PRIORITY_EVALUATORS = {
     end,
     
     [TARGET_TYPES.LOWEST_HEALTH] = function(context)
-        -- We can't read health during combat due to WoW API limitations. 
-        -- As a fallback, we prioritize the current target if it is friendly, 
-        -- assuming it needs healing. If in a party or raid, we assign medium 
-        -- priority, as manual targeting may be required. If neither condition 
+        -- We can't read health during combat due to WoW API limitations.
+        -- As a fallback, we prioritize the current target if it is friendly,
+        -- assuming it needs healing. If in a party or raid, we assign medium
+        -- priority, as manual targeting may be required. If neither condition
         -- is met, we return 0, indicating no one is available to heal.
         if context.targetIsFriendly then
             return 80 -- Assume current target needs healing
