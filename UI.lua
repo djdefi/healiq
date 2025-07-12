@@ -528,6 +528,7 @@ function UI:CreateOptionsTabs(parent)
         {name = "General", id = "general"},
         {name = "Display", id = "display"},
         {name = "Rules", id = "rules"},
+        {name = "Strategy", id = "strategy"},
         {name = "Queue", id = "queue"}
     }
     
@@ -585,6 +586,7 @@ function UI:CreateOptionsTabs(parent)
     self:CreateGeneralTab(optionsFrame.tabPanels.general)
     self:CreateDisplayTab(optionsFrame.tabPanels.display)
     self:CreateRulesTab(optionsFrame.tabPanels.rules)
+    self:CreateStrategyTab(optionsFrame.tabPanels.strategy)
     self:CreateQueueTab(optionsFrame.tabPanels.queue)
     
     -- Show first tab by default
@@ -1064,6 +1066,193 @@ function UI:GetRuleTooltip(ruleKey)
         flourish = "Suggests Flourish to extend multiple expiring HoTs.",
     }
     return tooltips[ruleKey]
+end
+
+function UI:CreateStrategyTab(panel)
+    local yOffset = -10
+    
+    -- Strategy section
+    local strategyHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    strategyHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    strategyHeader:SetText("Healing Strategy Settings")
+    strategyHeader:SetTextColor(1, 0.8, 0, 1)
+    yOffset = yOffset - 30
+    
+    local strategyDesc = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    strategyDesc:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    strategyDesc:SetText("Configure enhanced healing strategy based on Wowhead guide")
+    strategyDesc:SetTextColor(0.8, 0.8, 0.8, 1)
+    yOffset = yOffset - 25
+    
+    -- Create a scrollable frame for strategy options
+    local scrollFrame = CreateFrame("ScrollFrame", "HealIQStrategyScrollFrame", panel, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -25, 10)
+    
+    local scrollChild = CreateFrame("Frame", "HealIQStrategyScrollChild", scrollFrame)
+    scrollChild:SetSize(350, 800) -- Large height for all controls
+    scrollFrame:SetScrollChild(scrollChild)
+    
+    local scrollYOffset = -10
+    
+    -- Core Strategy Toggles Section
+    local coreHeader = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    coreHeader:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
+    coreHeader:SetText("Core Strategy Toggles:")
+    coreHeader:SetTextColor(0.8, 1, 0.8, 1)
+    scrollYOffset = scrollYOffset - 25
+    
+    -- Store strategy controls for updating
+    optionsFrame.strategyControls = {}
+    
+    -- Core toggle settings
+    local coreToggles = {
+        {key = "prioritizeEfflorescence", name = "Prioritize Efflorescence", desc = "Keep Efflorescence active frequently"},
+        {key = "maintainLifebloomOnTank", name = "Maintain Lifebloom on Tank", desc = "Always keep Lifebloom on tank with proper refresh timing"},
+        {key = "preferClearcastingRegrowth", name = "Prefer Clearcasting Regrowth", desc = "Prioritize Regrowth when you have Clearcasting procs"},
+        {key = "swiftmendWildGrowthCombo", name = "Swiftmend + Wild Growth Combo", desc = "Link Swiftmend and Wild Growth usage"},
+        {key = "avoidRandomRejuvenationDowntime", name = "Avoid Random Rejuvenation in Downtime", desc = "Don't cast random Rejuvenations during downtime periods"},
+        {key = "useWrathForMana", name = "Use Wrath for Mana", desc = "Fill downtime with Wrath for mana restoration"},
+        {key = "poolGroveGuardians", name = "Pool Grove Guardians", desc = "Pool Grove Guardian charges for major cooldowns"},
+        {key = "emergencyNaturesSwiftness", name = "Emergency Nature's Swiftness", desc = "Use Nature's Swiftness for emergency healing"},
+    }
+    
+    for _, toggle in ipairs(coreToggles) do
+        local check = CreateFrame("CheckButton", "HealIQStrategy" .. toggle.key, scrollChild, "UICheckButtonTemplate")
+        check:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
+        check.text = check:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        check.text:SetPoint("LEFT", check, "RIGHT", 5, 0)
+        check.text:SetText(toggle.name)
+        check:SetScript("OnClick", function(self)
+            if HealIQ.db and HealIQ.db.strategy then
+                HealIQ.db.strategy[toggle.key] = self:GetChecked()
+                -- Force engine update to apply changes
+                if HealIQ.Engine then
+                    HealIQ.Engine:ForceUpdate()
+                end
+            end
+        end)
+        
+        self:AddTooltip(check, toggle.name, toggle.desc)
+        optionsFrame.strategyControls[toggle.key] = check
+        scrollYOffset = scrollYOffset - 25
+    end
+    
+    scrollYOffset = scrollYOffset - 15
+    
+    -- Tunable Thresholds Section
+    local thresholdsHeader = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    thresholdsHeader:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
+    thresholdsHeader:SetText("Tunable Thresholds:")
+    thresholdsHeader:SetTextColor(0.8, 1, 0.8, 1)
+    scrollYOffset = scrollYOffset - 25
+    
+    -- Numeric settings with sliders
+    local numericSettings = {
+        {key = "lifebloomRefreshWindow", name = "Lifebloom Refresh Window", desc = "Refresh Lifebloom within this many seconds for bloom effect", min = 2, max = 8, step = 0.5},
+        {key = "wildGrowthMinTargets", name = "Wild Growth Min Targets", desc = "Minimum targets damaged to suggest Wild Growth", min = 2, max = 6, step = 1},
+        {key = "tranquilityMinTargets", name = "Tranquility Min Targets", desc = "Minimum targets damaged to suggest Tranquility", min = 3, max = 8, step = 1},
+        {key = "efflorescenceMinTargets", name = "Efflorescence Min Targets", desc = "Minimum targets damaged to suggest Efflorescence", min = 2, max = 6, step = 1},
+        {key = "flourishMinHots", name = "Flourish Min HoTs", desc = "Minimum expiring HoTs to suggest Flourish", min = 2, max = 6, step = 1},
+        {key = "rejuvenationRampThreshold", name = "Rejuvenation Ramp Threshold", desc = "Start ramping Rejuvenation when damage expected in this many seconds", min = 5, max = 30, step = 1},
+        {key = "recentDamageWindow", name = "Recent Damage Window", desc = "Time window to consider 'recent damage' (seconds)", min = 1, max = 10, step = 1},
+        {key = "lowHealthThreshold", name = "Low Health Threshold", desc = "Health percentage to consider 'emergency' (0.0-1.0)", min = 0.1, max = 0.8, step = 0.05},
+    }
+    
+    for _, setting in ipairs(numericSettings) do
+        -- Setting label
+        local label = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        label:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
+        label:SetText(setting.name .. ":")
+        scrollYOffset = scrollYOffset - 20
+        
+        -- Slider
+        local slider = CreateFrame("Slider", "HealIQStrategy" .. setting.key .. "Slider", scrollChild, "OptionsSliderTemplate")
+        slider:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
+        slider:SetMinMaxValues(setting.min, setting.max)
+        slider:SetValueStep(setting.step)
+        slider:SetObeyStepOnDrag(true)
+        slider.tooltipText = setting.desc
+        _G[slider:GetName() .. "Low"]:SetText(tostring(setting.min))
+        _G[slider:GetName() .. "High"]:SetText(tostring(setting.max))
+        _G[slider:GetName() .. "Text"]:SetText("")
+        
+        -- Value display
+        local valueText = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        valueText:SetPoint("RIGHT", slider, "RIGHT", 30, 0)
+        valueText:SetTextColor(1, 1, 0, 1)
+        
+        slider:SetScript("OnValueChanged", function(self, value)
+            if HealIQ.db and HealIQ.db.strategy then
+                HealIQ.db.strategy[setting.key] = value
+                valueText:SetText(string.format("%.1f", value))
+                -- Force engine update to apply changes
+                if HealIQ.Engine then
+                    HealIQ.Engine:ForceUpdate()
+                end
+            end
+        end)
+        
+        self:AddTooltip(slider, setting.name, setting.desc)
+        optionsFrame.strategyControls[setting.key] = {slider = slider, valueText = valueText}
+        scrollYOffset = scrollYOffset - 40
+    end
+    
+    scrollYOffset = scrollYOffset - 15
+    
+    -- Reset button
+    local resetButton = CreateFrame("Button", "HealIQStrategyResetButton", scrollChild, "UIPanelButtonTemplate")
+    resetButton:SetSize(120, 22)
+    resetButton:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
+    resetButton:SetText("Reset to Defaults")
+    resetButton:SetScript("OnClick", function()
+        -- Reset strategy settings to defaults
+        if HealIQ.db and HealIQ.db.strategy then
+            local defaults = {
+                prioritizeEfflorescence = true,
+                maintainLifebloomOnTank = true,
+                lifebloomRefreshWindow = 4.5,
+                preferClearcastingRegrowth = true,
+                swiftmendWildGrowthCombo = true,
+                rejuvenationRampThreshold = 15,
+                avoidRandomRejuvenationDowntime = true,
+                useWrathForMana = true,
+                poolGroveGuardians = true,
+                emergencyNaturesSwiftness = true,
+                wildGrowthMinTargets = 3,
+                tranquilityMinTargets = 4,
+                efflorescenceMinTargets = 2,
+                flourishMinHots = 2,
+                recentDamageWindow = 3,
+                lowHealthThreshold = 0.3,
+            }
+            
+            for setting, defaultValue in pairs(defaults) do
+                HealIQ.db.strategy[setting] = defaultValue
+            end
+            
+            -- Update the UI controls
+            UI:UpdateOptionsFrame()
+            
+            -- Force engine update
+            if HealIQ.Engine then
+                HealIQ.Engine:ForceUpdate()
+            end
+            
+            HealIQ:Print("Strategy settings reset to defaults")
+        end
+    end)
+    self:AddTooltip(resetButton, "Reset Strategy Settings", "Resets all strategy settings to their optimal default values.")
+    
+    scrollYOffset = scrollYOffset - 30
+    
+    -- Help text
+    local helpText = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    helpText:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
+    helpText:SetText("Strategy settings can also be configured via chat commands:\n/healiq strategy list - View all settings\n/healiq strategy set <setting> <value> - Change a setting")
+    helpText:SetTextColor(0.7, 0.7, 0.7, 1)
+    helpText:SetWidth(320)
+    helpText:SetJustifyH("LEFT")
 end
 
 function UI:AddTooltip(frame, title, description)
@@ -1693,6 +1882,23 @@ function UI:UpdateOptionsFrame()
     if optionsFrame.ruleChecks and HealIQ.db.rules then
         for rule, checkbox in pairs(optionsFrame.ruleChecks) do
             checkbox:SetChecked(HealIQ.db.rules[rule])
+        end
+    end
+    
+    -- Update strategy controls
+    if optionsFrame.strategyControls and HealIQ.db.strategy then
+        for setting, control in pairs(optionsFrame.strategyControls) do
+            local value = HealIQ.db.strategy[setting]
+            if type(control) == "table" and control.slider then
+                -- Numeric setting with slider
+                control.slider:SetValue(value or 0)
+                if control.valueText then
+                    control.valueText:SetText(string.format("%.1f", value or 0))
+                end
+            else
+                -- Boolean setting with checkbox
+                control:SetChecked(value)
+            end
         end
     end
 end
