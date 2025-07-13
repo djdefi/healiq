@@ -179,10 +179,6 @@ jobs:
         rm Core.lua.backup
         
         echo "Updated Core.lua version to $NEW_VERSION"
-    - name: Install GitHub models extension
-      run: |
-        gh extension install github/gh-models || echo "Failed to install models extension, AI enhancement will be skipped"
-
     - name: Create changelog entry
       if: ${{ github.event.inputs.create_changelog_entry == 'true' && steps.check_version.outputs.changelog_exists == 'false' }}
       env:
