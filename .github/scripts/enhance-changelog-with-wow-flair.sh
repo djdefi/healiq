@@ -127,11 +127,11 @@ process_changelog() {
             local enhanced_text
             enhanced_text=$(enhance_with_ai "$bullet_text" "$current_category")
             if [[ $? -ne 0 ]]; then
-                echo "Error: Failed to enhance changelog entry. AI models required." >&2
-                exit 1
+                echo "Warning: Failed to enhance changelog entry. Using original text." >&2
+                echo "- $bullet_text" >> "$temp_file"
+            else
+                echo "- $enhanced_text" >> "$temp_file"
             fi
-            
-            echo "- $enhanced_text" >> "$temp_file"
         else
             echo "$line" >> "$temp_file"
         fi
@@ -151,10 +151,14 @@ main() {
     echo "Using AI models for WoW-themed enhancements"
     
     if ! check_github_models; then
-        echo "Error: GitHub models not available."
-        echo "Please install and configure: gh extension install github/gh-models"
-        echo "Then authenticate with: gh auth login"
-        exit 1
+        echo "Warning: GitHub models not available."
+        echo "AI enhancement requires: gh extension install github/gh-models"
+        echo "Proceeding with basic changelog (no AI enhancement applied)"
+        echo "Note: In GitHub Actions, ensure GH_TOKEN is set and models extension is available"
+        echo ""
+        # Just exit successfully without AI enhancement
+        echo "Skipped AI enhancement - changelog remains unchanged"
+        exit 0
     fi
     
     process_changelog "$CHANGELOG_FILE"
