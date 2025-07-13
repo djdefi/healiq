@@ -258,6 +258,11 @@ function HealIQ:OnInitialize()
             self:DebugLog("Config module initialized")
         end
         
+        if self.Tests then
+            self.Tests:Initialize()
+            self:DebugLog("Tests module initialized")
+        end
+        
         self:Message("HealIQ " .. self.version .. " initialized successfully")
         self:DebugLog("HealIQ initialization completed successfully", "INFO")
     end)

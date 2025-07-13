@@ -60,6 +60,8 @@ commands.help = function()
     print("|cFFFFFF00/healiq test queue|r - Test queue display")
     print("|cFFFFFF00/healiq test ui|r - Test UI with sample queue")
     print("|cFFFFFF00/healiq test targeting|r - Test targeting suggestions")
+    print("|cFFFFFF00/healiq test run|r - Run all automated tests")
+    print("|cFFFFFF00/healiq test validate|r - Quick validation check")
     print("|cFFFFFF00/healiq debug|r - Toggle debug mode")
     print("|cFFFFFF00/healiq dump|r - Generate diagnostic dump")
     print("|cFFFFFF00/healiq reset|r - Reset all settings")
@@ -428,6 +430,18 @@ commands.test = function(subcommand)
             print("Test targeting display activated with Rejuvenation")
         else
             print("|cFFFF0000HealIQ|r Engine or UI not yet initialized")
+        end
+    elseif subcommand == "run" then
+        if HealIQ.Tests then
+            HealIQ.Tests:RunAll()
+        else
+            print("|cFFFF0000HealIQ|r Test framework not available")
+        end
+    elseif subcommand == "validate" then
+        if HealIQ.Tests then
+            HealIQ.Tests:RunQuickValidation()
+        else
+            print("|cFFFF0000HealIQ|r Test framework not available")
         end
     else
         if HealIQ.UI then
