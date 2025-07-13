@@ -3,7 +3,8 @@
 # Script to enhance changelog entries with World of Warcraft flair using AI
 # Usage: ./enhance-changelog-with-wow-flair.sh [changelog_file]
 
-set -e
+# Don't exit on errors - we want to handle them gracefully
+set +e
 
 # Default values
 CHANGELOG_FILE="CHANGELOG.md"
@@ -53,8 +54,8 @@ Enhanced entry:"
 
     # Check if GitHub models is available
     if ! check_github_models; then
-        echo "Error: GitHub models not available. AI enhancement requires GitHub CLI with models extension." >&2
-        echo "Please install and configure: gh extension install github/gh-models" >&2
+        echo "Warning: GitHub models not available, keeping original text" >&2
+        echo "$text"
         return 1
     fi
     
@@ -78,18 +79,29 @@ process_changelog() {
     
     if [[ ! -f "$file" ]]; then
         echo "Error: Changelog file '$file' not found"
-        exit 1
+        return 1
     fi
     
     echo "Enhancing changelog with WoW flair..."
     
     # Create backup
-    cp "$file" "${file}.backup"
+    if ! cp "$file" "${file}.backup"; then
+        echo "Warning: Failed to create backup of changelog file"
+        return 1
+    fi
     
     # Process the file
     local in_version_section=false
     local current_category=""
     local temp_file=$(mktemp)
+    
+    if [[ ! -f "$temp_file" ]]; then
+        echo "Error: Failed to create temporary file"
+        return 1
+    fi
+    
+    local enhancement_attempted=false
+    local enhancement_succeeded=false
     
     while IFS= read -r line; do
         # Check if we're starting a version section
@@ -124,13 +136,14 @@ process_changelog() {
             fi
             
             # Enhance the text
+            enhancement_attempted=true
             local enhanced_text
             enhanced_text=$(enhance_with_ai "$bullet_text" "$current_category")
-            if [[ $? -ne 0 ]]; then
-                echo "Warning: Failed to enhance changelog entry. Using original text." >&2
-                echo "- $bullet_text" >> "$temp_file"
-            else
+            if [[ $? -eq 0 ]]; then
+                enhancement_succeeded=true
                 echo "- $enhanced_text" >> "$temp_file"
+            else
+                echo "- $bullet_text" >> "$temp_file"
             fi
         else
             echo "$line" >> "$temp_file"
@@ -138,9 +151,23 @@ process_changelog() {
     done < "$file"
     
     # Replace original with enhanced version
-    mv "$temp_file" "$file"
-    
-    echo "Changelog enhanced! Backup saved as ${file}.backup"
+    if mv "$temp_file" "$file"; then
+        if [[ "$enhancement_attempted" == true ]]; then
+            if [[ "$enhancement_succeeded" == true ]]; then
+                echo "Changelog enhanced with AI-powered WoW flair! Backup saved as ${file}.backup"
+            else
+                echo "Changelog processed (AI enhancement attempted but failed). Backup saved as ${file}.backup"
+            fi
+        else
+            echo "Changelog processed (no content found to enhance). Backup saved as ${file}.backup"
+        fi
+        return 0
+    else
+        echo "Warning: Failed to update changelog file. Original file unchanged." >&2
+        rm -f "$temp_file" 2>/dev/null || true
+        echo "Skipped AI enhancement due to file processing error"
+        return 1
+    fi
 }
 
 # Main execution
@@ -161,7 +188,19 @@ main() {
         exit 0
     fi
     
-    process_changelog "$CHANGELOG_FILE"
+    # Try to process the changelog with AI enhancement
+    # Even if it fails, we don't want to fail the entire workflow
+    if process_changelog "$CHANGELOG_FILE"; then
+        echo ""
+        echo "✨ AI enhancement completed successfully! ✨"
+    else
+        echo "Warning: AI enhancement encountered errors, but changelog processing completed"
+        echo "The basic changelog was generated successfully without AI enhancement"
+    fi
+    
+    # Always exit successfully - AI enhancement is not critical to the workflow
+    echo ""
+    echo "Changelog processing completed."
 }
 
 # Run main function

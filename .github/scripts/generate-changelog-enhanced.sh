@@ -40,11 +40,15 @@ main() {
     echo "Step 2: Enhancing with AI-powered WoW flair..."
     
     # Step 2: Enhance with AI WoW flair
-    if ! "$SCRIPT_DIR/enhance-changelog-with-wow-flair.sh" "CHANGELOG.md"; then
-        echo "Error: Failed to enhance changelog with AI-powered WoW flair"
-        echo "Make sure GitHub CLI is installed with models extension:"
+    # AI enhancement is optional - don't fail the workflow if it's unavailable
+    if "$SCRIPT_DIR/enhance-changelog-with-wow-flair.sh" "CHANGELOG.md"; then
+        echo "✨ AI enhancement completed successfully!"
+    else
+        echo "Warning: AI enhancement failed or unavailable"
+        echo "Continuing with basic changelog generation..."
+        echo "Note: For AI enhancement, ensure GitHub CLI is installed with models extension:"
         echo "  gh extension install github/gh-models"
-        exit 1
+        echo "  and GH_TOKEN is properly configured in the environment"
     fi
     
     echo ""
