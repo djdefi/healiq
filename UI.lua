@@ -1208,7 +1208,7 @@ function UI:CreateStrategyTab(panel)
     scrollYOffset = scrollYOffset - 25
     
     -- Talent status frame
-    local talentFrame = CreateFrame("Frame", "HealIQTalentFrame", scrollChild)
+    local talentFrame = CreateFrame("Frame", "HealIQTalentFrame", scrollChild, "BackdropTemplate")
     talentFrame:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
     talentFrame:SetSize(350, 120)
     talentFrame:SetBackdrop({
