@@ -521,9 +521,10 @@ function UI:CreateOptionsFrame()
 end
 
 function UI:CreateOptionsTabs(parent)
-    -- Create tab buttons
-    local tabHeight = 25
-    local tabWidth = 95
+    -- Create navigation sidebar and content area
+    local navWidth = 110  -- Width of the left navigation sidebar
+    local navButtonHeight = 28
+    local navButtonSpacing = 2
     local tabs = {
         {name = "General", id = "general"},
         {name = "Display", id = "display"},
@@ -536,46 +537,59 @@ function UI:CreateOptionsTabs(parent)
     optionsFrame.tabPanels = {}
     optionsFrame.activeTab = nil  -- Initialize activeTab to avoid nil reference issues
     
+    -- Create navigation background
+    local navBackground = CreateFrame("Frame", "HealIQNavBackground", parent, "BackdropTemplate")
+    navBackground:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -10)
+    navBackground:SetSize(navWidth, OPTIONS_FRAME_HEIGHT - 60)
+    navBackground:SetBackdrop({
+        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileSize = 8,
+        edgeSize = 8,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 }
+    })
+    navBackground:SetBackdropColor(0.05, 0.05, 0.1, 0.8)
+    navBackground:SetBackdropBorderColor(0.3, 0.3, 0.4, 0.8)
+    
     for i, tab in ipairs(tabs) do
-        -- Create tab button using UIPanelButtonTemplate which is known to work
-        local tabButton = CreateFrame("Button", "HealIQTab" .. tab.id, parent, "UIPanelButtonTemplate")
-        tabButton:SetSize(tabWidth, tabHeight)
-        -- Fix: Increase y-offset to prevent overlap with header (was -5, now -35)
-        tabButton:SetPoint("TOPLEFT", parent, "TOPLEFT", 10 + (i-1) * (tabWidth - 10), -35)
-        tabButton:SetText(tab.name)
-        tabButton.tabId = tab.id
+        -- Create navigation button
+        local navButton = CreateFrame("Button", "HealIQNav" .. tab.id, navBackground, "UIPanelButtonTemplate")
+        navButton:SetSize(navWidth - 10, navButtonHeight)
+        navButton:SetPoint("TOP", navBackground, "TOP", 0, -5 - (i-1) * (navButtonHeight + navButtonSpacing))
+        navButton:SetText(tab.name)
+        navButton.tabId = tab.id
         
-        -- Style the button to look like a tab with better visual feedback
-        tabButton:SetNormalFontObject("GameFontNormal")
-        tabButton:SetHighlightFontObject("GameFontHighlight")
-        tabButton:SetDisabledFontObject("GameFontDisable")
+        -- Style the navigation button for sidebar appearance
+        navButton:SetNormalFontObject("GameFontNormal")
+        navButton:SetHighlightFontObject("GameFontHighlight")
+        navButton:SetDisabledFontObject("GameFontDisable")
         
         -- Set initial inactive appearance
-        tabButton:SetAlpha(0.7)
+        navButton:SetAlpha(0.8)
         
-        -- Add hover effects for better user experience
-        tabButton:SetScript("OnEnter", function(self)
+        -- Add hover effects
+        navButton:SetScript("OnEnter", function(self)
             if not optionsFrame.activeTab or self.tabId ~= optionsFrame.activeTab then
-                self:SetAlpha(0.85)
+                self:SetAlpha(0.95)
             end
         end)
         
-        tabButton:SetScript("OnLeave", function(self)
+        navButton:SetScript("OnLeave", function(self)
             if not optionsFrame.activeTab or self.tabId ~= optionsFrame.activeTab then
-                self:SetAlpha(0.7)
+                self:SetAlpha(0.8)
             end
         end)
         
-        tabButton:SetScript("OnClick", function(self)
+        navButton:SetScript("OnClick", function(self)
             UI:ShowOptionsTab(self.tabId)
         end)
         
-        optionsFrame.tabs[tab.id] = tabButton
+        optionsFrame.tabs[tab.id] = navButton
         
-        -- Create tab panel
+        -- Create content panel - positioned to the right of navigation
         local panel = CreateFrame("Frame", "HealIQPanel" .. tab.id, parent)
-        -- Fix: Adjust panel position to account for moved tabs (was -35, now -65)
-        panel:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -65)
+        panel:SetPoint("TOPLEFT", parent, "TOPLEFT", navWidth + 20, -10)
         panel:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -10, 40)
         panel:Hide()
         
@@ -593,22 +607,22 @@ function UI:CreateOptionsTabs(parent)
     self:ShowOptionsTab("general")
 end
 function UI:ShowOptionsTab(tabId)
-    -- Hide all panels and reset tab states
+    -- Hide all panels and reset navigation button states
     for id, panel in pairs(optionsFrame.tabPanels) do
         panel:Hide()
-        -- Reset button appearance for inactive tabs
-        local tab = optionsFrame.tabs[id]
-        tab:SetAlpha(0.7)
-        tab:SetNormalFontObject("GameFontNormal")
+        -- Reset button appearance for inactive navigation items
+        local navButton = optionsFrame.tabs[id]
+        navButton:SetAlpha(0.8)
+        navButton:SetNormalFontObject("GameFontNormal")
     end
     
-    -- Show selected panel and mark tab as active
+    -- Show selected panel and mark navigation item as active
     if optionsFrame.tabPanels[tabId] then
         optionsFrame.tabPanels[tabId]:Show()
-        -- Highlight the active tab
-        local activeTab = optionsFrame.tabs[tabId]
-        activeTab:SetAlpha(1.0)
-        activeTab:SetNormalFontObject("GameFontHighlight")
+        -- Highlight the active navigation button
+        local activeButton = optionsFrame.tabs[tabId]
+        activeButton:SetAlpha(1.0)
+        activeButton:SetNormalFontObject("GameFontHighlight")
         
         -- Track the active tab for hover effects
         optionsFrame.activeTab = tabId
@@ -1208,7 +1222,7 @@ function UI:CreateStrategyTab(panel)
     scrollYOffset = scrollYOffset - 25
     
     -- Talent status frame
-    local talentFrame = CreateFrame("Frame", "HealIQTalentFrame", scrollChild)
+    local talentFrame = CreateFrame("Frame", "HealIQTalentFrame", scrollChild, "BackdropTemplate")
     talentFrame:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
     talentFrame:SetSize(350, 120)
     talentFrame:SetBackdrop({
