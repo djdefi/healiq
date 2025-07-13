@@ -523,7 +523,7 @@ end
 function UI:CreateOptionsTabs(parent)
     -- Create tab buttons
     local tabHeight = 25
-    local tabWidth = 95
+    local tabWidth = 78  -- Reduced from 95 to fit 5 tabs within 400px frame width
     local tabs = {
         {name = "General", id = "general"},
         {name = "Display", id = "display"},
@@ -541,7 +541,7 @@ function UI:CreateOptionsTabs(parent)
         local tabButton = CreateFrame("Button", "HealIQTab" .. tab.id, parent, "UIPanelButtonTemplate")
         tabButton:SetSize(tabWidth, tabHeight)
         -- Fix: Increase y-offset to prevent overlap with header (was -5, now -35)
-        tabButton:SetPoint("TOPLEFT", parent, "TOPLEFT", 10 + (i-1) * (tabWidth - 10), -35)
+        tabButton:SetPoint("TOPLEFT", parent, "TOPLEFT", 10 + (i-1) * (tabWidth - 8), -35)
         tabButton:SetText(tab.name)
         tabButton.tabId = tab.id
         
