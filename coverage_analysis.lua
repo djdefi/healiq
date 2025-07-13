@@ -10,14 +10,22 @@ local function parseStats(statsFile)
         return {}
     end
     
+    local currentFile = nil
     for line in file:lines() do
-        -- Parse LuaCov stats format: filename:linenumber:hits
-        local filename, lineNum, hits = line:match("([^:]+):(%d+):(%d+)")
-        if filename and lineNum and hits then
-            if not stats[filename] then
-                stats[filename] = {}
+        -- Parse LuaCov stats format: 
+        -- Format is: linecount:filename
+        -- followed by: hit counts separated by spaces
+        local lineCount, filename = line:match("^(%d+):(.+)$")
+        if lineCount and filename then
+            currentFile = filename
+            stats[currentFile] = {}
+        elseif currentFile and line:match("^%d") then
+            -- This line contains hit counts
+            local lineNum = 1
+            for hitCount in line:gmatch("(%d+)") do
+                stats[currentFile][lineNum] = tonumber(hitCount)
+                lineNum = lineNum + 1
             end
-            stats[filename][tonumber(lineNum)] = tonumber(hits)
         end
     end
     
@@ -166,8 +174,10 @@ end
 
 -- Main execution
 local function main()
+    -- Filter to only analyze main addon files
     local files = {"Core.lua", "Engine.lua", "UI.lua", "Tracker.lua", "Config.lua", "Logging.lua"}
     
+    print("Analyzing coverage for HealIQ addon files only...")
     local success = generateReport(files)
     if success then
         os.exit(0)

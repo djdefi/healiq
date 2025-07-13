@@ -339,6 +339,9 @@ end
 local function runTests()
     print("=== HealIQ CI Test Runner ===")
     
+    -- Initialize LuaCov for coverage tracking
+    local luacov = require("luacov")
+    
     -- Load addon
     local HealIQ = loadAddon()
     if not HealIQ then
@@ -365,6 +368,12 @@ local function runTests()
     if HealIQ.Tests then
         print("Running HealIQ tests...")
         HealIQ.Tests:RunAll()
+        
+        -- Force LuaCov to save stats
+        if luacov.save_stats then
+            luacov.save_stats()
+        end
+        
         return true
     else
         print("ERROR: Test module not loaded properly")
