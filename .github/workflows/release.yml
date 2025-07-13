@@ -2,6 +2,12 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_to_curseforge:
+        description: 'Publish to CurseForge'
+        required: false
+        default: true
+        type: boolean
   push:
     branches: [ main ]
 
@@ -266,7 +272,7 @@ jobs:
         fi
         
     - name: Upload to CurseForge
-      if: steps.check_tag.outputs.exists == 'false'
+      if: steps.check_tag.outputs.exists == 'false' && (github.event_name == 'push' || github.event.inputs.publish_to_curseforge == 'true')
       uses: itsmeow/curseforge-upload@v3
       with:
         token: ${{ secrets.CURSEFORGE_TOKEN }}
