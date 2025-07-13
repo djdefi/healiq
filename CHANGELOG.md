@@ -2,7 +2,12 @@
 
 ## [0.0.24] - 2025-07-13
 
+### Added
+- Add step to install GitHub models extension in workflow..
 
+### Changed
+- Initial plan
+- Initial analysis and understanding of AI changelog workflow failure
 
 ## [0.0.23] - 2025-07-12
 
