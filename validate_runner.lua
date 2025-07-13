@@ -13,14 +13,14 @@ local function setupMockEnvironment()
     _G.string = string
     _G.math = math
     _G.tostring = tostring
-    
+
     _G.GetAddOnMetadata = function(addon, field)
         if addon == "HealIQ" and field == "Version" then
             return "0.0.25"
         end
         return nil
     end
-    
+
     _G.HealIQDB = {}
     _G.SLASH_HEALIQ1 = "/healiq"
     _G.SlashCmdList = {}
@@ -28,13 +28,13 @@ end
 
 local function loadAddon()
     setupMockEnvironment()
-    
+
     local addonName = "HealIQ"
     local HealIQ = {}
     _G[addonName] = HealIQ
-    
+
     HealIQ.version = "0.0.25"
-    
+
     HealIQ.SafeCall = function(self, func)
         local success, result = pcall(func)
         if not success then
@@ -42,16 +42,16 @@ local function loadAddon()
         end
         return success, result
     end
-    
+
     HealIQ.Print = function(self, message)
         print("HealIQ: " .. tostring(message))
     end
-    
+
     HealIQ.DebugLog = function(self, message, level) end
     HealIQ.Message = function(self, message)
         print("HealIQ: " .. tostring(message))
     end
-    
+
     HealIQ.db = {
         debug = false,
         ui = {
@@ -62,13 +62,13 @@ local function loadAddon()
             debug = false
         }
     }
-    
+
     HealIQ.UI = {
         GetFrameInfo = function()
             return { scale = 1.0, opacity = 1.0 }
         end
     }
-    
+
     HealIQ.Config = {
         GetOption = function(self, category, option)
             if category == "general" and option == "debug" then
@@ -82,7 +82,7 @@ local function loadAddon()
             end
         end
     }
-    
+
     HealIQ.Tracker = {
         Initialize = function() end,
         IsSpellKnown = function(self, spellName)
@@ -94,32 +94,32 @@ local function loadAddon()
             return knownSpells[spellName] or false
         end
     }
-    
+
     return HealIQ
 end
 
 local function runValidation()
     print("=== HealIQ CI Quick Validation ===")
-    
+
     local HealIQ = loadAddon()
     if not HealIQ then
         print("ERROR: Failed to load HealIQ addon")
         return false
     end
-    
+
     local testFile = "Tests.lua"
     local testChunk, err = loadfile(testFile)
     if not testChunk then
         print("ERROR: Failed to load " .. testFile .. ": " .. tostring(err))
         return false
     end
-    
+
     local success, result = pcall(testChunk, "HealIQ", HealIQ)
     if not success then
         print("ERROR: Failed to execute " .. testFile .. ": " .. tostring(result))
         return false
     end
-    
+
     if HealIQ.Tests then
         print("Running quick validation...")
         local validationPassed = HealIQ.Tests:RunQuickValidation()

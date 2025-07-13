@@ -23,12 +23,12 @@ local function setupMockEnvironment()
     _G.rawget = rawget
     _G.rawset = rawset
     _G.select = select
-    
+
     -- Mock time/date functions
     _G.time = os.time
     _G.date = os.date
     _G.GetTime = function() return os.time() end
-    
+
     -- Mock basic WoW API functions
     _G.GetAddOnMetadata = function(addon, field)
         if addon == "HealIQ" and field == "Version" then
@@ -36,7 +36,7 @@ local function setupMockEnvironment()
         end
         return nil
     end
-    
+
     -- Mock frame creation
     _G.CreateFrame = function(frameType, name, parent, template)
         local frame = {
@@ -45,7 +45,7 @@ local function setupMockEnvironment()
             parent = parent,
             template = template,
             children = {},
-            
+
             -- Common frame methods
             SetSize = function(self, width, height)
                 self.width = width
@@ -115,15 +115,15 @@ local function setupMockEnvironment()
             SetMinResize = function(self, w, h) end,
             SetMaxResize = function(self, w, h) end
         }
-        
+
         -- Add frame to global registry if named
         if name then
             _G[name] = frame
         end
-        
+
         return frame
     end
-    
+
     -- Mock other UI functions
     _G.UIParent = CreateFrame("Frame", "UIParent")
     _G.GameFontNormal = "GameFontNormal"
@@ -133,7 +133,7 @@ local function setupMockEnvironment()
     _G.Minimap = CreateFrame("Frame", "Minimap")
     _G.Minimap.GetZoom = function() return 0 end
     _G.Minimap.SetZoom = function(zoom) end
-    
+
     -- Mock game state functions
     _G.UnitExists = function(unit) return unit == "player" end
     _G.UnitName = function(unit) return unit == "player" and "TestPlayer" or nil end
@@ -154,15 +154,15 @@ local function setupMockEnvironment()
     end
     _G.IsSpellKnown = function(spellId) return true end
     _G.GetSpellCooldown = function(spellId) return 0, 0, 0, 0 end
-    
+
     -- Mock saved variables
     _G.HealIQDB = {}
-    
+
     -- Mock slash commands
     _G.SLASH_HEALIQ1 = "/healiq"
     _G.SLASH_HEALIQ2 = "/hiq"
     _G.SlashCmdList = {}
-    
+
     -- Mock events
     _G.C_Timer = {
         After = function(delay, callback)
@@ -170,42 +170,42 @@ local function setupMockEnvironment()
             callback()
         end
     }
-    
+
     -- Mock LibStub (if used)
     _G.LibStub = function(name, silent)
         return nil
     end
-    
+
     -- Mock debugstack for error handling
     _G.debugstack = function(level)
         return "mock debug stack"
     end
-    
+
     -- Mock error handler
     _G.geterrorhandler = function()
         return function(msg)
             print("Error: " .. tostring(msg))
         end
     end
-    
+
     -- Mock chat functions
     _G.DEFAULT_CHAT_FRAME = {
         AddMessage = function(self, msg) print(msg) end
     }
-    
+
     -- Mock color functions
     _G.NORMAL_FONT_COLOR = {r = 1, g = 1, b = 1}
     _G.HIGHLIGHT_FONT_COLOR = {r = 1, g = 1, b = 0}
     _G.RED_FONT_COLOR = {r = 1, g = 0, b = 0}
     _G.GREEN_FONT_COLOR = {r = 0, g = 1, b = 0}
-    
+
     -- Mock constants
     _G.TEXTURE = 1
     _G.OVERLAY = 2
     _G.BACKGROUND = 3
     _G.BORDER = 4
     _G.ARTWORK = 5
-    
+
     -- Mock string coloring
     _G.YELLOW_FONT_COLOR_CODE = "|cFFFFD100"
     _G.FONT_COLOR_CODE_CLOSE = "|r"
@@ -214,15 +214,15 @@ end
 -- Load and initialize the addon in a controlled environment
 local function loadAddon()
     setupMockEnvironment()
-    
+
     -- Create addon namespace
     local addonName = "HealIQ"
     local HealIQ = {}
     _G[addonName] = HealIQ
-    
+
     -- Set version
     HealIQ.version = "0.0.25"
-    
+
     -- Mock essential functions
     HealIQ.SafeCall = function(self, func)
         local success, result = pcall(func)
@@ -231,19 +231,19 @@ local function loadAddon()
         end
         return success, result
     end
-    
+
     HealIQ.Print = function(self, message)
         print("HealIQ: " .. tostring(message))
     end
-    
+
     HealIQ.DebugLog = function(self, message, level)
         -- Silent in tests unless debug enabled
     end
-    
+
     HealIQ.Message = function(self, message)
         print("HealIQ: " .. tostring(message))
     end
-    
+
     -- Mock database
     HealIQ.db = {
         debug = false,
@@ -255,16 +255,16 @@ local function loadAddon()
             debug = false
         }
     }
-    
+
     -- Try to load actual addon files for coverage tracking
     local addonFiles = {"Core.lua", "Engine.lua", "UI.lua", "Tracker.lua", "Config.lua", "Logging.lua"}
-    
+
     for _, filename in ipairs(addonFiles) do
         local file = io.open(filename, "r")
         if file then
             file:close()
             print("Loading " .. filename .. " for coverage analysis...")
-            
+
             -- Load and execute the file
             local chunk, err = loadfile(filename)
             if chunk then
@@ -279,7 +279,7 @@ local function loadAddon()
             print("Note: " .. filename .. " not found, using mock implementation")
         end
     end
-    
+
     -- Ensure debug is disabled for clean test output
     HealIQ.debug = false
     if HealIQ.db then
@@ -288,7 +288,7 @@ local function loadAddon()
             HealIQ.db.general.debug = false
         end
     end
-    
+
     -- Ensure we have the essential modules even if loading failed
     if not HealIQ.UI then
         HealIQ.UI = {
@@ -300,7 +300,7 @@ local function loadAddon()
             end
         }
     end
-    
+
     if not HealIQ.Config then
         HealIQ.Config = {
             GetOption = function(self, category, option)
@@ -316,7 +316,7 @@ local function loadAddon()
             end
         }
     end
-    
+
     if not HealIQ.Tracker then
         HealIQ.Tracker = {
             Initialize = function() end,
@@ -331,24 +331,24 @@ local function loadAddon()
             end
         }
     end
-    
+
     return HealIQ
 end
 
 -- Run the tests
 local function runTests()
     print("=== HealIQ CI Test Runner ===")
-    
+
     -- Initialize LuaCov for coverage tracking
     local luacov = require("luacov")
-    
+
     -- Load addon
     local HealIQ = loadAddon()
     if not HealIQ then
         print("ERROR: Failed to load HealIQ addon")
         return false
     end
-    
+
     -- Load the test module
     local testFile = "Tests.lua"
     local testChunk, err = loadfile(testFile)
@@ -356,24 +356,24 @@ local function runTests()
         print("ERROR: Failed to load " .. testFile .. ": " .. tostring(err))
         return false
     end
-    
+
     -- Execute the test file in our environment
     local success, result = pcall(testChunk, "HealIQ", HealIQ)
     if not success then
         print("ERROR: Failed to execute " .. testFile .. ": " .. tostring(result))
         return false
     end
-    
+
     -- Run the tests
     if HealIQ.Tests then
         print("Running HealIQ tests...")
         HealIQ.Tests:RunAll()
-        
+
         -- Force LuaCov to save stats
         if luacov.save_stats then
             luacov.save_stats()
         end
-        
+
         return true
     else
         print("ERROR: Test module not loaded properly")

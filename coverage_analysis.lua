@@ -9,10 +9,10 @@ local function parseStats(statsFile)
         print("Warning: " .. statsFile .. " not found, coverage analysis will be limited")
         return {}
     end
-    
+
     local currentFile = nil
     for line in file:lines() do
-        -- Parse LuaCov stats format: 
+        -- Parse LuaCov stats format:
         -- Format is: linecount:filename
         -- followed by: hit counts separated by spaces
         local lineCount, filename = line:match("^(%d+):(.+)$")
@@ -28,7 +28,7 @@ local function parseStats(statsFile)
             end
         end
     end
-    
+
     file:close()
     return stats
 end
@@ -38,7 +38,7 @@ local function analyzeFile(filename, stats)
     if not file then
         return nil
     end
-    
+
     local lines = {}
     local lineNum = 1
     for line in file:lines() do
@@ -51,7 +51,7 @@ local function analyzeFile(filename, stats)
         lineNum = lineNum + 1
     end
     file:close()
-    
+
     -- Determine executable lines (simplified heuristic)
     for _, line in ipairs(lines) do
         local content = line.content:gsub("^%s*", "") -- trim leading whitespace
@@ -66,11 +66,11 @@ local function analyzeFile(filename, stats)
             line.executable = true
         end
     end
-    
+
     -- Calculate coverage
     local totalExecutable = 0
     local coveredLines = 0
-    
+
     for _, line in ipairs(lines) do
         if line.executable then
             totalExecutable = totalExecutable + 1
@@ -79,7 +79,7 @@ local function analyzeFile(filename, stats)
             end
         end
     end
-    
+
     return {
         filename = filename,
         totalLines = #lines,
@@ -93,18 +93,18 @@ end
 local function generateReport(files)
     print("=== HealIQ Code Coverage Analysis ===")
     print("")
-    
+
     local totalExecutable = 0
     local totalCovered = 0
     local fileResults = {}
-    
+
     -- Parse coverage stats
     local stats = parseStats("luacov.stats.out")
     if not stats then
         print("WARNING: Could not parse luacov.stats.out - coverage analysis may be incomplete")
         stats = {}
     end
-    
+
     -- Analyze each file
     for _, filename in ipairs(files) do
         local analysis = analyzeFile(filename, stats)
@@ -114,17 +114,17 @@ local function generateReport(files)
             totalCovered = totalCovered + analysis.coveredLines
         end
     end
-    
+
     -- Overall summary
     local overallCoverage = totalExecutable > 0 and (totalCovered / totalExecutable) * 100 or 0
     print(string.format("Overall Coverage: %.1f%% (%d/%d executable lines)",
                        overallCoverage, totalCovered, totalExecutable))
-    
+
     if totalExecutable == 0 then
         print("Note: No executable lines tracked - coverage analysis may be incomplete")
     end
     print("")
-    
+
     -- File-by-file results
     print("File Coverage Details:")
     print("====================")
@@ -134,7 +134,7 @@ local function generateReport(files)
                            result.coveredLines, result.totalExecutable))
     end
     print("")
-    
+
     -- Coverage threshold check
     local threshold = 70 -- 70% coverage threshold
     if totalExecutable == 0 then
@@ -146,7 +146,7 @@ local function generateReport(files)
         return true
     else
         print(string.format("❌ Coverage below threshold (%.1f%% < %d%%)", overallCoverage, threshold))
-        
+
         -- Show uncovered critical lines
         print("")
         print("Critical uncovered areas:")
@@ -167,7 +167,7 @@ local function generateReport(files)
                 end
             end
         end
-        
+
         return false
     end
 end
@@ -176,7 +176,7 @@ end
 local function main()
     -- Filter to only analyze main addon files
     local files = {"Core.lua", "Engine.lua", "UI.lua", "Tracker.lua", "Config.lua", "Logging.lua"}
-    
+
     print("Analyzing coverage for HealIQ addon files only...")
     local success = generateReport(files)
     if success then
