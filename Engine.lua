@@ -362,8 +362,8 @@ function Engine:CheckTalentAvailability(spellId)
         return true
     end
     
-    -- For some talents, check if they're learned via GetSpellInfo
-    local spellName = GetSpellInfo(spellId)
+    -- For some talents, check if they're learned via C_Spell.GetSpellName
+    local spellName = C_Spell.GetSpellName(spellId)
     if spellName then
         return IsSpellKnown(spellId) or IsPlayerSpell(spellId)
     end
