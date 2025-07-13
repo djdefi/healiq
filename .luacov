@@ -1,0 +1,28 @@
+-- LuaCov configuration for HealIQ
+return {
+  statsfile = "luacov.stats.out",
+  reportfile = "luacov.report.out",
+  
+  -- Include patterns (files to track)
+  include = {
+    "Core%.lua$",
+    "Engine%.lua$", 
+    "UI%.lua$",
+    "Tracker%.lua$",
+    "Config%.lua$",
+    "Logging%.lua$"
+  },
+  
+  -- Exclude patterns (files to ignore)
+  exclude = {
+    "Tests%.lua$",
+    "test_runner%.lua$",
+    "validate_runner%.lua$"
+  },
+  
+  -- Delete stats file on startup
+  deletestats = true,
+  
+  -- Modules to preload for coverage
+  modules = {}
+}

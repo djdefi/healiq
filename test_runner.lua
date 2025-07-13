@@ -280,6 +280,15 @@ local function loadAddon()
         end
     end
     
+    -- Ensure debug is disabled for clean test output
+    HealIQ.debug = false
+    if HealIQ.db then
+        HealIQ.db.debug = false
+        if HealIQ.db.general then
+            HealIQ.db.general.debug = false
+        end
+    end
+    
     -- Ensure we have the essential modules even if loading failed
     if not HealIQ.UI then
         HealIQ.UI = {
