@@ -106,3 +106,25 @@ jobs:
         fi
         
         echo "Version consistency check passed!"
+        
+    - name: Run HealIQ quick validation
+      run: |
+        echo "Running HealIQ quick validation..."
+        if [ -f "validate_runner.lua" ] && [ -f "Tests.lua" ]; then
+          echo "Executing HealIQ quick validation..."
+          lua validate_runner.lua
+          echo "Quick validation completed successfully!"
+        else
+          echo "Validation files not found, skipping validation"
+        fi
+        
+    - name: Run HealIQ logic tests
+      run: |
+        echo "Running HealIQ logic tests..."
+        if [ -f "test_runner.lua" ] && [ -f "Tests.lua" ]; then
+          echo "Executing HealIQ test suite..."
+          lua test_runner.lua
+          echo "Logic tests completed successfully!"
+        else
+          echo "Test files not found, skipping logic tests"
+        fi

@@ -13,4 +13,3 @@ Tracker.lua
 Engine.lua
 UI.lua
 Config.lua
-Tests.lua
