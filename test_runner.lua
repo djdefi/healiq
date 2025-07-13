@@ -47,7 +47,7 @@ local function setupMockEnvironment()
             children = {},
             
             -- Common frame methods
-            SetSize = function(self, width, height) 
+            SetSize = function(self, width, height)
                 self.width = width
                 self.height = height
             end,
@@ -69,14 +69,14 @@ local function setupMockEnvironment()
             GetText = function(self) return self.text or "" end,
             SetTexture = function(self, texture) self.texture = texture end,
             SetWordWrap = function(self, wrap) self.wordWrap = wrap end,
-            SetScript = function(self, event, handler) 
+            SetScript = function(self, event, handler)
                 self.scripts = self.scripts or {}
                 self.scripts[event] = handler
             end,
             GetScript = function(self, event)
                 return self.scripts and self.scripts[event]
             end,
-            RegisterEvent = function(self, event) 
+            RegisterEvent = function(self, event)
                 self.events = self.events or {}
                 self.events[event] = true
             end,
@@ -127,7 +127,7 @@ local function setupMockEnvironment()
     -- Mock other UI functions
     _G.UIParent = CreateFrame("Frame", "UIParent")
     _G.GameFontNormal = "GameFontNormal"
-    _G.GameFontHighlight = "GameFontHighlight" 
+    _G.GameFontHighlight = "GameFontHighlight"
     _G.GameFontDisable = "GameFontDisable"
     _G.GameFontNormalLarge = "GameFontNormalLarge"
     _G.Minimap = CreateFrame("Frame", "Minimap")
@@ -137,16 +137,16 @@ local function setupMockEnvironment()
     -- Mock game state functions
     _G.UnitExists = function(unit) return unit == "player" end
     _G.UnitName = function(unit) return unit == "player" and "TestPlayer" or nil end
-    _G.UnitClass = function(unit) 
+    _G.UnitClass = function(unit)
         if unit == "player" then
             return "Druid", "DRUID"
         end
         return nil, nil
     end
-    _G.GetSpellInfo = function(spellId) 
+    _G.GetSpellInfo = function(spellId)
         local spells = {
             [774] = "Rejuvenation",
-            [8936] = "Regrowth", 
+            [8936] = "Regrowth",
             [5185] = "Healing Touch"
         }
         local name = spells[spellId] or "Unknown Spell"

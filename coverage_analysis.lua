@@ -46,7 +46,7 @@ local function analyzeFile(filename, stats)
     -- Determine executable lines (simplified heuristic)
     for _, line in ipairs(lines) do
         local content = line.content:gsub("^%s*", "") -- trim leading whitespace
-        if content ~= "" and 
+        if content ~= "" and
            not content:match("^%-%-") and -- not a comment
            not content:match("^local%s+[%w_]+%s*=%s*{%s*$") and -- not table declaration start
            not content:match("^}%s*$") and -- not just closing brace
@@ -108,7 +108,7 @@ local function generateReport(files)
     
     -- Overall summary
     local overallCoverage = totalExecutable > 0 and (totalCovered / totalExecutable) * 100 or 0
-    print(string.format("Overall Coverage: %.1f%% (%d/%d executable lines)", 
+    print(string.format("Overall Coverage: %.1f%% (%d/%d executable lines)",
                        overallCoverage, totalCovered, totalExecutable))
     print("")
     
@@ -116,8 +116,8 @@ local function generateReport(files)
     print("File Coverage Details:")
     print("====================")
     for _, result in ipairs(fileResults) do
-        print(string.format("%-20s: %5.1f%% (%3d/%3d lines)", 
-                           result.filename, result.coverage, 
+        print(string.format("%-20s: %5.1f%% (%3d/%3d lines)",
+                           result.filename, result.coverage,
                            result.coveredLines, result.totalExecutable))
     end
     print("")
