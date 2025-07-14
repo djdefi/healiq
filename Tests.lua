@@ -195,11 +195,11 @@ function Tests.TestCore()
         Tests.AssertType("function", HealIQ.OnVersionUpgrade, "Core: OnVersionUpgrade is function")
         
         -- Test version upgrade handling (just verify it executes without error)
-        local success = pcall(function()
+        local upgradeSuccess = pcall(function()
             HealIQ:OnVersionUpgrade("0.0.1", "0.0.2")
             HealIQ:OnVersionUpgrade(nil, "0.0.25") -- First install case
         end)
-        Tests.Assert(success, "Core: OnVersionUpgrade executes without error")
+        Tests.Assert(upgradeSuccess, "Core: OnVersionUpgrade executes without error")
     end
 
     -- Test database corruption handling simulation
@@ -209,18 +209,18 @@ function Tests.TestCore()
         
         -- Test with corrupted database (wrong type)
         _G.HealIQDB = "corrupted_string"
-        local success = pcall(function()
+        local corruptSuccess = pcall(function()
             HealIQ:InitializeDB()
         end)
-        Tests.Assert(success, "Core: InitializeDB handles corrupted database")
+        Tests.Assert(corruptSuccess, "Core: InitializeDB handles corrupted database")
         Tests.AssertType("table", _G.HealIQDB, "Core: InitializeDB resets corrupted database to table")
         
         -- Test with nil database
         _G.HealIQDB = nil
-        local success2 = pcall(function()
+        local nilSuccess = pcall(function()
             HealIQ:InitializeDB()
         end)
-        Tests.Assert(success2, "Core: InitializeDB handles nil database")
+        Tests.Assert(nilSuccess, "Core: InitializeDB handles nil database")
         Tests.AssertType("table", _G.HealIQDB, "Core: InitializeDB creates database when nil")
         
         -- Test database structure after initialization
@@ -272,17 +272,17 @@ function Tests.TestCore()
         
         -- Test with debug enabled
         HealIQ.debug = true
-        local success = pcall(function()
+        local debugSuccess = pcall(function()
             HealIQ:Print("Test message")
         end)
-        Tests.Assert(success, "Core: Print executes without error when debug enabled")
+        Tests.Assert(debugSuccess, "Core: Print executes without error when debug enabled")
         
         -- Test with debug disabled
         HealIQ.debug = false
-        local success2 = pcall(function()
+        local noDebugSuccess = pcall(function()
             HealIQ:Print("Test message")
         end)
-        Tests.Assert(success2, "Core: Print executes without error when debug disabled")
+        Tests.Assert(noDebugSuccess, "Core: Print executes without error when debug disabled")
         
         HealIQ.debug = originalDebug -- Restore
     end
@@ -353,7 +353,7 @@ function Tests.TestUI()
             HealIQ.UI:ResetPosition()
             
             -- Verify it changed (exact values depend on implementation)
-            Tests.Assert(HealIQ.db.ui.x ~= 100 or HealIQ.db.ui.y ~= 200, 
+            Tests.Assert(HealIQ.db.ui.x ~= 100 or HealIQ.db.ui.y ~= 200,
                 "UI: ResetPosition changes position values")
             
             -- Restore (or leave as reset, which is fine)

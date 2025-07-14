@@ -166,7 +166,7 @@ end
 function WoWAPIMock.GetSpellInfo(spellID)
     local spellNames = {
         [774] = "Rejuvenation",
-        [33763] = "Lifebloom", 
+        [33763] = "Lifebloom",
         [8936] = "Regrowth",
         [2061] = "Flash Heal",
         [139] = "Renew"
@@ -178,8 +178,8 @@ function WoWAPIMock.UnitBuff(unit, index, filter)
     local buffs = mockGameState.unitBuffs[unit] or {}
     local buff = buffs[index]
     if buff then
-        return buff.name, buff.icon, buff.count, buff.debuffType, 
-               buff.duration, buff.expirationTime, buff.source, 
+        return buff.name, buff.icon, buff.count, buff.debuffType,
+               buff.duration, buff.expirationTime, buff.source,
                buff.isStealable, buff.nameplateShowPersonal, buff.spellId
     end
     return nil
@@ -208,6 +208,15 @@ end
 
 function WoWAPIMock.UnitLevel(unit)
     return 80
+end
+
+-- Debug/utility function to access created frames (used for testing frame management)
+function WoWAPIMock.GetMockFrameCount()
+    local count = 0
+    for _ in pairs(mockFrames) do
+        count = count + 1
+    end
+    return count
 end
 
 function WoWAPIMock.UnitPowerType(unit)

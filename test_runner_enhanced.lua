@@ -150,12 +150,12 @@ function HealIQ:FormatDuration(seconds)
 end
 
 -- Load addon modules with proper addon environment simulation
-local function loadAddonModule(filename, addonName, addonTable)
+local function loadAddonModule(filename, moduleAddonName, addonTable)
     local env = setmetatable({}, {__index = _G})
     local chunk = loadfile(filename, "t", env)
     if chunk then
         -- Simulate the ... parameters that WoW passes to addon files
-        return chunk(addonName, addonTable)
+        return chunk(moduleAddonName, addonTable)
     else
         error("Failed to load " .. filename)
     end
@@ -189,7 +189,7 @@ local totalTests, passedTests = HealIQ.Tests.RunAllTestsEnhanced()
 print("\n=== Test Coverage Assessment ===")
 print("With WoW API mocking, we can now test:")
 print("• Engine logic with simulated game state")
-print("• UI frame creation and manipulation") 
+print("• UI frame creation and manipulation")
 print("• Tracker functions with mock buffs/combat")
 print("• Configuration management with state changes")
 print("")
@@ -197,7 +197,7 @@ print("")
 -- Calculate expected coverage improvement
 local expectedCoverage = {
     ["Overall"] = "35-45%",
-    ["Core.lua"] = "70%+", 
+    ["Core.lua"] = "70%+",
     ["Config.lua"] = "50%+",
     ["Logging.lua"] = "85%+",
     ["Engine.lua"] = "45%+",
@@ -212,7 +212,7 @@ end
 
 print("\n=== Critical Coverage Thresholds ===")
 print("🟢 Excellent (80%+): Pure utility functions")
-print("🟡 Good (60-80%):    Business logic modules") 
+print("🟡 Good (60-80%):    Business logic modules")
 print("🟠 Acceptable (40-60%): Mixed logic with WoW dependencies")
 print("🔴 Poor (<40%):       UI-heavy or combat-dependent code")
 
