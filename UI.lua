@@ -20,7 +20,7 @@ local optionsFrame = nil
 -- Constants
 local FRAME_SIZE = 64
 local ICON_SIZE = 48
-local OPTIONS_FRAME_HEIGHT = 600
+local OPTIONS_FRAME_HEIGHT = 650  -- Increased height to accommodate all content
 local TOOLTIP_LINE_LENGTH = 45
 
 -- Minimap button positioning
@@ -264,9 +264,21 @@ function UI:CreateMinimapButton()
     minimapButton:SetFrameStrata("MEDIUM")
     minimapButton:SetFrameLevel(8)
     
+    -- Create button border first (visible border around the icon)
+    local border = minimapButton:CreateTexture(nil, "BORDER")
+    border:SetSize(22, 22)
+    border:SetPoint("CENTER")
+    border:SetColorTexture(0.8, 0.8, 0.8, 0.9)  -- Light gray border
+    
+    -- Create circular mask for the border
+    local borderMask = minimapButton:CreateMaskTexture()
+    borderMask:SetAllPoints(border)
+    borderMask:SetTexture(MINIMAP_BACKGROUND_TEXTURE, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    border:AddMaskTexture(borderMask)
+    
     -- Create button background with circular masking
     local bg = minimapButton:CreateTexture(nil, "BACKGROUND")
-    bg:SetSize(20, 20)
+    bg:SetSize(18, 18)  -- Slightly smaller than border
     bg:SetPoint("CENTER")
     bg:SetColorTexture(0, 0, 0, 0.7)
     
@@ -278,7 +290,7 @@ function UI:CreateMinimapButton()
     
     -- Create button icon with circular masking
     local icon = minimapButton:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(16, 16)
+    icon:SetSize(14, 14)  -- Adjusted to fit within border
     icon:SetPoint("CENTER")
     icon:SetTexture("Interface\\Icons\\Spell_Nature_Rejuvenation")
     icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
@@ -290,6 +302,7 @@ function UI:CreateMinimapButton()
     icon:AddMaskTexture(iconMask)
     
     minimapButton.icon = icon
+    minimapButton.border = border  -- Store reference for potential updates
     
     -- Position on minimap using angle-based positioning
     local savedAngle = HealIQ.db.ui.minimapAngle or -math.pi/4 -- Default to top-right
@@ -540,7 +553,9 @@ function UI:CreateOptionsTabs(parent)
     -- Create navigation background
     local navBackground = CreateFrame("Frame", "HealIQNavBackground", parent, "BackdropTemplate")
     navBackground:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -10)
-    navBackground:SetSize(navWidth, OPTIONS_FRAME_HEIGHT - 60)
+    -- Make navigation height responsive to frame height
+    local navHeight = OPTIONS_FRAME_HEIGHT - 80  -- Increased padding for better fit
+    navBackground:SetSize(navWidth, navHeight)
     navBackground:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -1047,6 +1062,10 @@ function UI:CreateRulesTab(panel)
         check.text = check:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         check.text:SetPoint("LEFT", check, "RIGHT", 5, 0)
         check.text:SetText(rule.name)
+        -- Add width constraint to prevent text overflow in rules tab
+        check.text:SetWidth(240)  -- Leave room for navigation sidebar
+        check.text:SetJustifyH("LEFT")
+        check.text:SetWordWrap(true)
         check:SetScript("OnClick", function(self)
             if HealIQ.db and HealIQ.db.rules then
                 HealIQ.db.rules[rule.key] = self:GetChecked()
@@ -1104,7 +1123,10 @@ function UI:CreateStrategyTab(panel)
     scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -25, 10)
     
     local scrollChild = CreateFrame("Frame", "HealIQStrategyScrollChild", scrollFrame)
-    scrollChild:SetSize(350, 800) -- Large height for all controls
+    -- Make scroll child height responsive to avoid overflow issues
+    local availableWidth = 350
+    local contentHeight = 900  -- Increased to ensure all content fits
+    scrollChild:SetSize(availableWidth, contentHeight)
     scrollFrame:SetScrollChild(scrollChild)
     
     local scrollYOffset = -10
@@ -1137,6 +1159,10 @@ function UI:CreateStrategyTab(panel)
         check.text = check:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         check.text:SetPoint("LEFT", check, "RIGHT", 5, 0)
         check.text:SetText(toggle.name)
+        -- Add width constraint to prevent text overflow
+        check.text:SetWidth(280)  -- Leave room for checkbox and scrollbar
+        check.text:SetJustifyH("LEFT")
+        check.text:SetWordWrap(true)  -- Allow text wrapping for long names
         check:SetScript("OnClick", function(self)
             if HealIQ.db and HealIQ.db.strategy then
                 HealIQ.db.strategy[toggle.key] = self:GetChecked()

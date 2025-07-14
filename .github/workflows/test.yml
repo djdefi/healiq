@@ -16,11 +16,12 @@ jobs:
     - name: Install Lua
       run: |
         sudo apt-get update
-        sudo apt-get install -y lua5.4 luarocks
+        sudo apt-get install -y lua5.1 lua5.4 luarocks bc
         
-    - name: Install luacheck
+    - name: Install luacheck and luacov
       run: |
         sudo luarocks install luacheck
+        sudo luarocks install luacov
         
     - name: Run Lua syntax check
       run: |
@@ -106,3 +107,165 @@ jobs:
         fi
         
         echo "Version consistency check passed!"
+        
+    - name: Run HealIQ quick validation
+      run: |
+        echo "Running HealIQ quick validation..."
+        if [ -f "validate_runner.lua" ] && [ -f "Tests.lua" ]; then
+          echo "Executing HealIQ quick validation..."
+          lua5.1 validate_runner.lua
+          echo "Quick validation completed successfully!"
+        else
+          echo "Validation files not found, skipping validation"
+        fi
+        
+    - name: Run HealIQ logic tests with coverage
+      run: |
+        echo "Running HealIQ logic tests with coverage analysis..."
+        if [ -f "test_runner.lua" ] && [ -f "Tests.lua" ]; then
+          echo "Setting up LuaCov configuration..."
+          
+          # Create LuaCov configuration
+          cat > .luacov << 'EOF'
+-- LuaCov configuration for HealIQ
+return {
+  statsfile = "luacov.stats.out",
+  reportfile = "luacov.report.out",
+  
+  -- Include patterns (files to track)
+  include = {
+    "Core%.lua$",
+    "Engine%.lua$", 
+    "UI%.lua$",
+    "Tracker%.lua$",
+    "Config%.lua$",
+    "Logging%.lua$"
+  },
+  
+  -- Exclude patterns (files to ignore)
+  exclude = {
+    "Tests%.lua$",
+    "test_runner%.lua$",
+    "validate_runner%.lua$",
+    "coverage_analysis%.lua$"
+  },
+  
+  -- Don't delete stats file on startup in CI
+  deletestats = false,
+  
+  -- Modules to preload for coverage
+  modules = {}
+}
+EOF
+          
+          echo "Executing HealIQ test suite with coverage..."
+          lua5.1 -lluacov test_runner.lua
+          
+          echo "Checking for coverage files..."
+          ls -la luacov.* || echo "No luacov files found"
+          
+          echo "Generating coverage report..."
+          luacov || echo "luacov command failed, but continuing..."
+          
+          echo "Checking generated files..."
+          ls -la luacov.* || echo "No luacov files after report generation"
+          
+          echo "Logic tests completed successfully!"
+        else
+          echo "Test files not found, skipping logic tests"
+        fi
+        
+    - name: Generate coverage summary
+      run: |
+        echo "Generating code coverage summary..."
+        echo "=== Code Coverage Report ===" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Run enhanced coverage analysis (don't fail build if it has issues)
+        if [ -f "coverage_analysis.lua" ]; then
+          echo "Running enhanced coverage analysis..."
+          if lua5.1 coverage_analysis.lua > coverage_summary.txt 2>&1; then
+            echo "Coverage analysis completed successfully"
+          else
+            echo "Coverage analysis had issues, but continuing..."
+          fi
+          
+          # Extract summary for GitHub Actions Summary
+          OVERALL_COVERAGE=$(grep "Overall Coverage:" coverage_summary.txt | grep -o '[0-9]\+\.[0-9]\+%' | head -1 || echo "N/A")
+          COVERAGE_LINES=$(grep "Overall Coverage:" coverage_summary.txt | grep -o '([0-9]\+/[0-9]\+' | head -1 | tr -d '(' || echo "N/A")
+          
+          if [ "$OVERALL_COVERAGE" != "N/A" ] && [ -n "$OVERALL_COVERAGE" ]; then
+            echo "📊 **Overall Coverage: ${OVERALL_COVERAGE}** (${COVERAGE_LINES} executable lines)" >> $GITHUB_STEP_SUMMARY
+            
+            # Coverage badge color
+            COVERAGE_NUM=$(echo $OVERALL_COVERAGE | tr -d '%')
+            if (( $(echo "$COVERAGE_NUM >= 80" | bc -l) )); then
+              BADGE_COLOR="brightgreen"
+            elif (( $(echo "$COVERAGE_NUM >= 60" | bc -l) )); then
+              BADGE_COLOR="yellow"
+            else
+              BADGE_COLOR="red"
+            fi
+            
+            echo "![Coverage](https://img.shields.io/badge/coverage-${OVERALL_COVERAGE}-${BADGE_COLOR})" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "📊 **Coverage data not available**" >> $GITHUB_STEP_SUMMARY
+            echo "Coverage tracking may need adjustment for CI environment" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "📊 **Coverage tracking setup in progress**" >> $GITHUB_STEP_SUMMARY
+          echo "Enhanced coverage analysis not available in this build" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### File Coverage Details" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| File | Coverage | Lines | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|------|----------|-------|--------|" >> $GITHUB_STEP_SUMMARY
+        
+        # Parse file coverage from enhanced analysis
+        if [ -f "coverage_summary.txt" ]; then
+          grep -A 20 "File Coverage Details:" coverage_summary.txt | grep "\.lua:" | while read -r line; do
+            FILE=$(echo "$line" | awk -F: '{print $1}')
+            COVERAGE=$(echo "$line" | grep -o '[0-9]\+\.[0-9]\+%' || echo "0.0%")
+            LINES=$(echo "$line" | grep -o '([^)]*' | tr -d '(' || echo "0/0")
+            
+            # Status based on coverage
+            COVERAGE_NUM=$(echo $COVERAGE | tr -d '%' || echo "0")
+            if [ "$COVERAGE_NUM" != "0" ] && (( $(echo "$COVERAGE_NUM >= 80" | bc -l) )); then
+              STATUS="✅ Good"
+            elif [ "$COVERAGE_NUM" != "0" ] && (( $(echo "$COVERAGE_NUM >= 60" | bc -l) )); then
+              STATUS="⚠️ Fair"
+            else
+              STATUS="❌ Poor"
+            fi
+            
+            echo "| $FILE | $COVERAGE | $LINES | $STATUS |" >> $GITHUB_STEP_SUMMARY
+          done
+        else
+          echo "| No coverage data available | N/A | N/A | ⚠️ Pending |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "<details>" >> $GITHUB_STEP_SUMMARY
+        echo "<summary>Full Coverage Analysis</summary>" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        if [ -f "coverage_summary.txt" ]; then
+          cat coverage_summary.txt >> $GITHUB_STEP_SUMMARY
+        else
+          echo "Coverage summary not available" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "</details>" >> $GITHUB_STEP_SUMMARY
+        
+        # Also output to console
+        echo "Coverage Summary:"
+        echo "=================="
+        if [ -f "coverage_summary.txt" ]; then
+          cat coverage_summary.txt
+        else
+          echo "Coverage analysis may need further setup in CI environment"
+        fi
+        echo ""
+        echo "See full report in GitHub Actions Summary tab"

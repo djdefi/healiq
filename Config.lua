@@ -647,4 +647,7 @@ function Config:ShowHelp()
     commands.help()
 end
 
+-- Expose commands for testing
+Config.commands = commands
+
 HealIQ.Config = Config

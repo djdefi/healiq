@@ -30,6 +30,9 @@ ignore:
     - CHANGELOG.md.backup
     - "*.backup"
     - .pkgmeta
+    - Tests.lua
+    - test_runner.lua
+    - validate_runner.lua
 
 # Manual changelog - use the CHANGELOG.md file
 manual-changelog: CHANGELOG.md

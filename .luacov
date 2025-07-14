@@ -1,0 +1,11 @@
+-- LuaCov configuration for HealIQ
+return {
+  statsfile = "luacov.stats.out",
+  reportfile = "luacov.report.out",
+  
+  -- Delete stats file on startup
+  deletestats = false,
+  
+  -- Modules to preload for coverage
+  modules = {}
+}
