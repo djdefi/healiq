@@ -127,36 +127,36 @@ jobs:
           
           # Create LuaCov configuration
           cat > .luacov << 'EOF'
--- LuaCov configuration for HealIQ
-return {
-  statsfile = "luacov.stats.out",
-  reportfile = "luacov.report.out",
-  
-  -- Include patterns (files to track)
-  include = {
-    "Core%.lua$",
-    "Engine%.lua$", 
-    "UI%.lua$",
-    "Tracker%.lua$",
-    "Config%.lua$",
-    "Logging%.lua$"
-  },
-  
-  -- Exclude patterns (files to ignore)
-  exclude = {
-    "Tests%.lua$",
-    "test_runner%.lua$",
-    "validate_runner%.lua$",
-    "coverage_analysis%.lua$"
-  },
-  
-  -- Don't delete stats file on startup in CI
-  deletestats = false,
-  
-  -- Modules to preload for coverage
-  modules = {}
-}
-EOF
+        -- LuaCov configuration for HealIQ
+        return {
+          statsfile = "luacov.stats.out",
+          reportfile = "luacov.report.out",
+          
+          -- Include patterns (files to track)
+          include = {
+            "Core%.lua$",
+            "Engine%.lua$", 
+            "UI%.lua$",
+            "Tracker%.lua$",
+            "Config%.lua$",
+            "Logging%.lua$"
+          },
+          
+          -- Exclude patterns (files to ignore)
+          exclude = {
+            "Tests%.lua$",
+            "test_runner%.lua$",
+            "validate_runner%.lua$",
+            "coverage_analysis%.lua$"
+          },
+          
+          -- Don't delete stats file on startup in CI
+          deletestats = false,
+          
+          -- Modules to preload for coverage
+          modules = {}
+        }
+        EOF
           
           echo "Executing HealIQ test suite with coverage..."
           lua5.1 -lluacov test_runner.lua
