@@ -543,7 +543,8 @@ function UI:CreateOptionsTabs(parent)
         {name = "Display", id = "display"},
         {name = "Rules", id = "rules"},
         {name = "Strategy", id = "strategy"},
-        {name = "Queue", id = "queue"}
+        {name = "Queue", id = "queue"},
+        {name = "Statistics", id = "statistics"}
     }
     
     optionsFrame.tabs = {}
@@ -617,6 +618,7 @@ function UI:CreateOptionsTabs(parent)
     self:CreateRulesTab(optionsFrame.tabPanels.rules)
     self:CreateStrategyTab(optionsFrame.tabPanels.strategy)
     self:CreateQueueTab(optionsFrame.tabPanels.queue)
+    self:CreateStatisticsTab(optionsFrame.tabPanels.statistics)
     
     -- Show first tab by default
     self:ShowOptionsTab("general")
@@ -2037,6 +2039,127 @@ function UI:UpdateOptionsFrame()
     if optionsFrame.talentStatusText then
         self:UpdateTalentStatus(optionsFrame.talentStatusText)
     end
+    
+    -- Update statistics display if it's currently visible
+    if optionsFrame.activeTab == "statistics" and optionsFrame.statsDisplay then
+        self:UpdateStatisticsDisplay(optionsFrame.statsDisplay)
+    end
+end
+
+function UI:CreateStatisticsTab(panel)
+    local yOffset = -10
+    
+    -- Statistics Header
+    local statisticsHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    statisticsHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    statisticsHeader:SetText("Session Statistics")
+    statisticsHeader:SetTextColor(1, 0.8, 0, 1)
+    yOffset = yOffset - 30
+    
+    -- Refresh button
+    local refreshButton = CreateFrame("Button", "HealIQStatsRefreshButton", panel, "UIPanelButtonTemplate")
+    refreshButton:SetSize(80, 22)
+    refreshButton:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    refreshButton:SetText("Refresh")
+    refreshButton:SetScript("OnClick", function()
+        if optionsFrame.statsDisplay then
+            self:UpdateStatisticsDisplay(optionsFrame.statsDisplay)
+        end
+    end)
+    self:AddTooltip(refreshButton, "Refresh Statistics", "Update the statistics display with current data.")
+    yOffset = yOffset - 35
+    
+    -- Create scrollable frame for statistics
+    local scrollFrame = CreateFrame("ScrollFrame", "HealIQStatsScrollFrame", panel, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
+    scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -25, 10)
+    
+    local scrollChild = CreateFrame("Frame", "HealIQStatsScrollChild", scrollFrame)
+    scrollChild:SetSize(350, 800) -- Large height to accommodate all content
+    scrollFrame:SetScrollChild(scrollChild)
+    
+    -- Create text display for statistics (copyable)
+    local statsDisplay = CreateFrame("EditBox", "HealIQStatsDisplay", scrollChild)
+    statsDisplay:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 5, -5)
+    statsDisplay:SetPoint("BOTTOMRIGHT", scrollChild, "BOTTOMRIGHT", -5, 5)
+    statsDisplay:SetMultiLine(true)
+    statsDisplay:SetMaxLetters(0) -- No limit
+    statsDisplay:SetAutoFocus(false)
+    statsDisplay:SetFontObject("GameFontNormal")
+    statsDisplay:SetTextInsets(5, 5, 5, 5)
+    
+    -- Create background for the text display
+    local background = statsDisplay:CreateTexture(nil, "BACKGROUND")
+    background:SetAllPoints(statsDisplay)
+    background:SetColorTexture(0, 0, 0, 0.8)
+    statsDisplay.background = background
+    
+    -- Make text selectable but not editable
+    statsDisplay:SetScript("OnEditFocusGained", function(self)
+        self:HighlightText()
+    end)
+    statsDisplay:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+    end)
+    statsDisplay:SetScript("OnEnterPressed", function(self)
+        self:ClearFocus()
+    end)
+    
+    -- Store reference for updates
+    optionsFrame.statsDisplay = statsDisplay
+    
+    -- Initial statistics load
+    self:UpdateStatisticsDisplay(statsDisplay)
+end
+
+function UI:UpdateStatisticsDisplay(statsDisplay)
+    if not statsDisplay then
+        return
+    end
+    
+    local statsText = ""
+    
+    -- Generate comprehensive statistics
+    if HealIQ.GenerateDiagnosticDump then
+        statsText = HealIQ:GenerateDiagnosticDump()
+    else
+        statsText = "Statistics not available - diagnostic dump function not found."
+    end
+    
+    -- Additional real-time statistics
+    if HealIQ.sessionStats and HealIQ.sessionStats.startTime then
+        local additionalStats = "\n=== Real-Time Statistics ===\n"
+        local currentTime = time()
+        local sessionDuration = currentTime - HealIQ.sessionStats.startTime
+        
+        additionalStats = additionalStats .. "Current Session Duration: " .. (HealIQ.FormatDuration and HealIQ:FormatDuration(sessionDuration) or (sessionDuration .. " seconds")) .. "\n"
+        additionalStats = additionalStats .. "Stats Last Updated: " .. date("%Y-%m-%d %H:%M:%S", currentTime) .. "\n"
+        
+        if HealIQ.sessionStats.ruleTriggers and next(HealIQ.sessionStats.ruleTriggers) then
+            additionalStats = additionalStats .. "\nMost Triggered Rules:\n"
+            local sortedRules = {}
+            for ruleName, count in pairs(HealIQ.sessionStats.ruleTriggers) do
+                table.insert(sortedRules, {name = ruleName, count = count})
+            end
+            table.sort(sortedRules, function(a, b) return a.count > b.count end)
+            
+            for i = 1, math.min(5, #sortedRules) do
+                local rule = sortedRules[i]
+                additionalStats = additionalStats .. string.format("  %d. %s: %d times\n", i, rule.name, rule.count)
+            end
+        end
+        
+        statsText = statsText .. additionalStats
+    end
+    
+    statsText = statsText .. "\n\n=== How to Copy ===\n"
+    statsText = statsText .. "• Click in this text area to select all text\n"
+    statsText = statsText .. "• Use Ctrl+C (or Cmd+C on Mac) to copy\n"
+    statsText = statsText .. "• Paste into any text editor or document\n"
+    statsText = statsText .. "• Use the Refresh button to update with latest data\n"
+    
+    statsDisplay:SetText(statsText)
+    statsDisplay:SetCursorPosition(0)
 end
 
 HealIQ.UI = UI

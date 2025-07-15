@@ -16,6 +16,7 @@ function Logging:InitializeVariables()
         rulesProcessed = 0,
         errorsLogged = 0,
         eventsHandled = 0,
+        ruleTriggers = {}, -- Track individual rule trigger counts
     }
 end
 
@@ -56,6 +57,21 @@ function HealIQ:LogError(message)
     end
 end
 
+-- Track rule triggers
+function HealIQ:LogRuleTrigger(ruleName)
+    if self.sessionStats and self.sessionStats.ruleTriggers then
+        self.sessionStats.ruleTriggers[ruleName] = (self.sessionStats.ruleTriggers[ruleName] or 0) + 1
+        self.sessionStats.rulesProcessed = self.sessionStats.rulesProcessed + 1
+    end
+end
+
+-- Track suggestions made
+function HealIQ:LogSuggestionMade()
+    if self.sessionStats then
+        self.sessionStats.suggestions = self.sessionStats.suggestions + 1
+    end
+end
+
 function HealIQ:GenerateDiagnosticDump()
     local dump = {}
     
@@ -76,6 +92,23 @@ function HealIQ:GenerateDiagnosticDump()
         table.insert(dump, "Rules Processed: " .. self.sessionStats.rulesProcessed)
         table.insert(dump, "Errors Logged: " .. self.sessionStats.errorsLogged)
         table.insert(dump, "Events Handled: " .. self.sessionStats.eventsHandled)
+        
+        -- Rule trigger counts
+        if self.sessionStats.ruleTriggers and next(self.sessionStats.ruleTriggers) then
+            table.insert(dump, "")
+            table.insert(dump, "Rule Trigger Counts:")
+            local sortedRules = {}
+            for ruleName, count in pairs(self.sessionStats.ruleTriggers) do
+                table.insert(sortedRules, {name = ruleName, count = count})
+            end
+            table.sort(sortedRules, function(a, b) return a.count > b.count end)
+            for _, rule in ipairs(sortedRules) do
+                table.insert(dump, "  " .. rule.name .. ": " .. rule.count)
+            end
+        else
+            table.insert(dump, "")
+            table.insert(dump, "Rule Trigger Counts: None yet")
+        end
     else
         table.insert(dump, "Session statistics not yet initialized")
     end

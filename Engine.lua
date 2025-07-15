@@ -456,9 +456,7 @@ function Engine:EvaluateRules()
     if HealIQ.db.rules.tranquility and tracker:ShouldUseTranquility() then
         table.insert(suggestions, SPELLS.TRANQUILITY)
         HealIQ:DebugLog("Rule triggered: Tranquility")
-        if HealIQ.sessionStats then
-            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-        end
+        HealIQ:LogRuleTrigger("Tranquility")
     end
     
     -- Incarnation: Tree of Life for high damage phases
@@ -474,9 +472,7 @@ function Engine:EvaluateRules()
     if HealIQ.db.rules.naturesSwiftness and tracker:ShouldUseNaturesSwiftness() then
         table.insert(suggestions, SPELLS.NATURES_SWIFTNESS)
         HealIQ:DebugLog("Rule triggered: Nature's Swiftness")
-        if HealIQ.sessionStats then
-            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-        end
+        HealIQ:LogRuleTrigger("Nature's Swiftness")
     end
     
     -- Rule 2: Core Maintenance (High Priority - keep these active)
@@ -485,9 +481,7 @@ function Engine:EvaluateRules()
     if HealIQ.db.rules.efflorescence and strategy.prioritizeEfflorescence and tracker:ShouldUseEfflorescence() then
         table.insert(suggestions, SPELLS.EFFLORESCENCE)
         HealIQ:DebugLog("Rule triggered: Efflorescence (prioritized)")
-        if HealIQ.sessionStats then
-            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-        end
+        HealIQ:LogRuleTrigger("Efflorescence")
     end
     
     -- Lifebloom maintenance on tank - higher priority
@@ -524,9 +518,7 @@ function Engine:EvaluateRules()
     if HealIQ.db.rules.clearcasting and strategy.preferClearcastingRegrowth and tracker:HasClearcasting() then
         table.insert(suggestions, SPELLS.REGROWTH)
         HealIQ:DebugLog("Rule triggered: Regrowth (Clearcasting proc)")
-        if HealIQ.sessionStats then
-            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-        end
+        HealIQ:LogRuleTrigger("Regrowth")
     end
     
     -- Rule 4: AoE Healing Combo (Swiftmend → Wild Growth)
@@ -541,9 +533,7 @@ function Engine:EvaluateRules()
         if wildGrowthReady and recentDamageCount >= minTargets then
             table.insert(suggestions, SPELLS.SWIFTMEND)
             HealIQ:DebugLog("Rule triggered: Swiftmend (Wild Growth combo setup)")
-            if HealIQ.sessionStats then
-                HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-            end
+            HealIQ:LogRuleTrigger("Swiftmend")
         end
     end
     
@@ -554,9 +544,7 @@ function Engine:EvaluateRules()
         if recentDamageCount >= minTargets then
             table.insert(suggestions, SPELLS.WILD_GROWTH)
             HealIQ:DebugLog("Rule triggered: Wild Growth (recent damage: " .. recentDamageCount .. ")")
-            if HealIQ.sessionStats then
-                HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-            end
+            HealIQ:LogRuleTrigger("Wild Growth")
         end
     end
     
@@ -575,9 +563,7 @@ function Engine:EvaluateRules()
     if HealIQ.db.rules.flourish and tracker:ShouldUseFlourish() then
         table.insert(suggestions, SPELLS.FLOURISH)
         HealIQ:DebugLog("Rule triggered: Flourish")
-        if HealIQ.sessionStats then
-            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-        end
+        HealIQ:LogRuleTrigger("Flourish")
     end
     
     -- Rule 6: Defensive/Utility
@@ -586,9 +572,7 @@ function Engine:EvaluateRules()
     if HealIQ.db.rules.ironbark and tracker:ShouldUseIronbark() then
         table.insert(suggestions, SPELLS.IRONBARK)
         HealIQ:DebugLog("Rule triggered: Ironbark")
-        if HealIQ.sessionStats then
-            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-        end
+        HealIQ:LogRuleTrigger("Ironbark")
     end
     
     -- Barkskin for self-defense
@@ -615,9 +599,7 @@ function Engine:EvaluateRules()
             if inCombat or recentDamageCount > 0 or not strategy.avoidRandomRejuvenationDowntime then
                 table.insert(suggestions, SPELLS.REJUVENATION)
                 HealIQ:DebugLog("Rule triggered: Rejuvenation (target missing)")
-                if HealIQ.sessionStats then
-                    HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-                end
+                HealIQ:LogRuleTrigger("Rejuvenation")
             end
         end
     end
@@ -628,15 +610,17 @@ function Engine:EvaluateRules()
     if HealIQ.db.rules.wrath and strategy.useWrathForMana and tracker:ShouldUseWrath() then
         table.insert(suggestions, SPELLS.WRATH)
         HealIQ:DebugLog("Rule triggered: Wrath (mana filler)")
-        if HealIQ.sessionStats then
-            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-        end
+        HealIQ:LogRuleTrigger("Wrath")
     end
     
     HealIQ:DebugLog("Rule evaluation completed, " .. #suggestions .. " suggestions found")
     
-    -- Return the top suggestion for backward compatibility
-    return suggestions[1] or nil
+    -- Return the top suggestion for backward compatibility, log if suggestion made
+    local topSuggestion = suggestions[1] or nil
+    if topSuggestion then
+        HealIQ:LogSuggestionMade()
+    end
+    return topSuggestion
 end
 
 -- New function to get multiple suggestions for queue display
