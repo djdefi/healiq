@@ -61,14 +61,14 @@ end
 function HealIQ:LogRuleTrigger(ruleName)
     if self.sessionStats and self.sessionStats.ruleTriggers then
         self.sessionStats.ruleTriggers[ruleName] = (self.sessionStats.ruleTriggers[ruleName] or 0) + 1
-        self.sessionStats.rulesProcessed = self.sessionStats.rulesProcessed + 1
+        self.sessionStats.rulesProcessed = (self.sessionStats.rulesProcessed or 0) + 1
     end
 end
 
 -- Track suggestions made
 function HealIQ:LogSuggestionMade()
     if self.sessionStats then
-        self.sessionStats.suggestions = self.sessionStats.suggestions + 1
+        self.sessionStats.suggestions = (self.sessionStats.suggestions or 0) + 1
     end
 end
 

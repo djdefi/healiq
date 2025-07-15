@@ -2047,6 +2047,10 @@ function UI:UpdateOptionsFrame()
 end
 
 function UI:CreateStatisticsTab(panel)
+    -- Constants for layout
+    local SCROLL_CHILD_HEIGHT = 800  -- Large height to accommodate all content
+    local MAX_DISPLAYED_RULES = 5    -- Maximum number of rules to display in top list
+    
     local yOffset = -10
     
     -- Statistics Header
@@ -2075,7 +2079,7 @@ function UI:CreateStatisticsTab(panel)
     scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -25, 10)
     
     local scrollChild = CreateFrame("Frame", "HealIQStatsScrollChild", scrollFrame)
-    scrollChild:SetSize(350, 800) -- Large height to accommodate all content
+    scrollChild:SetSize(350, SCROLL_CHILD_HEIGHT)
     scrollFrame:SetScrollChild(scrollChild)
     
     -- Create text display for statistics (copyable)
@@ -2113,6 +2117,9 @@ function UI:CreateStatisticsTab(panel)
 end
 
 function UI:UpdateStatisticsDisplay(statsDisplay)
+    -- Constants
+    local MAX_DISPLAYED_RULES = 5    -- Maximum number of rules to display in top list
+    
     if not statsDisplay then
         return
     end
@@ -2143,7 +2150,7 @@ function UI:UpdateStatisticsDisplay(statsDisplay)
             end
             table.sort(sortedRules, function(a, b) return a.count > b.count end)
             
-            for i = 1, math.min(5, #sortedRules) do
+            for i = 1, math.min(MAX_DISPLAYED_RULES, #sortedRules) do
                 local rule = sortedRules[i]
                 additionalStats = additionalStats .. string.format("  %d. %s: %d times\n", i, rule.name, rule.count)
             end
