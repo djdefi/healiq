@@ -2234,7 +2234,7 @@ end
 function UI:UpdateStatisticsDisplay()
     -- Update all statistics sections with current data
     self:UpdateSummarySection()
-    self:UpdateMetricsSection() 
+    self:UpdateMetricsSection()
     self:UpdateRawDataSection()
 end
 
