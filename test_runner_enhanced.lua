@@ -37,7 +37,8 @@ local HealIQ = {
         rulesProcessed = 0,
         errorsLogged = 0,
         eventsHandled = 0,
-        startTime = os.time()
+        startTime = os.time(),
+        ruleTriggers = {}
     }
 }
 
@@ -89,6 +90,22 @@ function HealIQ:LogError(message)
     end
 end
 
+-- LogRuleTrigger implementation
+function HealIQ:LogRuleTrigger(ruleName)
+    if self.sessionStats then
+        self.sessionStats.ruleTriggers = self.sessionStats.ruleTriggers or {}
+        self.sessionStats.ruleTriggers[ruleName] = (self.sessionStats.ruleTriggers[ruleName] or 0) + 1
+        self.sessionStats.rulesProcessed = (self.sessionStats.rulesProcessed or 0) + 1
+    end
+end
+
+-- LogSuggestionMade implementation
+function HealIQ:LogSuggestionMade()
+    if self.sessionStats then
+        self.sessionStats.suggestions = (self.sessionStats.suggestions or 0) + 1
+    end
+end
+
 -- Mock additional functions that might be called
 function HealIQ:InitializeSessionStats()
     if not self.sessionStats then
@@ -99,6 +116,7 @@ function HealIQ:InitializeSessionStats()
     self.sessionStats.rulesProcessed = self.sessionStats.rulesProcessed or 0
     self.sessionStats.errorsLogged = self.sessionStats.errorsLogged or 0
     self.sessionStats.eventsHandled = self.sessionStats.eventsHandled or 0
+    self.sessionStats.ruleTriggers = self.sessionStats.ruleTriggers or {}
 end
 
 function HealIQ:GenerateDiagnosticDump()
