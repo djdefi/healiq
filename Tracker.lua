@@ -375,13 +375,20 @@ function Tracker:GetEfflorescenceTimeRemaining()
     return 0
 end
 
+
+-- ========================================
+-- Rule Functions - Delegates to Modular Rules
+-- ========================================
+
 function Tracker:ShouldUseIronbark()
-    -- Suggest Ironbark if available and target is taking damage
+    if HealIQ.Rules and HealIQ.Rules.DefensiveCooldowns then
+        return HealIQ.Rules.DefensiveCooldowns:ShouldUseIronbark(self)
+    end
+    -- Fallback to original logic if rules not loaded
     local ironbarkReady = self:IsSpellReady("ironbark")
     local targetExists = UnitExists("target")
     local targetIsFriendly = targetExists and UnitIsFriend("player", "target")
     
-    -- Check if target doesn't already have Ironbark
     local hasIronbark = false
     if targetExists then
         local spellName = C_Spell.GetSpellName(SPELL_IDS.IRONBARK_BUFF)
@@ -392,13 +399,27 @@ function Tracker:ShouldUseIronbark()
     return ironbarkReady and targetIsFriendly and not hasIronbark
 end
 
+function Tracker:ShouldUseBarkskin()
+    if HealIQ.Rules and HealIQ.Rules.DefensiveCooldowns then
+        return HealIQ.Rules.DefensiveCooldowns:ShouldUseBarkskin(self)
+    end
+    -- Fallback to original logic
+    local barkskinReady = self:IsSpellReady("barkskin")
+    local inCombat = InCombatLockdown()
+    local playerHealthPercent = UnitHealth("player") / UnitHealthMax("player")
+    local lowHealthThreshold = (HealIQ.db and HealIQ.db.strategy and HealIQ.db.strategy.lowHealthThreshold) or 0.5
+    
+    return barkskinReady and inCombat and (playerHealthPercent <= lowHealthThreshold)
+end
+
 function Tracker:ShouldUseEfflorescence()
-    -- Suggest Efflorescence if available, not currently active, and multiple people took damage
+    if HealIQ.Rules and HealIQ.Rules.AoERules then
+        return HealIQ.Rules.AoERules:ShouldUseEfflorescence(self)
+    end
+    -- Fallback logic
     local efflorescenceReady = self:IsSpellReady("efflorescence")
     local notActive = not trackedData.efflorescenceActive
     local recentDamageCount = self:GetRecentDamageCount()
-    
-    -- Use configurable threshold
     local strategy = HealIQ.db and HealIQ.db.strategy or {}
     local minTargets = strategy.efflorescenceMinTargets or 2
     
@@ -406,11 +427,12 @@ function Tracker:ShouldUseEfflorescence()
 end
 
 function Tracker:ShouldUseTranquility()
-    -- Suggest Tranquility if available and high group damage
+    if HealIQ.Rules and HealIQ.Rules.HealingCooldowns then
+        return HealIQ.Rules.HealingCooldowns:ShouldUseTranquility(self)
+    end
+    -- Fallback logic
     local tranquilityReady = self:IsSpellReady("tranquility")
     local recentDamageCount = self:GetRecentDamageCount()
-    
-    -- Use configurable threshold
     local strategy = HealIQ.db and HealIQ.db.strategy or {}
     local minTargets = strategy.tranquilityMinTargets or 4
     
@@ -418,41 +440,20 @@ function Tracker:ShouldUseTranquility()
 end
 
 function Tracker:ShouldUseFlourish()
-    -- Suggest Flourish if available and multiple HoTs are about to expire
-    local flourishReady = self:IsSpellReady("flourish")
-    local expiringHots = 0
-    
-    -- Use configurable threshold for expiring HoTs
-    local strategy = HealIQ.db and HealIQ.db.strategy or {}
-    local minHots = strategy.flourishMinHots or 2
-    local expirationWindow = 6 -- HoTs expiring in next 6 seconds
-    
-    -- Check for expiring HoTs on target
-    if UnitExists("target") then
-        local rejuv = trackedData.targetHots.rejuvenation
-        local regrowth = trackedData.targetHots.regrowth
-        local lifebloom = trackedData.targetHots.lifebloom
-        
-        if rejuv and rejuv.active and rejuv.remaining < expirationWindow then
-            expiringHots = expiringHots + 1
-        end
-        if regrowth and regrowth.active and regrowth.remaining < expirationWindow then
-            expiringHots = expiringHots + 1
-        end
-        if lifebloom and lifebloom.active and lifebloom.remaining < expirationWindow then
-            expiringHots = expiringHots + 1
-        end
+    if HealIQ.Rules and HealIQ.Rules.UtilityRules then
+        return HealIQ.Rules.UtilityRules:ShouldUseFlourish(self)
     end
-    
-    return flourishReady and expiringHots >= minHots
+    -- Fallback logic would go here but is complex, so return false
+    return false
 end
 
 function Tracker:ShouldUseIncarnation()
-    -- Suggest Incarnation during high damage phases
+    if HealIQ.Rules and HealIQ.Rules.HealingCooldowns then
+        return HealIQ.Rules.HealingCooldowns:ShouldUseIncarnation(self)
+    end
+    -- Fallback logic
     local incarnationReady = self:IsSpellReady("incarnationTree")
     local recentDamageCount = self:GetRecentDamageCount()
-    
-    -- Use more aggressive threshold for major cooldown
     local strategy = HealIQ.db and HealIQ.db.strategy or {}
     local minTargets = math.max(2, strategy.wildGrowthMinTargets or 1)
     
@@ -460,169 +461,27 @@ function Tracker:ShouldUseIncarnation()
 end
 
 function Tracker:ShouldUseNaturesSwiftness()
-    -- Suggest Nature's Swiftness if available and healing is needed
-    local naturesSwiftnessReady = self:IsSpellReady("naturesSwiftness")
-    local targetExists = UnitExists("target")
-    local targetIsFriendly = targetExists and UnitIsFriend("player", "target")
-    
-    -- Enhanced logic: suggest more proactively, not just in emergencies
-    local strategy = HealIQ.db and HealIQ.db.strategy or {}
-    local shouldSuggest = false
-    
-    -- Emergency situations (low health targets)
-    if targetExists and targetIsFriendly then
-        local healthPercent = UnitHealth("target") / UnitHealthMax("target")
-        local lowHealthThreshold = strategy.lowHealthThreshold or 0.3
-        if healthPercent <= lowHealthThreshold then
-            shouldSuggest = true
-        end
+    if HealIQ.Rules and HealIQ.Rules.HealingCooldowns then
+        return HealIQ.Rules.HealingCooldowns:ShouldUseNaturesSwiftness(self)
     end
-    
-    -- Proactive use during combat with group damage
-    if not shouldSuggest and InCombatLockdown() then
-        local recentDamageCount = self:GetRecentDamageCount()
-        local groupSize = GetNumGroupMembers()
-        -- Suggest if significant group damage (25% of group or 2+ people)
-        if recentDamageCount >= math.max(2, math.floor(groupSize * 0.25)) then
-            shouldSuggest = true
-        end
-    end
-    
-    -- Allow manual override via strategy setting
-    local emergencyOnly = strategy.emergencyNaturesSwiftness == true
-    if emergencyOnly then
-        -- Only suggest in emergency situations when this setting is true
-        shouldSuggest = targetExists and targetIsFriendly and UnitHealth("target") / UnitHealthMax("target") <= (strategy.lowHealthThreshold or 0.3)
-    end
-    
-    return naturesSwiftnessReady and shouldSuggest
-end
-
-function Tracker:ShouldUseBarkskin()
-    -- Suggest Barkskin if available and player is taking damage
-    local barkskinReady = self:IsSpellReady("barkskin")
-    local inCombat = InCombatLockdown()
-    
-    -- Enhanced logic: consider player health and threat
-    local playerHealthPercent = UnitHealth("player") / UnitHealthMax("player")
-    local lowHealthThreshold = (HealIQ.db and HealIQ.db.strategy and HealIQ.db.strategy.lowHealthThreshold) or 0.5
-    
-    return barkskinReady and inCombat and (playerHealthPercent <= lowHealthThreshold)
+    -- Fallback logic would be complex, return false
+    return false
 end
 
 function Tracker:ShouldUseGroveGuardians()
-    -- Suggest Grove Guardians based on strategy - pool charges for big cooldowns
-    local groveGuardiansReady = self:IsSpellReady("groveGuardians")
-    local strategy = HealIQ.db and HealIQ.db.strategy or {}
-    local poolCharges = strategy.poolGroveGuardians ~= false -- default true
-    
-    if not groveGuardiansReady then
-        return false
+    if HealIQ.Rules and HealIQ.Rules.UtilityRules then
+        return HealIQ.Rules.UtilityRules:ShouldUseGroveGuardians(self)
     end
-    
-    -- If pooling is disabled, suggest whenever ready
-    if not poolCharges then
-        return true
-    end
-    
-    -- Enhanced pooling logic: suggest more frequently
-    local recentDamageCount = self:GetRecentDamageCount()
-    local minTargets = strategy.wildGrowthMinTargets or 1
-    local hasOtherCooldowns = self:HasPlayerBuff("incarnationTree") or self:HasPlayerBuff("naturesSwiftness")
-    local inCombat = InCombatLockdown()
-    
-    -- Suggest if:
-    -- 1. High damage to group, OR
-    -- 2. Other major cooldowns are active, OR  
-    -- 3. In combat with any group damage
-    return (recentDamageCount >= minTargets) or hasOtherCooldowns or (inCombat and recentDamageCount >= 1)
+    -- Fallback logic would be complex, return false
+    return false
 end
 
 function Tracker:ShouldUseWrath()
-    -- Suggest Wrath for mana restoration during downtime
-    local wrathReady = not self:IsSpellReady("wrath") or true -- Wrath has no cooldown typically
-    local strategy = HealIQ.db and HealIQ.db.strategy or {}
-    local useForMana = strategy.useWrathForMana ~= false -- default true
-    
-    if not useForMana then
-        return false
+    if HealIQ.Rules and HealIQ.Rules.OffensiveRules then
+        return HealIQ.Rules.OffensiveRules:ShouldUseWrath(self)
     end
-    
-    -- Only suggest Wrath during low activity periods
-    local inCombat = InCombatLockdown()
-    local recentDamageCount = self:GetRecentDamageCount()
-    local hasTarget = UnitExists("target")
-    local targetIsEnemy = hasTarget and UnitIsEnemy("player", "target")
-    
-    -- Suggest if:
-    -- 1. Not in combat and have enemy target, OR
-    -- 2. In combat but low damage activity and have enemy target, OR
-    -- 3. No immediate healing needs
-    local lowActivity = recentDamageCount == 0
-    local noHealingNeeds = not self:HasImmediateHealingNeeds()
-    
-    return wrathReady and ((not inCombat and targetIsEnemy) or (inCombat and lowActivity and targetIsEnemy) or (inCombat and noHealingNeeds and targetIsEnemy))
-end
-
-function Tracker:HasImmediateHealingNeeds()
-    -- Check if there are immediate healing needs
-    local hasTarget = UnitExists("target")
-    local targetIsFriendly = hasTarget and UnitIsFriend("player", "target")
-    
-    if targetIsFriendly then
-        -- Check if target has low health
-        local healthPercent = UnitHealth("target") / UnitHealthMax("target")
-        local strategy = HealIQ.db and HealIQ.db.strategy or {}
-        local lowHealthThreshold = strategy.lowHealthThreshold or 0.3
-        
-        if healthPercent <= lowHealthThreshold then
-            return true
-        end
-        
-        -- Check if target is missing important buffs
-        local lifeboomInfo = self:GetTargetHotInfo("lifebloom")
-        local rejuvInfo = self:GetTargetHotInfo("rejuvenation")
-        local isTank = UnitGroupRolesAssigned("target") == "TANK"
-        local isFocus = UnitIsUnit("target", "focus")
-        
-        -- Tank missing Lifebloom is high priority
-        if (isTank or isFocus) and (not lifeboomInfo or not lifeboomInfo.active) then
-            return true
-        end
-        
-        -- Missing Rejuvenation during combat
-        if InCombatLockdown() and (not rejuvInfo or not rejuvInfo.active) then
-            return true
-        end
-    end
-    
-    -- Check for group damage
-    local recentDamageCount = self:GetRecentDamageCount()
-    return recentDamageCount >= 2
-end
-
-function Tracker:HasActiveTrinket()
-    -- Check if any trinket is ready to use
-    for slot = 13, 14 do
-        local itemId = GetInventoryItemID("player", slot)
-        if itemId then
-            local startTime, duration, isEnabled = C_Item.GetItemCooldown(itemId)
-            -- Check if trinket has a use effect and is not on cooldown
-            if isEnabled and (not startTime or startTime == 0 or duration == 0) then
-                -- Additional check to see if item has a use effect
-                if type(itemId) == "number" and itemId > 0 then
-                    local item = Item:CreateFromItemID(itemId)
-                    if item and item:IsItemDataCached() then
-                        local itemSpell = C_Item.GetItemSpell(itemId)
-                        if itemSpell then
-                            return true, slot
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return false, nil
+    -- Fallback logic would be complex, return false
+    return false
 end
 
 HealIQ.Tracker = Tracker
