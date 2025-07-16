@@ -20,7 +20,7 @@ local optionsFrame = nil
 -- Constants
 local FRAME_SIZE = 64
 local ICON_SIZE = 48
-local OPTIONS_FRAME_HEIGHT = 650  -- Increased height to accommodate all content
+local OPTIONS_FRAME_HEIGHT = 550  -- Optimized height to prevent window overflow
 local TOOLTIP_LINE_LENGTH = 45
 
 -- Minimap button positioning
@@ -1192,7 +1192,7 @@ function UI:CreateStrategyTab(panel)
     -- Numeric settings with sliders
     local numericSettings = {
         {key = "lifebloomRefreshWindow", name = "Lifebloom Refresh Window", desc = "Refresh Lifebloom within this many seconds for bloom effect", min = 2, max = 8, step = 0.5},
-        {key = "wildGrowthMinTargets", name = "Wild Growth Min Targets", desc = "Minimum targets damaged to suggest Wild Growth", min = 2, max = 6, step = 1},
+        {key = "wildGrowthMinTargets", name = "Wild Growth Min Targets", desc = "Minimum targets damaged to suggest Wild Growth (0=solo mode)", min = 0, max = 6, step = 1},
         {key = "tranquilityMinTargets", name = "Tranquility Min Targets", desc = "Minimum targets damaged to suggest Tranquility", min = 3, max = 8, step = 1},
         {key = "efflorescenceMinTargets", name = "Efflorescence Min Targets", desc = "Minimum targets damaged to suggest Efflorescence", min = 2, max = 6, step = 1},
         {key = "flourishMinHots", name = "Flourish Min HoTs", desc = "Minimum expiring HoTs to suggest Flourish", min = 2, max = 6, step = 1},
@@ -1306,7 +1306,7 @@ function UI:CreateStrategyTab(panel)
                 useWrathForMana = true,
                 poolGroveGuardians = true,
                 emergencyNaturesSwiftness = true,
-                wildGrowthMinTargets = 3,
+                wildGrowthMinTargets = 1,
                 tranquilityMinTargets = 4,
                 efflorescenceMinTargets = 2,
                 flourishMinHots = 2,
