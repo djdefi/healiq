@@ -32,7 +32,15 @@ function DefensiveCooldowns:ShouldUseIronbark(tracker)
         hasIronbark = auraData ~= nil
     end
     
-    return ironbarkReady and targetIsFriendly and not hasIronbark
+    -- Enhanced logic: suggest with target if ready and needed, or without target as reminder
+    if targetIsFriendly then
+        return ironbarkReady and not hasIronbark
+    elseif ironbarkReady and (BaseRule:IsInCombat() and (IsInGroup() or IsInRaid())) then
+        -- Suggest as reminder when in combat with group but no target
+        return true
+    end
+    
+    return false
 end
 
 function DefensiveCooldowns:ShouldUseBarkskin(tracker)

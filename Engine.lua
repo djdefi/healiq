@@ -266,12 +266,15 @@ function Engine:ShouldSuggest()
         return false
     end
     
-    -- Suggest in combat or when having a friendly target
+    -- Suggest in combat, when having a friendly target, or when in a group
+    -- This allows single-target spells to be suggested even without a target selected
+    -- for click-casting workflows, with targeting recommendations provided
     local inCombat = InCombatLockdown()
     local hasTarget = UnitExists("target")
     local targetIsFriendly = hasTarget and UnitIsFriend("player", "target")
+    local inGroup = IsInGroup() or IsInRaid()
     
-    return inCombat or (hasTarget and targetIsFriendly)
+    return inCombat or (hasTarget and targetIsFriendly) or inGroup
 end
 
 -- Talent validation and detection system
@@ -483,26 +486,39 @@ function Engine:EvaluateRules()
     end
     
     -- Lifebloom maintenance on tank - higher priority
-    if UnitExists("target") and UnitIsFriend("player", "target") then
-        local lifeboomInfo = tracker:GetTargetHotInfo("lifebloom")
-        local hasLifebloom = lifeboomInfo and lifeboomInfo.active
-        local refreshWindow = strategy.lifebloomRefreshWindow or 4.5
+    if HealIQ.db.rules.lifebloom and strategy.maintainLifebloomOnTank then
+        local shouldSuggestLifebloom = false
+        local suggestReason = ""
         
-        -- Check if target is a tank or important target
-        local isTank = UnitGroupRolesAssigned("target") == "TANK"
-        local isFocus = UnitIsUnit("target", "focus")
-        
-        if HealIQ.db.rules.lifebloom and strategy.maintainLifebloomOnTank and (isTank or isFocus) then
-            -- Suggest if no Lifebloom or needs refresh
-            if not hasLifebloom then
-                table.insert(suggestions, SPELLS.LIFEBLOOM)
-                HealIQ:DebugLog("Rule triggered: Lifebloom (missing on tank)")
-                HealIQ:LogRuleTrigger("Lifebloom")
-            elseif hasLifebloom and lifeboomInfo.remaining < refreshWindow then
-                table.insert(suggestions, SPELLS.LIFEBLOOM)
-                HealIQ:DebugLog("Rule triggered: Lifebloom (refresh for bloom)")
-                HealIQ:LogRuleTrigger("Lifebloom")
+        if UnitExists("target") and UnitIsFriend("player", "target") then
+            local lifeboomInfo = tracker:GetTargetHotInfo("lifebloom")
+            local hasLifebloom = lifeboomInfo and lifeboomInfo.active
+            local refreshWindow = strategy.lifebloomRefreshWindow or 4.5
+            
+            -- Check if target is a tank or important target
+            local isTank = UnitGroupRolesAssigned("target") == "TANK"
+            local isFocus = UnitIsUnit("target", "focus")
+            
+            if isTank or isFocus then
+                -- Suggest if no Lifebloom or needs refresh
+                if not hasLifebloom then
+                    shouldSuggestLifebloom = true
+                    suggestReason = "missing on tank"
+                elseif hasLifebloom and lifeboomInfo.remaining < refreshWindow then
+                    shouldSuggestLifebloom = true
+                    suggestReason = "refresh for bloom"
+                end
             end
+        elseif InCombatLockdown() or (IsInGroup() or IsInRaid()) then
+            -- Suggest Lifebloom even without target as a reminder for tank maintenance
+            shouldSuggestLifebloom = true
+            suggestReason = "tank maintenance needed"
+        end
+        
+        if shouldSuggestLifebloom then
+            table.insert(suggestions, SPELLS.LIFEBLOOM)
+            HealIQ:DebugLog("Rule triggered: Lifebloom (" .. suggestReason .. ")")
+            HealIQ:LogRuleTrigger("Lifebloom")
         end
     end
     
@@ -526,12 +542,14 @@ function Engine:EvaluateRules()
         -- Suggest Swiftmend if:
         -- 1. Part of Wild Growth combo (when enabled), OR
         -- 2. Target needs immediate healing, OR
-        -- 3. Recent damage to group
+        -- 3. Recent damage to group, OR
+        -- 4. In combat/group without target as a reminder
         local comboCondition = strategy.swiftmendWildGrowthCombo and wildGrowthReady and recentDamageCount >= minTargets
         local healingCondition = UnitExists("target") and UnitIsFriend("player", "target")
         local emergencyCondition = recentDamageCount >= 1
+        local reminderCondition = not UnitExists("target") and (InCombatLockdown() or (IsInGroup() or IsInRaid()))
         
-        if comboCondition or healingCondition or emergencyCondition then
+        if comboCondition or healingCondition or emergencyCondition or reminderCondition then
             table.insert(suggestions, SPELLS.SWIFTMEND)
             HealIQ:DebugLog("Rule triggered: Swiftmend (immediate healing)")
             HealIQ:LogRuleTrigger("Swiftmend")
@@ -584,6 +602,9 @@ function Engine:EvaluateRules()
     -- Rule 7: Ramping HoTs (Context-dependent priority)
     
     -- Rejuvenation logic - avoid random casts during downtime
+    local shouldSuggestRejuvenation = false
+    local rejuvReason = ""
+    
     if UnitExists("target") and UnitIsFriend("player", "target") then
         local rejuvInfo = tracker:GetTargetHotInfo("rejuvenation")
         local hasRejuv = rejuvInfo and rejuvInfo.active
@@ -594,11 +615,26 @@ function Engine:EvaluateRules()
             
             -- Only suggest Rejuvenation if in combat or damage is expected
             if inCombat or recentDamageCount > 0 or not strategy.avoidRandomRejuvenationDowntime then
-                table.insert(suggestions, SPELLS.REJUVENATION)
-                HealIQ:DebugLog("Rule triggered: Rejuvenation (target missing)")
-                HealIQ:LogRuleTrigger("Rejuvenation")
+                shouldSuggestRejuvenation = true
+                rejuvReason = "target missing"
             end
         end
+    elseif HealIQ.db.rules.rejuvenation then
+        local inCombat = InCombatLockdown()
+        local recentDamageCount = tracker:GetRecentDamageCount()
+        local inGroup = IsInGroup() or IsInRaid()
+        
+        -- Suggest Rejuvenation without target as reminder when in combat or damage occurring
+        if (inCombat and inGroup) or recentDamageCount > 0 then
+            shouldSuggestRejuvenation = true
+            rejuvReason = "group needs HoT coverage"
+        end
+    end
+    
+    if shouldSuggestRejuvenation then
+        table.insert(suggestions, SPELLS.REJUVENATION)
+        HealIQ:DebugLog("Rule triggered: Rejuvenation (" .. rejuvReason .. ")")
+        HealIQ:LogRuleTrigger("Rejuvenation")
     end
     
     -- Rule 8: Filler/Mana Management
@@ -656,17 +692,25 @@ function Engine:EvaluateRulesQueue()
     end
     
     -- Lifebloom maintenance logic
-    if UnitExists("target") and UnitIsFriend("player", "target") then
-        local lifeboomInfo = tracker:GetTargetHotInfo("lifebloom")
-        local hasLifebloom = lifeboomInfo and lifeboomInfo.active
-        local refreshWindow = strategy.lifebloomRefreshWindow or 4.5
-        local isTank = UnitGroupRolesAssigned("target") == "TANK"
-        local isFocus = UnitIsUnit("target", "focus")
+    if HealIQ.db.rules.lifebloom and strategy.maintainLifebloomOnTank then
+        local shouldSuggestLifebloom = false
         
-        if HealIQ.db.rules.lifebloom and strategy.maintainLifebloomOnTank and (isTank or isFocus) then
-            if not hasLifebloom or (hasLifebloom and lifeboomInfo.remaining < refreshWindow) then
-                table.insert(suggestions, SPELLS.LIFEBLOOM)
+        if UnitExists("target") and UnitIsFriend("player", "target") then
+            local lifeboomInfo = tracker:GetTargetHotInfo("lifebloom")
+            local hasLifebloom = lifeboomInfo and lifeboomInfo.active
+            local refreshWindow = strategy.lifebloomRefreshWindow or 4.5
+            local isTank = UnitGroupRolesAssigned("target") == "TANK"
+            local isFocus = UnitIsUnit("target", "focus")
+            
+            if (isTank or isFocus) and (not hasLifebloom or (hasLifebloom and lifeboomInfo.remaining < refreshWindow)) then
+                shouldSuggestLifebloom = true
             end
+        elseif InCombatLockdown() or (IsInGroup() or IsInRaid()) then
+            shouldSuggestLifebloom = true
+        end
+        
+        if shouldSuggestLifebloom then
+            table.insert(suggestions, SPELLS.LIFEBLOOM)
         end
     end
     
@@ -684,8 +728,9 @@ function Engine:EvaluateRulesQueue()
         local comboCondition = strategy.swiftmendWildGrowthCombo and wildGrowthReady and recentDamageCount >= minTargets
         local healingCondition = UnitExists("target") and UnitIsFriend("player", "target")
         local emergencyCondition = recentDamageCount >= 1
+        local reminderCondition = not UnitExists("target") and (InCombatLockdown() or (IsInGroup() or IsInRaid()))
         
-        if comboCondition or healingCondition or emergencyCondition then
+        if comboCondition or healingCondition or emergencyCondition or reminderCondition then
             table.insert(suggestions, SPELLS.SWIFTMEND)
         end
     end
@@ -717,6 +762,8 @@ function Engine:EvaluateRulesQueue()
     end
     
     -- Rule 7: Ramping HoTs
+    local shouldSuggestRejuvenation = false
+    
     if UnitExists("target") and UnitIsFriend("player", "target") then
         local rejuvInfo = tracker:GetTargetHotInfo("rejuvenation")
         local hasRejuv = rejuvInfo and rejuvInfo.active
@@ -726,9 +773,21 @@ function Engine:EvaluateRulesQueue()
             local recentDamageCount = tracker:GetRecentDamageCount()
             
             if inCombat or recentDamageCount > 0 or not strategy.avoidRandomRejuvenationDowntime then
-                table.insert(suggestions, SPELLS.REJUVENATION)
+                shouldSuggestRejuvenation = true
             end
         end
+    elseif HealIQ.db.rules.rejuvenation then
+        local inCombat = InCombatLockdown()
+        local recentDamageCount = tracker:GetRecentDamageCount()
+        local inGroup = IsInGroup() or IsInRaid()
+        
+        if (inCombat and inGroup) or recentDamageCount > 0 then
+            shouldSuggestRejuvenation = true
+        end
+    end
+    
+    if shouldSuggestRejuvenation then
+        table.insert(suggestions, SPELLS.REJUVENATION)
     end
     
     -- Rule 8: Filler/Mana Management
