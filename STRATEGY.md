@@ -52,7 +52,7 @@ Access strategy settings with `/healiq strategy list` and modify with `/healiq s
 
 ### Tunable Thresholds
 
-- `wildGrowthMinTargets` (default: 3) - Minimum targets damaged to suggest Wild Growth
+- `wildGrowthMinTargets` (default: 1) - Minimum targets damaged to suggest Wild Growth (0=solo mode)
 - `tranquilityMinTargets` (default: 4) - Minimum targets damaged to suggest Tranquility
 - `efflorescenceMinTargets` (default: 2) - Minimum targets damaged to suggest Efflorescence
 - `flourishMinHots` (default: 2) - Minimum expiring HoTs to suggest Flourish
@@ -65,19 +65,25 @@ Access strategy settings with `/healiq strategy list` and modify with `/healiq s
 ### Basic Usage
 ```
 /healiq strategy list                           # Show all settings
-/healiq strategy set wildGrowthMinTargets 4     # Require 4 targets for Wild Growth
+/healiq strategy set wildGrowthMinTargets 1     # Default: good for small groups
+/healiq strategy set wildGrowthMinTargets 0     # Solo mode: always suggest Wild Growth
 /healiq strategy set lowHealthThreshold 0.4     # Emergency threshold at 40% health
 /healiq strategy set useWrathForMana false      # Disable Wrath suggestions
 ```
 
 ### Raid vs Mythic+ Tuning
 ```
+# Solo/Small Group settings (more permissive)
+/healiq strategy set wildGrowthMinTargets 0
+/healiq strategy set tranquilityMinTargets 2
+/healiq strategy set poolGroveGuardians false
+
 # Raid settings (more conservative)
 /healiq strategy set wildGrowthMinTargets 4
 /healiq strategy set tranquilityMinTargets 5
 /healiq strategy set poolGroveGuardians true
 
-# Mythic+ settings (more aggressive)
+# Mythic+ settings (balanced)
 /healiq strategy set wildGrowthMinTargets 2
 /healiq strategy set tranquilityMinTargets 3
 /healiq strategy set poolGroveGuardians false
