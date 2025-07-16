@@ -20,7 +20,7 @@ local optionsFrame = nil
 -- Constants
 local FRAME_SIZE = 64
 local ICON_SIZE = 48
-local OPTIONS_FRAME_HEIGHT = 550  -- Optimized height to prevent window overflow
+local OPTIONS_FRAME_HEIGHT = 700  -- Increased height to prevent content overflow
 local TOOLTIP_LINE_LENGTH = 45
 
 -- Minimap button positioning
@@ -484,7 +484,7 @@ end
 function UI:CreateOptionsFrame()
     -- Create main options frame with reduced height
     optionsFrame = CreateFrame("Frame", "HealIQOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
-    optionsFrame:SetSize(400, OPTIONS_FRAME_HEIGHT) -- Reduced height, content will be organized in tabs
+    optionsFrame:SetSize(400, OPTIONS_FRAME_HEIGHT) -- Increased height to accommodate all content without overflow
     optionsFrame:SetPoint("CENTER")
     optionsFrame:SetFrameStrata("DIALOG")
     optionsFrame:SetMovable(true)
@@ -555,7 +555,7 @@ function UI:CreateOptionsTabs(parent)
     local navBackground = CreateFrame("Frame", "HealIQNavBackground", parent, "BackdropTemplate")
     navBackground:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -10)
     -- Make navigation height responsive to frame height
-    local navHeight = OPTIONS_FRAME_HEIGHT - 80  -- Increased padding for better fit
+    local navHeight = OPTIONS_FRAME_HEIGHT - 80  -- Navigation height adjusted for content fit
     navBackground:SetSize(navWidth, navHeight)
     navBackground:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
