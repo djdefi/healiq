@@ -337,7 +337,9 @@ end
 
 function Tracker:IsSpellReady(spellName)
     local cooldown = trackedData.cooldowns[spellName]
-    return cooldown and cooldown.ready
+    -- If no cooldown entry exists, the spell is ready (not on cooldown)
+    -- If cooldown entry exists, check if it's marked as ready
+    return not cooldown or cooldown.ready
 end
 
 function Tracker:CanSwiftmend()
@@ -450,34 +452,50 @@ function Tracker:ShouldUseIncarnation()
     local incarnationReady = self:IsSpellReady("incarnationTree")
     local recentDamageCount = self:GetRecentDamageCount()
     
-    -- Use configurable threshold, but typically lower than Tranquility
+    -- Use more aggressive threshold for major cooldown
     local strategy = HealIQ.db and HealIQ.db.strategy or {}
-    local minTargets = strategy.wildGrowthMinTargets or 3
+    local minTargets = math.max(2, strategy.wildGrowthMinTargets or 1)
     
     return incarnationReady and recentDamageCount >= minTargets
 end
 
 function Tracker:ShouldUseNaturesSwiftness()
-    -- Suggest Nature's Swiftness if available and target needs immediate healing
+    -- Suggest Nature's Swiftness if available and healing is needed
     local naturesSwiftnessReady = self:IsSpellReady("naturesSwiftness")
     local targetExists = UnitExists("target")
     local targetIsFriendly = targetExists and UnitIsFriend("player", "target")
     
-    -- Enhanced logic: consider emergency situations and strategy settings
+    -- Enhanced logic: suggest more proactively, not just in emergencies
     local strategy = HealIQ.db and HealIQ.db.strategy or {}
-    local isEmergency = false
+    local shouldSuggest = false
     
-    -- Check for emergency situations
+    -- Emergency situations (low health targets)
     if targetExists and targetIsFriendly then
         local healthPercent = UnitHealth("target") / UnitHealthMax("target")
         local lowHealthThreshold = strategy.lowHealthThreshold or 0.3
-        isEmergency = healthPercent <= lowHealthThreshold
+        if healthPercent <= lowHealthThreshold then
+            shouldSuggest = true
+        end
     end
     
-    -- Also consider emergency use based on strategy setting
-    local emergencyUse = strategy.emergencyNaturesSwiftness ~= false -- default true
+    -- Proactive use during combat with group damage
+    if not shouldSuggest and InCombatLockdown() then
+        local recentDamageCount = self:GetRecentDamageCount()
+        local groupSize = GetNumGroupMembers()
+        -- Suggest if significant group damage (25% of group or 2+ people)
+        if recentDamageCount >= math.max(2, math.floor(groupSize * 0.25)) then
+            shouldSuggest = true
+        end
+    end
     
-    return naturesSwiftnessReady and targetIsFriendly and (isEmergency or not emergencyUse)
+    -- Allow manual override via strategy setting
+    local emergencyOnly = strategy.emergencyNaturesSwiftness == true
+    if emergencyOnly then
+        -- Only suggest in emergency situations when this setting is true
+        shouldSuggest = targetExists and targetIsFriendly and UnitHealth("target") / UnitHealthMax("target") <= (strategy.lowHealthThreshold or 0.3)
+    end
+    
+    return naturesSwiftnessReady and shouldSuggest
 end
 
 function Tracker:ShouldUseBarkskin()
@@ -507,12 +525,17 @@ function Tracker:ShouldUseGroveGuardians()
         return true
     end
     
-    -- Pool charges logic: only suggest during high damage phases or when other cooldowns are active
+    -- Enhanced pooling logic: suggest more frequently
     local recentDamageCount = self:GetRecentDamageCount()
-    local minTargets = strategy.wildGrowthMinTargets or 3
+    local minTargets = strategy.wildGrowthMinTargets or 1
     local hasOtherCooldowns = self:HasPlayerBuff("incarnationTree") or self:HasPlayerBuff("naturesSwiftness")
+    local inCombat = InCombatLockdown()
     
-    return recentDamageCount >= minTargets or hasOtherCooldowns
+    -- Suggest if:
+    -- 1. High damage to group, OR
+    -- 2. Other major cooldowns are active, OR  
+    -- 3. In combat with any group damage
+    return (recentDamageCount >= minTargets) or hasOtherCooldowns or (inCombat and recentDamageCount >= 1)
 end
 
 function Tracker:ShouldUseWrath()

@@ -463,9 +463,7 @@ function Engine:EvaluateRules()
     if HealIQ.db.rules.incarnationTree and tracker:ShouldUseIncarnation() then
         table.insert(suggestions, SPELLS.INCARNATION_TREE)
         HealIQ:DebugLog("Rule triggered: Incarnation Tree")
-        if HealIQ.sessionStats then
-            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-        end
+        HealIQ:LogRuleTrigger("Incarnation Tree")
     end
     
     -- Nature's Swiftness for emergency situations (low health targets)
@@ -499,15 +497,11 @@ function Engine:EvaluateRules()
             if not hasLifebloom then
                 table.insert(suggestions, SPELLS.LIFEBLOOM)
                 HealIQ:DebugLog("Rule triggered: Lifebloom (missing on tank)")
-                if HealIQ.sessionStats then
-                    HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-                end
+                HealIQ:LogRuleTrigger("Lifebloom")
             elseif hasLifebloom and lifeboomInfo.remaining < refreshWindow then
                 table.insert(suggestions, SPELLS.LIFEBLOOM)
                 HealIQ:DebugLog("Rule triggered: Lifebloom (refresh for bloom)")
-                if HealIQ.sessionStats then
-                    HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-                end
+                HealIQ:LogRuleTrigger("Lifebloom")
             end
         end
     end
@@ -523,24 +517,31 @@ function Engine:EvaluateRules()
     
     -- Rule 4: AoE Healing Combo (Swiftmend → Wild Growth)
     
-    -- Swiftmend setup for Wild Growth combo
-    if HealIQ.db.rules.swiftmend and strategy.swiftmendWildGrowthCombo and tracker:CanSwiftmend() then
+    -- Swiftmend for immediate healing (enhanced logic)
+    if HealIQ.db.rules.swiftmend and tracker:CanSwiftmend() then
         local recentDamageCount = tracker:GetRecentDamageCount()
         local wildGrowthReady = tracker:IsSpellReady("wildGrowth")
-        local minTargets = strategy.wildGrowthMinTargets or 3
+        local minTargets = strategy.wildGrowthMinTargets or 1
         
-        -- Suggest Swiftmend if Wild Growth is ready and multiple targets need healing
-        if wildGrowthReady and recentDamageCount >= minTargets then
+        -- Suggest Swiftmend if:
+        -- 1. Part of Wild Growth combo (when enabled), OR
+        -- 2. Target needs immediate healing, OR
+        -- 3. Recent damage to group
+        local comboCondition = strategy.swiftmendWildGrowthCombo and wildGrowthReady and recentDamageCount >= minTargets
+        local healingCondition = UnitExists("target") and UnitIsFriend("player", "target")
+        local emergencyCondition = recentDamageCount >= 1
+        
+        if comboCondition or healingCondition or emergencyCondition then
             table.insert(suggestions, SPELLS.SWIFTMEND)
-            HealIQ:DebugLog("Rule triggered: Swiftmend (Wild Growth combo setup)")
+            HealIQ:DebugLog("Rule triggered: Swiftmend (immediate healing)")
             HealIQ:LogRuleTrigger("Swiftmend")
         end
     end
     
-    -- Wild Growth if off cooldown and enough targets damaged
+    -- Wild Growth if off cooldown and targets need healing
     if HealIQ.db.rules.wildGrowth and tracker:IsSpellReady("wildGrowth") then
         local recentDamageCount = tracker:GetRecentDamageCount()
-        local minTargets = strategy.wildGrowthMinTargets or 3
+        local minTargets = strategy.wildGrowthMinTargets or 1
         if recentDamageCount >= minTargets then
             table.insert(suggestions, SPELLS.WILD_GROWTH)
             HealIQ:DebugLog("Rule triggered: Wild Growth (recent damage: " .. recentDamageCount .. ")")
@@ -551,12 +552,10 @@ function Engine:EvaluateRules()
     -- Rule 5: Cooldown Management
     
     -- Grove Guardians - pool charges for big cooldowns
-    if HealIQ.db.rules.groveGuardians and strategy.poolGroveGuardians and tracker:ShouldUseGroveGuardians() then
+    if HealIQ.db.rules.groveGuardians and tracker:ShouldUseGroveGuardians() then
         table.insert(suggestions, SPELLS.GROVE_GUARDIANS)
         HealIQ:DebugLog("Rule triggered: Grove Guardians")
-        if HealIQ.sessionStats then
-            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-        end
+        HealIQ:LogRuleTrigger("Grove Guardians")
     end
     
     -- Flourish if available and multiple HoTs are expiring
@@ -579,9 +578,7 @@ function Engine:EvaluateRules()
     if HealIQ.db.rules.barkskin and tracker:ShouldUseBarkskin() then
         table.insert(suggestions, SPELLS.BARKSKIN)
         HealIQ:DebugLog("Rule triggered: Barkskin")
-        if HealIQ.sessionStats then
-            HealIQ.sessionStats.rulesProcessed = HealIQ.sessionStats.rulesProcessed + 1
-        end
+        HealIQ:LogRuleTrigger("Barkskin")
     end
     
     -- Rule 7: Ramping HoTs (Context-dependent priority)
@@ -679,26 +676,30 @@ function Engine:EvaluateRulesQueue()
     end
     
     -- Rule 4: AoE Healing Combo
-    if HealIQ.db.rules.swiftmend and strategy.swiftmendWildGrowthCombo and tracker:CanSwiftmend() then
+    if HealIQ.db.rules.swiftmend and tracker:CanSwiftmend() then
         local recentDamageCount = tracker:GetRecentDamageCount()
         local wildGrowthReady = tracker:IsSpellReady("wildGrowth")
-        local minTargets = strategy.wildGrowthMinTargets or 3
+        local minTargets = strategy.wildGrowthMinTargets or 1
         
-        if wildGrowthReady and recentDamageCount >= minTargets then
+        local comboCondition = strategy.swiftmendWildGrowthCombo and wildGrowthReady and recentDamageCount >= minTargets
+        local healingCondition = UnitExists("target") and UnitIsFriend("player", "target")
+        local emergencyCondition = recentDamageCount >= 1
+        
+        if comboCondition or healingCondition or emergencyCondition then
             table.insert(suggestions, SPELLS.SWIFTMEND)
         end
     end
     
     if HealIQ.db.rules.wildGrowth and tracker:IsSpellReady("wildGrowth") then
         local recentDamageCount = tracker:GetRecentDamageCount()
-        local minTargets = strategy.wildGrowthMinTargets or 3
+        local minTargets = strategy.wildGrowthMinTargets or 1
         if recentDamageCount >= minTargets then
             table.insert(suggestions, SPELLS.WILD_GROWTH)
         end
     end
     
     -- Rule 5: Cooldown Management
-    if HealIQ.db.rules.groveGuardians and strategy.poolGroveGuardians and tracker:ShouldUseGroveGuardians() then
+    if HealIQ.db.rules.groveGuardians and tracker:ShouldUseGroveGuardians() then
         table.insert(suggestions, SPELLS.GROVE_GUARDIANS)
     end
     
