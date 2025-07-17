@@ -67,7 +67,7 @@ local defaults = {
         emergencyNaturesSwiftness = true,       -- Use Nature's Swiftness for emergency heals
         
         -- Tunable thresholds
-        wildGrowthMinTargets = 3,                -- Minimum targets damaged to suggest Wild Growth
+        wildGrowthMinTargets = 1,                -- Minimum targets damaged to suggest Wild Growth (solo-friendly)
         tranquilityMinTargets = 4,               -- Minimum targets damaged to suggest Tranquility
         efflorescenceMinTargets = 2,             -- Minimum targets damaged to suggest Efflorescence
         flourishMinHots = 2,                     -- Minimum expiring HoTs to suggest Flourish

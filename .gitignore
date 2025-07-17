@@ -1,0 +1,21 @@
+# Temporary files
+*.tmp
+tmp/
+/tmp/
+
+# Lua coverage files
+luacov.stats.out
+luacov.report.out
+
+# Backup files
+*.backup
+*.pre-*
+
+# Editor files
+.vscode/
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

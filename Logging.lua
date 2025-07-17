@@ -81,29 +81,62 @@ function HealIQ:GenerateDiagnosticDump()
     table.insert(dump, "Version: " .. self.version)
     table.insert(dump, "")
     
-    -- Session Statistics
+    -- Session Statistics with Enhanced Analysis
     table.insert(dump, "=== Session Statistics ===")
     if self.sessionStats then
+        local sessionDuration = 0
         if self.sessionStats.startTime then
-            local sessionDuration = time() - self.sessionStats.startTime
+            sessionDuration = time() - self.sessionStats.startTime
             table.insert(dump, "Session Duration: " .. self:FormatDuration(sessionDuration))
         end
-        table.insert(dump, "Suggestions Generated: " .. self.sessionStats.suggestions)
-        table.insert(dump, "Rules Processed: " .. self.sessionStats.rulesProcessed)
-        table.insert(dump, "Errors Logged: " .. self.sessionStats.errorsLogged)
-        table.insert(dump, "Events Handled: " .. self.sessionStats.eventsHandled)
+        table.insert(dump, "Suggestions Generated: " .. (self.sessionStats.suggestions or 0))
+        table.insert(dump, "Rules Processed: " .. (self.sessionStats.rulesProcessed or 0))
+        table.insert(dump, "Errors Logged: " .. (self.sessionStats.errorsLogged or 0))
+        table.insert(dump, "Events Handled: " .. (self.sessionStats.eventsHandled or 0))
         
-        -- Rule trigger counts
+        -- Performance Analysis
+        if sessionDuration > 0 and self.sessionStats.suggestions then
+            local suggestionsPerMinute = (self.sessionStats.suggestions * 60) / sessionDuration
+            local rulesPerMinute = (self.sessionStats.rulesProcessed * 60) / sessionDuration
+            table.insert(dump, "")
+            table.insert(dump, "=== Performance Analysis ===")
+            table.insert(dump, "Suggestions per Minute: " .. string.format("%.1f", suggestionsPerMinute))
+            table.insert(dump, "Rules Processed per Minute: " .. string.format("%.1f", rulesPerMinute))
+            if self.sessionStats.rulesProcessed > 0 then
+                local efficiency = (self.sessionStats.suggestions / self.sessionStats.rulesProcessed) * 100
+                table.insert(dump, "Suggestion Efficiency: " .. string.format("%.1f%%", efficiency))
+            end
+        end
+        
+        -- Rule trigger counts with analysis
         if self.sessionStats.ruleTriggers and next(self.sessionStats.ruleTriggers) then
             table.insert(dump, "")
-            table.insert(dump, "Rule Trigger Counts:")
+            table.insert(dump, "=== Rule Trigger Analysis ===")
             local sortedRules = {}
+            local totalTriggers = 0
             for ruleName, count in pairs(self.sessionStats.ruleTriggers) do
                 table.insert(sortedRules, {name = ruleName, count = count})
+                totalTriggers = totalTriggers + count
             end
             table.sort(sortedRules, function(a, b) return a.count > b.count end)
+            
+            table.insert(dump, "Most Active Rules:")
+            for i, rule in ipairs(sortedRules) do
+                local percentage = (rule.count / totalTriggers) * 100
+                table.insert(dump, string.format("  %d. %s: %d (%.1f%%)", i, rule.name, rule.count, percentage))
+                if i >= 5 then break end -- Top 5 only
+            end
+            
+            -- Rule frequency recommendations
+            table.insert(dump, "")
+            table.insert(dump, "=== Strategy Recommendations ===")
             for _, rule in ipairs(sortedRules) do
-                table.insert(dump, "  " .. rule.name .. ": " .. rule.count)
+                local percentage = (rule.count / totalTriggers) * 100
+                if percentage > 50 then
+                    table.insert(dump, "• " .. rule.name .. " is very active (" .. string.format("%.1f%%", percentage) .. ") - consider if this is optimal")
+                elseif percentage < 5 and rule.count > 0 then
+                    table.insert(dump, "• " .. rule.name .. " rarely triggers (" .. string.format("%.1f%%", percentage) .. ") - consider rule adjustments")
+                end
             end
         else
             table.insert(dump, "")
@@ -114,13 +147,80 @@ function HealIQ:GenerateDiagnosticDump()
     end
     table.insert(dump, "")
     
-    -- Configuration
+    -- Configuration with Strategy Analysis
     table.insert(dump, "=== Configuration ===")
     if self.db then
         table.insert(dump, "Enabled: " .. tostring(self.db.enabled))
         table.insert(dump, "Debug Mode: " .. tostring(self.debug))
     else
         table.insert(dump, "Database not yet initialized")
+    end
+    table.insert(dump, "")
+    
+    -- Enhanced Strategy Configuration Analysis
+    table.insert(dump, "=== Strategy Configuration Analysis ===")
+    if self.db and self.db.strategy then
+        -- Group analysis settings
+        local groupType = "Unknown"
+        local groupSize = GetNumGroupMembers()
+        if groupSize <= 1 then
+            groupType = "Solo"
+        elseif groupSize <= 5 then
+            groupType = "Small Group (5-man)"
+        elseif groupSize <= 10 then
+            groupType = "Medium Group (10-man)"
+        else
+            groupType = "Large Group (Raid)"
+        end
+        
+        table.insert(dump, "Detected Group Type: " .. groupType .. " (" .. groupSize .. " members)")
+        table.insert(dump, "")
+        
+        -- Key thresholds with recommendations
+        table.insert(dump, "Key Thresholds:")
+        local wildGrowthMin = self.db.strategy.wildGrowthMinTargets or 1
+        table.insert(dump, "  Wild Growth Min Targets: " .. wildGrowthMin)
+        if groupType == "Solo" and wildGrowthMin > 0 then
+            table.insert(dump, "    → Recommendation: Set to 0 for solo content")
+        elseif groupType == "Small Group (5-man)" and wildGrowthMin > 2 then
+            table.insert(dump, "    → Recommendation: Consider 1-2 for 5-man content")
+        elseif groupType == "Large Group (Raid)" and wildGrowthMin < 3 then
+            table.insert(dump, "    → Recommendation: Consider 3+ for raid content")
+        end
+        
+        local tranqMin = self.db.strategy.tranquilityMinTargets or 4
+        table.insert(dump, "  Tranquility Min Targets: " .. tranqMin)
+        if groupType == "Small Group (5-man)" and tranqMin > 3 then
+            table.insert(dump, "    → Recommendation: Consider 2-3 for 5-man content")
+        end
+        
+        local effloMin = self.db.strategy.efflorescenceMinTargets or 2
+        table.insert(dump, "  Efflorescence Min Targets: " .. effloMin)
+        
+        local lowHealthThresh = self.db.strategy.lowHealthThreshold or 0.3
+        table.insert(dump, "  Low Health Threshold: " .. string.format("%.0f%%", lowHealthThresh * 100))
+        
+        table.insert(dump, "")
+        table.insert(dump, "Strategy Toggles:")
+        local strategies = {
+            {"prioritizeEfflorescence", "Prioritize Efflorescence"},
+            {"maintainLifebloomOnTank", "Maintain Lifebloom on Tank"},
+            {"preferClearcastingRegrowth", "Prefer Clearcasting Regrowth"},
+            {"swiftmendWildGrowthCombo", "Swiftmend + Wild Growth Combo"},
+            {"useWrathForMana", "Use Wrath for Mana"},
+            {"poolGroveGuardians", "Pool Grove Guardians"},
+            {"emergencyNaturesSwiftness", "Emergency Nature's Swiftness"}
+        }
+        
+        for _, strategy in ipairs(strategies) do
+            local key, name = strategy[1], strategy[2]
+            local enabled = self.db.strategy[key]
+            if enabled ~= nil then
+                table.insert(dump, "  " .. name .. ": " .. tostring(enabled))
+            end
+        end
+    else
+        table.insert(dump, "Strategy configuration not yet initialized")
     end
     table.insert(dump, "")
     
@@ -141,8 +241,30 @@ function HealIQ:GenerateDiagnosticDump()
     -- Rules Configuration
     table.insert(dump, "=== Rules Configuration ===")
     if self.db and self.db.rules then
+        local enabledRules = {}
+        local disabledRules = {}
         for rule, enabled in pairs(self.db.rules) do
-            table.insert(dump, rule .. ": " .. tostring(enabled))
+            if enabled then
+                table.insert(enabledRules, rule)
+            else
+                table.insert(disabledRules, rule)
+            end
+        end
+        
+        table.sort(enabledRules)
+        table.sort(disabledRules)
+        
+        table.insert(dump, "Enabled Rules (" .. #enabledRules .. "):")
+        for _, rule in ipairs(enabledRules) do
+            table.insert(dump, "  " .. rule)
+        end
+        
+        if #disabledRules > 0 then
+            table.insert(dump, "")
+            table.insert(dump, "Disabled Rules (" .. #disabledRules .. "):")
+            for _, rule in ipairs(disabledRules) do
+                table.insert(dump, "  " .. rule)
+            end
         end
     else
         table.insert(dump, "Rules configuration not yet initialized")
@@ -156,6 +278,24 @@ function HealIQ:GenerateDiagnosticDump()
     table.insert(dump, "Class: " .. (class or "Unknown"))
     table.insert(dump, "Specialization: " .. (spec or "Unknown"))
     table.insert(dump, "In Combat: " .. tostring(InCombatLockdown()))
+    table.insert(dump, "")
+    
+    -- Debugging Tips
+    table.insert(dump, "=== Debugging Tips ===")
+    table.insert(dump, "• Use '/healiq debug' to toggle real-time debug output")
+    table.insert(dump, "• Use '/healiq test' to generate sample suggestions")
+    table.insert(dump, "• Monitor rule trigger frequencies to optimize strategy")
+    table.insert(dump, "• Adjust min target thresholds based on group size")
+    table.insert(dump, "• Check suggestion efficiency for performance insights")
+    table.insert(dump, "")
+    
+    -- Export Instructions
+    table.insert(dump, "=== Export Instructions ===")
+    table.insert(dump, "• Click in this text area to select all content")
+    table.insert(dump, "• Use Ctrl+C (Cmd+C on Mac) to copy to clipboard")
+    table.insert(dump, "• Paste into any text editor, spreadsheet, or document")
+    table.insert(dump, "• Data includes all session metrics and configuration")
+    table.insert(dump, "• Use the Refresh button above to get latest data")
     table.insert(dump, "")
     
     return table.concat(dump, "\n")
