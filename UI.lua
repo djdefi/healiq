@@ -559,6 +559,7 @@ function UI:CreateOptionsTabs(parent)
     local navBackground = CreateFrame("Frame", "HealIQNavBackground", parent, "BackdropTemplate")
     navBackground:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -10)
     -- Make navigation height responsive to frame height
+    local parentHeight = parent:GetHeight() or OPTIONS_FRAME_HEIGHT  -- Get parent height, fallback to default
     local navHeight = parentHeight - 80  -- Navigation height adjusted for content fit
     navBackground:SetSize(navWidth, navHeight)
     navBackground:SetBackdrop({
