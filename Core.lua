@@ -73,6 +73,13 @@ local defaults = {
         flourishMinHots = 2,                     -- Minimum expiring HoTs to suggest Flourish
         recentDamageWindow = 3,                  -- Time window to consider "recent damage" (seconds)
         lowHealthThreshold = 0.3,                -- Health percentage to consider "emergency"
+    },
+    encounter = {
+        enabled = true,                          -- Enable encounter integration
+        preparationWindow = 15,                  -- Look ahead time for encounter events (seconds)
+        cooldownPrepTime = 5,                    -- Time before event to prioritize cooldowns (seconds)
+        preRampTime = 12,                        -- Time before event to prioritize pre-ramping (seconds)
+        enableDebugMessages = false,             -- Show debug messages for encounter events
     }
 }
 
@@ -256,6 +263,11 @@ function HealIQ:OnInitialize()
         if self.Config then
             self.Config:Initialize()
             self:DebugLog("Config module initialized")
+        end
+        
+        if self.EncounterIntegration then
+            self.EncounterIntegration:Initialize()
+            self:DebugLog("EncounterIntegration module initialized")
         end
         
         self:Message("HealIQ " .. self.version .. " initialized successfully")

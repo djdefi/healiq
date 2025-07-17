@@ -85,6 +85,18 @@ function Tests.AssertType(expectedType, value, testName)
     return Tests.Assert(condition, testName, errorMessage)
 end
 
+function Tests.AssertIn(value, table, testName)
+    local condition = false
+    for _, item in ipairs(table) do
+        if item == value then
+            condition = true
+            break
+        end
+    end
+    local errorMessage = string.format("Expected %s to be in table", tostring(value))
+    return Tests.Assert(condition, testName, errorMessage)
+end
+
 -- Run all tests
 function Tests.RunAll()
     HealIQ:Print("Running HealIQ tests...")
@@ -1375,6 +1387,116 @@ function Tests.RunAllTestsEnhanced()
     end
     
     return totalTests, passedTests
+end
+
+-- EncounterIntegration Tests
+function Tests.RunEncounterIntegrationTests()
+    HealIQ:Print("Running EncounterIntegration tests...")
+    
+    if not HealIQ.EncounterIntegration then
+        Tests.Assert(false, "EncounterIntegration: Module not loaded")
+        return
+    end
+    
+    local integration = HealIQ.EncounterIntegration
+    
+    -- Test module initialization
+    Tests.AssertType("table", integration, "EncounterIntegration: Module is table")
+    Tests.AssertType("function", integration.Initialize, "EncounterIntegration: Initialize is function")
+    Tests.AssertType("function", integration.DetectAddons, "EncounterIntegration: DetectAddons is function")
+    Tests.AssertType("function", integration.IsAddonActive, "EncounterIntegration: IsAddonActive is function")
+    Tests.AssertType("function", integration.IsInEncounter, "EncounterIntegration: IsInEncounter is function")
+    Tests.AssertType("function", integration.GetUpcomingHealingEvents, "EncounterIntegration: GetUpcomingHealingEvents is function")
+    Tests.AssertType("function", integration.ShouldPrepareForAoE, "EncounterIntegration: ShouldPrepareForAoE is function")
+    
+    -- Test IsHealingRelevantEvent function
+    Tests.AssertType("function", integration.IsHealingRelevantEvent, "EncounterIntegration: IsHealingRelevantEvent is function")
+    
+    -- Test with sample event texts
+    local testCases = {
+        {text = "AoE Damage", expected = true, description = "Should detect AoE events"},
+        {text = "Raid Wide Damage", expected = true, description = "Should detect raid events"},  
+        {text = "Fire Blast", expected = true, description = "Should detect blast events"},
+        {text = "Shadow Storm", expected = true, description = "Should detect storm events"},
+        {text = "Boss Movement", expected = false, description = "Should ignore movement events"},
+        {text = nil, expected = false, description = "Should handle nil text"},
+        {text = "", expected = false, description = "Should handle empty text"},
+    }
+    
+    for _, testCase in ipairs(testCases) do
+        local result = integration:IsHealingRelevantEvent(testCase.text, nil)
+        Tests.AssertEqual(testCase.expected, result, "EncounterIntegration: " .. testCase.description)
+    end
+    
+    -- Test initial state
+    Tests.AssertType("boolean", integration:IsInEncounter(), "EncounterIntegration: IsInEncounter returns boolean")
+    Tests.AssertType("table", integration:GetUpcomingHealingEvents(15), "EncounterIntegration: GetUpcomingHealingEvents returns table")
+    
+    local shouldPrep, timeUntil, eventText = integration:ShouldPrepareForAoE(15)
+    Tests.AssertType("boolean", shouldPrep, "EncounterIntegration: ShouldPrepareForAoE returns boolean")
+    
+    -- Test GetEventPriority
+    Tests.AssertType("function", integration.GetEventPriority, "EncounterIntegration: GetEventPriority is function")
+    
+    local testEvent = {text = "Raid AoE Damage"}
+    local priority = integration:GetEventPriority(testEvent)
+    Tests.AssertType("string", priority, "EncounterIntegration: GetEventPriority returns string")
+    Tests.AssertIn(priority, {"high", "medium", "low"}, "EncounterIntegration: GetEventPriority returns valid priority")
+    
+    HealIQ:Print("EncounterIntegration tests completed")
+end
+
+-- Engine EncounterModifier Tests
+function Tests.RunEngineEncounterTests()
+    HealIQ:Print("Running Engine encounter integration tests...")
+    
+    if not HealIQ.Engine then
+        Tests.Assert(false, "Engine: Module not loaded for encounter tests")
+        return
+    end
+    
+    local engine = HealIQ.Engine
+    
+    -- Test GetEncounterModifiers function
+    Tests.AssertType("function", engine.GetEncounterModifiers, "Engine: GetEncounterModifiers is function")
+    
+    -- Test modifier structure when no encounter integration
+    local modifiers = engine:GetEncounterModifiers()
+    Tests.AssertType("table", modifiers, "Engine: GetEncounterModifiers returns table")
+    
+    -- Test ApplyEncounterModifiers function
+    Tests.AssertType("function", engine.ApplyEncounterModifiers, "Engine: ApplyEncounterModifiers is function")
+    
+    -- Test with empty modifiers
+    local testSuggestions = {
+        {name = "Rejuvenation", priority = 8},
+        {name = "Tranquility", priority = 1},
+        {name = "Lifebloom", priority = 5}
+    }
+    
+    local result = engine:ApplyEncounterModifiers(testSuggestions, {}, {})
+    Tests.AssertType("table", result, "Engine: ApplyEncounterModifiers returns table")
+    Tests.AssertEqual(#testSuggestions, #result, "Engine: ApplyEncounterModifiers preserves suggestion count with empty modifiers")
+    
+    -- Test with cooldown prioritization
+    local cooldownModifier = {prioritizeCooldowns = true}
+    local cooldownResult = engine:ApplyEncounterModifiers(testSuggestions, cooldownModifier, {})
+    Tests.AssertType("table", cooldownResult, "Engine: ApplyEncounterModifiers handles cooldown prioritization")
+    
+    -- Test with pre-ramping prioritization  
+    local preRampModifier = {prioritizePreRamping = true}
+    local preRampResult = engine:ApplyEncounterModifiers(testSuggestions, preRampModifier, {})
+    Tests.AssertType("table", preRampResult, "Engine: ApplyEncounterModifiers handles pre-ramping prioritization")
+    
+    HealIQ:Print("Engine encounter integration tests completed")
+end
+
+-- Combined test runner for all encounter-related tests
+function Tests.RunAllEncounterTests()
+    HealIQ:Print("=== Running All Encounter Integration Tests ===")
+    Tests.RunEncounterIntegrationTests()
+    Tests.RunEngineEncounterTests()
+    HealIQ:Print("=== Encounter Integration Tests Complete ===")
 end
 
 HealIQ.Tests = Tests
