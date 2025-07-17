@@ -101,7 +101,7 @@ This logic will be modular and eventually configurable.
 
 ### Milestone 3: Smart Integrations
 
-* [ ] DBM/BigWigs sync (for incoming damage phases)
+* [x] DBM/BigWigs sync (for incoming damage phases)
 * [ ] WeakAura export support
 * [ ] Additional healing spec support
 

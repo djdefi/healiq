@@ -453,6 +453,13 @@ function Engine:EvaluateRules()
     local strategy = HealIQ.db.strategy or {}
     HealIQ:DebugLog("Starting rule evaluation with enhanced strategy")
     
+    -- Encounter Integration: Check for upcoming damage phases
+    local encounterIntegration = HealIQ.EncounterIntegration
+    local encounterModifier = {}
+    if encounterIntegration and encounterIntegration:IsAddonActive() then
+        encounterModifier = self:GetEncounterModifiers()
+    end
+    
     -- Rule 1: Emergency/Major Cooldowns (Highest Priority)
     
     -- Tranquility if off cooldown and enough allies recently damaged
@@ -648,6 +655,12 @@ function Engine:EvaluateRules()
     
     HealIQ:DebugLog("Rule evaluation completed, " .. #suggestions .. " suggestions found")
     
+    -- Apply encounter modifiers if available
+    if encounterModifier and next(encounterModifier) then
+        suggestions = self:ApplyEncounterModifiers(suggestions, encounterModifier, strategy)
+        HealIQ:DebugLog("Applied encounter modifiers, " .. #suggestions .. " suggestions after modification")
+    end
+    
     -- Return the top suggestion for backward compatibility, log if suggestion made
     local topSuggestion = suggestions[1] or nil
     if topSuggestion then
@@ -669,6 +682,13 @@ function Engine:EvaluateRulesQueue()
     
     local suggestions = {}
     local strategy = HealIQ.db.strategy or {}
+    
+    -- Encounter Integration: Check for upcoming damage phases (same as main function)
+    local encounterIntegration = HealIQ.EncounterIntegration
+    local encounterModifier = {}
+    if encounterIntegration and encounterIntegration:IsAddonActive() then
+        encounterModifier = self:GetEncounterModifiers()
+    end
     
     -- Use the same rule evaluation logic as the main function for consistency
     -- This ensures the queue shows the same priority order as the main suggestion
@@ -796,6 +816,12 @@ function Engine:EvaluateRulesQueue()
     end
     
     -- Return up to the configured queue size suggestions
+    
+    -- Apply encounter modifiers if available
+    if encounterModifier and next(encounterModifier) then
+        suggestions = self:ApplyEncounterModifiers(suggestions, encounterModifier, strategy)
+    end
+    
     if HealIQ.db and HealIQ.db.ui then
         local queueSize = HealIQ.db.ui.queueSize or 3
         local queue = {}
@@ -1112,6 +1138,96 @@ function Engine:TestRule(ruleName, ...)
     end
     
     return false
+end
+
+-- Encounter Integration: Get modifiers based on upcoming events
+function Engine:GetEncounterModifiers()
+    local encounterIntegration = HealIQ.EncounterIntegration
+    if not encounterIntegration or not encounterIntegration:IsAddonActive() then
+        return {}
+    end
+    
+    -- Check if encounter integration is enabled
+    if HealIQ.db.encounter and HealIQ.db.encounter.enabled == false then
+        return {}
+    end
+    
+    local encounterConfig = HealIQ.db.encounter or {}
+    local preparationWindow = encounterConfig.preparationWindow or 15
+    local cooldownPrepTime = encounterConfig.cooldownPrepTime or 5
+    local preRampTime = encounterConfig.preRampTime or 12
+    
+    local modifiers = {
+        prioritizePreRamping = false,
+        prioritizeCooldowns = false,
+        prioritizeAoEPrep = false,
+        upcomingEventText = nil,
+        timeUntilEvent = nil
+    }
+    
+    -- Check for upcoming AoE damage
+    local shouldPrep, timeUntil, eventText = encounterIntegration:ShouldPrepareForAoE(preparationWindow)
+    if shouldPrep then
+        modifiers.prioritizeAoEPrep = true
+        modifiers.upcomingEventText = eventText
+        modifiers.timeUntilEvent = timeUntil
+        
+        -- Prioritize different spells based on time remaining
+        if timeUntil <= cooldownPrepTime then
+            modifiers.prioritizeCooldowns = true
+            HealIQ:DebugLog("Encounter: Prioritizing cooldowns - " .. eventText .. " in " .. string.format("%.1f", timeUntil) .. "s")
+        elseif timeUntil <= preRampTime then
+            modifiers.prioritizePreRamping = true
+            HealIQ:DebugLog("Encounter: Prioritizing pre-ramping - " .. eventText .. " in " .. string.format("%.1f", timeUntil) .. "s")
+        end
+    end
+    
+    return modifiers
+end
+
+-- Apply encounter modifiers to spell suggestions
+function Engine:ApplyEncounterModifiers(suggestions, encounterModifier, strategy)
+    if not encounterModifier or not next(encounterModifier) then
+        return suggestions
+    end
+    
+    local modifiedSuggestions = {}
+    
+    -- If we should prioritize cooldowns, move them to front
+    if encounterModifier.prioritizeCooldowns then
+        -- Add cooldown spells first
+        for _, spell in ipairs(suggestions) do
+            if spell.priority <= 3 or spell.name == "Tranquility" or spell.name == "Incarnation" then
+                table.insert(modifiedSuggestions, spell)
+            end
+        end
+        -- Then add other suggestions
+        for _, spell in ipairs(suggestions) do
+            if spell.priority > 3 and spell.name ~= "Tranquility" and spell.name ~= "Incarnation" then
+                table.insert(modifiedSuggestions, spell)
+            end
+        end
+        return modifiedSuggestions
+    end
+    
+    -- If we should prioritize pre-ramping, prioritize rejuvenation and lifebloom
+    if encounterModifier.prioritizePreRamping then
+        -- Add pre-ramping spells first
+        for _, spell in ipairs(suggestions) do
+            if spell.name == "Rejuvenation" or spell.name == "Lifebloom" or spell.name == "Efflorescence" then
+                table.insert(modifiedSuggestions, spell)
+            end
+        end
+        -- Then add other suggestions  
+        for _, spell in ipairs(suggestions) do
+            if spell.name ~= "Rejuvenation" and spell.name ~= "Lifebloom" and spell.name ~= "Efflorescence" then
+                table.insert(modifiedSuggestions, spell)
+            end
+        end
+        return modifiedSuggestions
+    end
+    
+    return suggestions
 end
 
 HealIQ.Engine = Engine

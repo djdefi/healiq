@@ -56,6 +56,7 @@ commands.help = function()
     print("|cFFFFFF00/healiq ui|r - Show UI commands")
     print("|cFFFFFF00/healiq rules|r - Show rule commands")
     print("|cFFFFFF00/healiq strategy|r - Show strategy commands")
+    print("|cFFFFFF00/healiq encounter|r - Show encounter integration commands")
     print("|cFFFFFF00/healiq test|r - Test suggestion display")
     print("|cFFFFFF00/healiq test queue|r - Test queue display")
     print("|cFFFFFF00/healiq test ui|r - Test UI with sample queue")
@@ -356,6 +357,77 @@ commands.strategy = function(subcommand, ...)
         print("  poolGroveGuardians, emergencyNaturesSwiftness, wildGrowthMinTargets,")
         print("  tranquilityMinTargets, efflorescenceMinTargets, flourishMinHots,")
         print("  recentDamageWindow, lowHealthThreshold, lifebloomRefreshWindow")
+    end
+end
+
+commands.encounter = function(subcommand, ...)
+    local encounterIntegration = HealIQ.EncounterIntegration
+    if not encounterIntegration then
+        print("|cFFFF0000HealIQ|r EncounterIntegration module not available")
+        return
+    end
+    
+    if subcommand == "status" then
+        print("|cFF00FF00HealIQ Encounter Integration Status:|r")
+        print("  DBM Loaded: " .. (encounterIntegration:IsAddonActive() and "Yes" or "No"))
+        print("  BigWigs Loaded: " .. (encounterIntegration:IsAddonActive() and "Yes" or "No"))
+        print("  In Encounter: " .. (encounterIntegration:IsInEncounter() and "Yes" or "No"))
+        
+        local upcomingEvents = encounterIntegration:GetUpcomingHealingEvents(30)
+        if #upcomingEvents > 0 then
+            print("  Upcoming Events:")
+            for i, event in ipairs(upcomingEvents) do
+                if i <= 5 then -- Show only first 5 events
+                    print(string.format("    %s: %s (%.1fs)", event.source, event.text, event.timeUntil))
+                end
+            end
+            if #upcomingEvents > 5 then
+                print("    ... and " .. (#upcomingEvents - 5) .. " more")
+            end
+        else
+            print("  No upcoming healing events detected")
+        end
+        
+    elseif subcommand == "toggle" then
+        HealIQ.db.encounter = HealIQ.db.encounter or {}
+        HealIQ.db.encounter.enabled = not (HealIQ.db.encounter.enabled ~= false) -- Default true
+        local status = HealIQ.db.encounter.enabled and "enabled" or "disabled"
+        print("|cFF00FF00HealIQ|r Encounter integration " .. status)
+        
+    elseif subcommand == "enable" then
+        HealIQ.db.encounter = HealIQ.db.encounter or {}
+        HealIQ.db.encounter.enabled = true
+        print("|cFF00FF00HealIQ|r Encounter integration enabled")
+        
+    elseif subcommand == "disable" then
+        HealIQ.db.encounter = HealIQ.db.encounter or {}
+        HealIQ.db.encounter.enabled = false
+        print("|cFF00FF00HealIQ|r Encounter integration disabled")
+        
+    elseif subcommand == "test" then
+        print("|cFF00FF00HealIQ|r Testing encounter integration...")
+        local shouldPrep, timeUntil, eventText = encounterIntegration:ShouldPrepareForAoE(15)
+        if shouldPrep then
+            print("  Should prepare for AoE: Yes")
+            print("  Event: " .. tostring(eventText))
+            print("  Time until: " .. string.format("%.1f", timeUntil) .. "s")
+        else
+            print("  No AoE preparation needed")
+        end
+        
+    else
+        print("|cFF00FF00HealIQ Encounter Integration Commands:|r")
+        print("|cFFFFFF00/healiq encounter status|r - Show encounter integration status")
+        print("|cFFFFFF00/healiq encounter toggle|r - Toggle encounter integration")
+        print("|cFFFFFF00/healiq encounter enable|r - Enable encounter integration")
+        print("|cFFFFFF00/healiq encounter disable|r - Disable encounter integration")
+        print("|cFFFFFF00/healiq encounter test|r - Test encounter detection")
+        print("")
+        print("|cFF00AAAA About Encounter Integration:|r")
+        print("  Detects DBM and BigWigs boss mod addons")
+        print("  Prioritizes healing spells before damage phases")
+        print("  Suggests cooldown preparation for major events")
+        print("  Enhances pre-ramping before AoE damage")
     end
 end
 

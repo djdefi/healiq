@@ -22,6 +22,13 @@
 - Wrath filler for mana restoration
 - Configurable thresholds for all healing decisions
 
+**Encounter Integration Features:**
+- DBM/BigWigs integration for encounter-aware suggestions
+- Pre-ramping recommendations before known AoE damage phases
+- Cooldown preparation alerts for major encounter events
+- Automatic priority adjustments based on boss timers
+- Configurable encounter awareness settings
+
 **Note:** HealIQ provides visual suggestions only. Due to Blizzard restrictions, spell casting must be done manually using your normal keybinds or action bars.
 
 > HealIQ is inspired by Hekili, but for healing. Designed with Restoration Druids in mind, support for other healers may be added later.
@@ -55,7 +62,7 @@
 
 ## 📜 Planned Features
 
-- DBM integration for upcoming damage phases
+- ~~DBM integration for upcoming damage phases~~ ✅ **Completed**
 - Rule customization (enable/disable rules)
 - Visual “queue” preview
 - Support for hybrid Resto-DPS catweaving

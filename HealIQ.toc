@@ -18,6 +18,7 @@ rules/OffensiveRules.lua
 Core.lua
 Logging.lua
 Tracker.lua
+EncounterIntegration.lua
 Engine.lua
 UI.lua
 Config.lua
