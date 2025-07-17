@@ -3,6 +3,8 @@
 
 local addonName, HealIQ = ...
 
+-- Ensure HealIQ is initialized before accessing its properties  
+HealIQ = HealIQ or {}
 HealIQ.Rules = HealIQ.Rules or {}
 local Rules = HealIQ.Rules
 

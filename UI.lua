@@ -2234,7 +2234,7 @@ function UI:CreateRawDataSection(parent)
     rawDataText:SetAutoFocus(false)
     rawDataText:SetFontObject("GameFontNormalSmall")
     rawDataText:SetTextInsets(5, 5, 5, 5)
-    rawDataText:SetWordWrap(true) -- Enable word wrapping for raw data text
+    -- Note: EditBox frames don't support SetWordWrap, text wrapping is handled automatically with SetMultiLine(true)
     
     -- Background for raw data
     local rawDataBg = rawDataText:CreateTexture(nil, "BACKGROUND")
