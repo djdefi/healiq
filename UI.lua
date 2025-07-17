@@ -23,17 +23,7 @@ local ICON_SIZE = 48
 local OPTIONS_FRAME_HEIGHT = 700  -- Increased height to prevent content overflow
 local TOOLTIP_LINE_LENGTH = 45
 
--- Responsive UI constants for better space utilization
-local function GetOptionsFrameSize()
-    local screenHeight = GetScreenHeight()
-    local maxHeight = math.min(OPTIONS_FRAME_HEIGHT, screenHeight * 0.85) -- Use max 85% of screen height
-    local width = math.max(420, math.min(500, GetScreenWidth() * 0.4)) -- Responsive width 40% of screen, min 420, max 500
-    return width, maxHeight
-end
 
-local function GetContentWidth(parentWidth, navWidth)
-    return parentWidth - navWidth - 40 -- Account for navigation + padding
-end
 
 -- Minimap button positioning
 local MINIMAP_BUTTON_PIXEL_BUFFER = 2
@@ -214,7 +204,7 @@ function UI:CreateMainFrame()
         GameTooltip:Hide()
     end)
     
-    -- Create spell name text with responsive width and improved wrapping
+    -- Create spell name text with consistent spacing
     spellNameText = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     spellNameText:SetPoint("TOP", iconFrame, "BOTTOM", 0, -4) -- Consistent spacing
     spellNameText:SetTextColor(1, 1, 1, 1)
@@ -222,11 +212,8 @@ function UI:CreateMainFrame()
     spellNameText:SetShadowOffset(1, -1)
     spellNameText:SetJustifyH("CENTER") -- Center-align the text
     spellNameText:SetJustifyV("TOP") -- Top-align for multi-line support
-    -- Responsive width based on frame size and queue layout
-    local spellNameWidth = frameWidth * 0.9 -- Use 90% of frame width for better responsiveness
-    spellNameText:SetWidth(math.max(120, spellNameWidth)) -- Minimum 120px, but scale with frame
+    spellNameText:SetWidth(120) -- Set a max width to prevent overflow
     spellNameText:SetWordWrap(true) -- Enable word wrapping for long spell names
-    spellNameText:SetMaxLines(2) -- Limit to 2 lines to prevent excessive height
     
     -- Create cooldown frame
     cooldownFrame = CreateFrame("Cooldown", "HealIQCooldownFrame", iconFrame, "CooldownFrameTemplate")
@@ -498,10 +485,9 @@ function UI:CreateQueueFrame()
 end
 
 function UI:CreateOptionsFrame()
-    -- Create main options frame with responsive sizing
-    local frameWidth, frameHeight = GetOptionsFrameSize()
+    -- Create main options frame
     optionsFrame = CreateFrame("Frame", "HealIQOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
-    optionsFrame:SetSize(frameWidth, frameHeight) -- Use responsive dimensions
+    optionsFrame:SetSize(400, OPTIONS_FRAME_HEIGHT) -- Increased height to accommodate all content without overflow
     optionsFrame:SetPoint("CENTER")
     optionsFrame:SetFrameStrata("DIALOG")
     optionsFrame:SetMovable(true)
@@ -551,10 +537,8 @@ function UI:CreateOptionsFrame()
 end
 
 function UI:CreateOptionsTabs(parent)
-    -- Create navigation sidebar and content area with responsive design
-    local parentWidth, parentHeight = parent:GetSize()
-    local navWidth = math.max(110, parentWidth * 0.25) -- Responsive nav width: 25% of parent, min 110px
-    local contentWidth = GetContentWidth(parentWidth, navWidth)
+    -- Create navigation sidebar and content area
+    local navWidth = 110  -- Width of the left navigation sidebar
     
     local navButtonHeight = 28
     local navButtonSpacing = 2
