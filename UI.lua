@@ -23,6 +23,18 @@ local ICON_SIZE = 48
 local OPTIONS_FRAME_HEIGHT = 700  -- Increased height to prevent content overflow
 local TOOLTIP_LINE_LENGTH = 45
 
+-- Responsive UI constants for better space utilization
+local function GetOptionsFrameSize()
+    local screenHeight = GetScreenHeight()
+    local maxHeight = math.min(OPTIONS_FRAME_HEIGHT, screenHeight * 0.85) -- Use max 85% of screen height
+    local width = math.max(420, math.min(500, GetScreenWidth() * 0.4)) -- Responsive width 40% of screen, min 420, max 500
+    return width, maxHeight
+end
+
+local function GetContentWidth(parentWidth, navWidth)
+    return parentWidth - navWidth - 40 -- Account for navigation + padding
+end
+
 -- Minimap button positioning
 local MINIMAP_BUTTON_PIXEL_BUFFER = 2
 
@@ -202,7 +214,7 @@ function UI:CreateMainFrame()
         GameTooltip:Hide()
     end)
     
-    -- Create spell name text with consistent spacing
+    -- Create spell name text with responsive width and improved wrapping
     spellNameText = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     spellNameText:SetPoint("TOP", iconFrame, "BOTTOM", 0, -4) -- Consistent spacing
     spellNameText:SetTextColor(1, 1, 1, 1)
@@ -210,7 +222,11 @@ function UI:CreateMainFrame()
     spellNameText:SetShadowOffset(1, -1)
     spellNameText:SetJustifyH("CENTER") -- Center-align the text
     spellNameText:SetJustifyV("TOP") -- Top-align for multi-line support
-    spellNameText:SetWidth(120) -- Set a max width to prevent overflow
+    -- Responsive width based on frame size and queue layout
+    local spellNameWidth = frameWidth * 0.9 -- Use 90% of frame width for better responsiveness
+    spellNameText:SetWidth(math.max(120, spellNameWidth)) -- Minimum 120px, but scale with frame
+    spellNameText:SetWordWrap(true) -- Enable word wrapping for long spell names
+    spellNameText:SetMaxLines(2) -- Limit to 2 lines to prevent excessive height
     
     -- Create cooldown frame
     cooldownFrame = CreateFrame("Cooldown", "HealIQCooldownFrame", iconFrame, "CooldownFrameTemplate")
@@ -482,9 +498,10 @@ function UI:CreateQueueFrame()
 end
 
 function UI:CreateOptionsFrame()
-    -- Create main options frame with reduced height
+    -- Create main options frame with responsive sizing
+    local frameWidth, frameHeight = GetOptionsFrameSize()
     optionsFrame = CreateFrame("Frame", "HealIQOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
-    optionsFrame:SetSize(400, OPTIONS_FRAME_HEIGHT) -- Increased height to accommodate all content without overflow
+    optionsFrame:SetSize(frameWidth, frameHeight) -- Use responsive dimensions
     optionsFrame:SetPoint("CENTER")
     optionsFrame:SetFrameStrata("DIALOG")
     optionsFrame:SetMovable(true)
@@ -534,8 +551,11 @@ function UI:CreateOptionsFrame()
 end
 
 function UI:CreateOptionsTabs(parent)
-    -- Create navigation sidebar and content area
-    local navWidth = 110  -- Width of the left navigation sidebar
+    -- Create navigation sidebar and content area with responsive design
+    local parentWidth, parentHeight = parent:GetSize()
+    local navWidth = math.max(110, parentWidth * 0.25) -- Responsive nav width: 25% of parent, min 110px
+    local contentWidth = GetContentWidth(parentWidth, navWidth)
+    
     local navButtonHeight = 28
     local navButtonSpacing = 2
     local tabs = {
@@ -551,11 +571,11 @@ function UI:CreateOptionsTabs(parent)
     optionsFrame.tabPanels = {}
     optionsFrame.activeTab = nil  -- Initialize activeTab to avoid nil reference issues
     
-    -- Create navigation background
+    -- Create navigation background with responsive sizing
     local navBackground = CreateFrame("Frame", "HealIQNavBackground", parent, "BackdropTemplate")
     navBackground:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -10)
     -- Make navigation height responsive to frame height
-    local navHeight = OPTIONS_FRAME_HEIGHT - 80  -- Navigation height adjusted for content fit
+    local navHeight = parentHeight - 80  -- Navigation height adjusted for content fit
     navBackground:SetSize(navWidth, navHeight)
     navBackground:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -603,7 +623,7 @@ function UI:CreateOptionsTabs(parent)
         
         optionsFrame.tabs[tab.id] = navButton
         
-        -- Create content panel - positioned to the right of navigation
+        -- Create content panel - positioned to the right of navigation with responsive sizing
         local panel = CreateFrame("Frame", "HealIQPanel" .. tab.id, parent)
         panel:SetPoint("TOPLEFT", parent, "TOPLEFT", navWidth + 20, -10)
         panel:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -10, 40)
@@ -1064,10 +1084,13 @@ function UI:CreateRulesTab(panel)
         check.text = check:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         check.text:SetPoint("LEFT", check, "RIGHT", 5, 0)
         check.text:SetText(rule.name)
-        -- Add width constraint to prevent text overflow in rules tab
-        check.text:SetWidth(240)  -- Leave room for navigation sidebar
+        -- Responsive width constraint to prevent text overflow in rules tab
+        local panelWidth = panel:GetWidth() or 280
+        local availableWidth = math.max(200, panelWidth - 60) -- Leave room for checkbox and margins
+        check.text:SetWidth(availableWidth)
         check.text:SetJustifyH("LEFT")
         check.text:SetWordWrap(true)
+        check.text:SetMaxLines(2) -- Limit to 2 lines for better spacing
         check:SetScript("OnClick", function(self)
             if HealIQ.db and HealIQ.db.rules then
                 HealIQ.db.rules[rule.key] = self:GetChecked()
@@ -1119,14 +1142,14 @@ function UI:CreateStrategyTab(panel)
     strategyDesc:SetTextColor(0.8, 0.8, 0.8, 1)
     yOffset = yOffset - 25
     
-    -- Create a scrollable frame for strategy options
+    -- Create a scrollable frame for strategy options with responsive sizing
     local scrollFrame = CreateFrame("ScrollFrame", "HealIQStrategyScrollFrame", panel, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
     scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -25, 10)
     
     local scrollChild = CreateFrame("Frame", "HealIQStrategyScrollChild", scrollFrame)
-    -- Make scroll child height responsive to avoid overflow issues
-    local availableWidth = 350
+    -- Make scroll child responsive to available space
+    local availableWidth = math.max(320, panel:GetWidth() - 30) -- Account for scrollbar
     local contentHeight = 900  -- Increased to ensure all content fits
     scrollChild:SetSize(availableWidth, contentHeight)
     scrollFrame:SetScrollChild(scrollChild)
@@ -1161,10 +1184,13 @@ function UI:CreateStrategyTab(panel)
         check.text = check:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         check.text:SetPoint("LEFT", check, "RIGHT", 5, 0)
         check.text:SetText(toggle.name)
-        -- Add width constraint to prevent text overflow
-        check.text:SetWidth(280)  -- Leave room for checkbox and scrollbar
+        -- Responsive width constraint to prevent text overflow
+        local scrollChildWidth = scrollChild:GetWidth() or 320
+        local availableWidth = math.max(240, scrollChildWidth - 40) -- Leave room for checkbox and scrollbar
+        check.text:SetWidth(availableWidth)
         check.text:SetJustifyH("LEFT")
         check.text:SetWordWrap(true)  -- Allow text wrapping for long names
+        check.text:SetMaxLines(2) -- Limit to 2 lines for consistent spacing
         check:SetScript("OnClick", function(self)
             if HealIQ.db and HealIQ.db.strategy then
                 HealIQ.db.strategy[toggle.key] = self:GetChecked()
@@ -1249,10 +1275,11 @@ function UI:CreateStrategyTab(panel)
     talentHeader:SetTextColor(0.8, 1, 0.8, 1)
     scrollYOffset = scrollYOffset - 25
     
-    -- Talent status frame
+    -- Talent status frame with responsive sizing
     local talentFrame = CreateFrame("Frame", "HealIQTalentFrame", scrollChild, "BackdropTemplate")
     talentFrame:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
-    talentFrame:SetSize(350, 120)
+    local talentFrameWidth = math.max(320, scrollChild:GetWidth() - 20) -- Responsive width
+    talentFrame:SetSize(talentFrameWidth, 120)
     talentFrame:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -1264,13 +1291,14 @@ function UI:CreateStrategyTab(panel)
     talentFrame:SetBackdropColor(0.1, 0.1, 0.2, 0.8)
     talentFrame:SetBackdropBorderColor(0.4, 0.4, 0.6, 1)
     
-    -- Talent status text
+    -- Talent status text with responsive width
     local talentStatusText = talentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     talentStatusText:SetPoint("TOPLEFT", talentFrame, "TOPLEFT", 8, -8)
     talentStatusText:SetText("Checking talents...")
     talentStatusText:SetTextColor(1, 1, 1, 1)
-    talentStatusText:SetWidth(330)
+    talentStatusText:SetWidth(talentFrameWidth - 16) -- Account for padding
     talentStatusText:SetJustifyH("LEFT")
+    talentStatusText:SetWordWrap(true) -- Enable word wrapping for long talent descriptions
     
     -- Refresh button for talent check
     local refreshButton = CreateFrame("Button", "HealIQTalentRefreshButton", talentFrame, "UIPanelButtonTemplate")
@@ -1333,13 +1361,15 @@ function UI:CreateStrategyTab(panel)
     
     scrollYOffset = scrollYOffset - 30
     
-    -- Help text
+    -- Help text with improved responsive formatting
     local helpText = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     helpText:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
     helpText:SetText("Strategy settings can also be configured via chat commands:\n/healiq strategy list - View all settings\n/healiq strategy set <setting> <value> - Change a setting")
     helpText:SetTextColor(0.7, 0.7, 0.7, 1)
-    helpText:SetWidth(320)
+    local helpTextWidth = math.max(300, scrollChild:GetWidth() - 20)
+    helpText:SetWidth(helpTextWidth)
     helpText:SetJustifyH("LEFT")
+    helpText:SetWordWrap(true) -- Enable word wrapping for help text
 end
 
 function UI:UpdateTalentStatus(talentStatusText)
@@ -1393,7 +1423,8 @@ function UI:AddTooltip(frame, title, description)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine(title, 1, 1, 1)
         if description then
-            -- Split long descriptions into multiple lines
+            -- Improved text wrapping for tooltips with dynamic line length
+            local maxLineLength = math.max(35, math.min(TOOLTIP_LINE_LENGTH, 60)) -- Responsive line length
             local words = {}
             for word in description:gmatch("%S+") do
                 table.insert(words, word)
@@ -1402,10 +1433,12 @@ function UI:AddTooltip(frame, title, description)
             local lines = {}
             local currentLine = ""
             for i, word in ipairs(words) do
-                if #currentLine + #word + 1 <= TOOLTIP_LINE_LENGTH then
+                if #currentLine + #word + 1 <= maxLineLength then
                     currentLine = currentLine .. (currentLine == "" and "" or " ") .. word
                 else
-                    table.insert(lines, currentLine)
+                    if currentLine ~= "" then
+                        table.insert(lines, currentLine)
+                    end
                     currentLine = word
                 end
             end
@@ -2110,10 +2143,12 @@ function UI:CreateStatsSummarySection(parent)
     summaryHeader:SetTextColor(0.8, 1, 0.8, 1)
     yOffset = yOffset - 25
     
-    -- Summary stats frame with visual elements
+    -- Summary stats frame with responsive sizing
     local summaryFrame = CreateFrame("Frame", "HealIQStatsSummaryFrame", parent, "BackdropTemplate")
     summaryFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yOffset)
-    summaryFrame:SetSize(350, 120)
+    local parentWidth = parent:GetWidth() or 350
+    local summaryWidth = math.max(320, parentWidth - 20) -- Responsive width with padding
+    summaryFrame:SetSize(summaryWidth, 120)
     summaryFrame:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -2125,12 +2160,13 @@ function UI:CreateStatsSummarySection(parent)
     summaryFrame:SetBackdropColor(0.05, 0.15, 0.05, 0.8)
     summaryFrame:SetBackdropBorderColor(0.3, 0.6, 0.3, 0.8)
     
-    -- Summary text content
+    -- Summary text content with responsive width
     local summaryText = summaryFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     summaryText:SetPoint("TOPLEFT", summaryFrame, "TOPLEFT", 8, -8)
-    summaryText:SetWidth(330)
+    summaryText:SetWidth(summaryWidth - 16) -- Account for padding
     summaryText:SetJustifyH("LEFT")
     summaryText:SetTextColor(1, 1, 1, 1)
+    summaryText:SetWordWrap(true) -- Enable word wrapping for summary text
     
     -- Store reference for updates
     optionsFrame.statsSummaryText = summaryText
@@ -2149,10 +2185,12 @@ function UI:CreateRuleMetricsSection(parent)
     metricsHeader:SetTextColor(0.8, 1, 0.8, 1)
     yOffset = yOffset - 25
     
-    -- Interactive rule metrics frame
+    -- Interactive rule metrics frame with responsive sizing
     local metricsFrame = CreateFrame("Frame", "HealIQStatsMetricsFrame", parent, "BackdropTemplate")
     metricsFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yOffset)
-    metricsFrame:SetSize(350, 160)
+    local parentWidth = parent:GetWidth() or 350
+    local metricsWidth = math.max(320, parentWidth - 20) -- Responsive width with padding
+    metricsFrame:SetSize(metricsWidth, 160)
     metricsFrame:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -2164,14 +2202,15 @@ function UI:CreateRuleMetricsSection(parent)
     metricsFrame:SetBackdropColor(0.05, 0.05, 0.15, 0.8)
     metricsFrame:SetBackdropBorderColor(0.3, 0.3, 0.6, 0.8)
     
-    -- Create rule metrics display with visual bars
+    -- Create rule metrics display with visual bars and responsive width
     local metricsContent = metricsFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     metricsContent:SetPoint("TOPLEFT", metricsFrame, "TOPLEFT", 8, -8)
-    metricsContent:SetWidth(330)
+    metricsContent:SetWidth(metricsWidth - 16) -- Account for padding
     metricsContent:SetHeight(140)
     metricsContent:SetJustifyH("LEFT")
     metricsContent:SetJustifyV("TOP")
     metricsContent:SetTextColor(1, 1, 1, 1)
+    metricsContent:SetWordWrap(true) -- Enable word wrapping for metrics content
     
     -- Store reference for updates
     optionsFrame.statsMetricsContent = metricsContent
@@ -2190,16 +2229,18 @@ function UI:CreateRawDataSection(parent)
     rawDataHeader:SetTextColor(0.8, 1, 0.8, 1)
     yOffset = yOffset - 25
     
-    -- Raw data copyable text area
+    -- Raw data copyable text area with responsive sizing
     local rawDataFrame = CreateFrame("ScrollFrame", "HealIQStatsRawDataFrame", parent, "UIPanelScrollFrameTemplate")
     rawDataFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yOffset)
-    rawDataFrame:SetSize(350, 200)
+    local parentWidth = parent:GetWidth() or 350
+    local rawDataWidth = math.max(320, parentWidth - 20) -- Responsive width with scrollbar space
+    rawDataFrame:SetSize(rawDataWidth, 200)
     
     local rawDataChild = CreateFrame("Frame", "HealIQStatsRawDataChild", rawDataFrame)
-    rawDataChild:SetSize(330, 800)
+    rawDataChild:SetSize(rawDataWidth - 20, 800) -- Account for scrollbar
     rawDataFrame:SetScrollChild(rawDataChild)
     
-    -- Raw data text display (copyable)
+    -- Raw data text display (copyable) with responsive width
     local rawDataText = CreateFrame("EditBox", "HealIQStatsRawDataText", rawDataChild)
     rawDataText:SetPoint("TOPLEFT", rawDataChild, "TOPLEFT", 5, -5)
     rawDataText:SetPoint("BOTTOMRIGHT", rawDataChild, "BOTTOMRIGHT", -5, 5)
@@ -2208,6 +2249,7 @@ function UI:CreateRawDataSection(parent)
     rawDataText:SetAutoFocus(false)
     rawDataText:SetFontObject("GameFontNormalSmall")
     rawDataText:SetTextInsets(5, 5, 5, 5)
+    rawDataText:SetWordWrap(true) -- Enable word wrapping for raw data text
     
     -- Background for raw data
     local rawDataBg = rawDataText:CreateTexture(nil, "BACKGROUND")
