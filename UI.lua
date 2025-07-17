@@ -1170,8 +1170,8 @@ function UI:CreateStrategyTab(panel)
         check.text:SetText(toggle.name)
         -- Responsive width constraint to prevent text overflow
         local scrollChildWidth = scrollChild:GetWidth() or 320
-        local availableWidth = math.max(240, scrollChildWidth - 40) -- Leave room for checkbox and scrollbar
-        check.text:SetWidth(availableWidth)
+        local textWidth = math.max(240, scrollChildWidth - 40) -- Leave room for checkbox and scrollbar
+        check.text:SetWidth(textWidth)
         check.text:SetJustifyH("LEFT")
         check.text:SetWordWrap(true)  -- Allow text wrapping for long names
         check.text:SetMaxLines(2) -- Limit to 2 lines for consistent spacing
