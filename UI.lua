@@ -243,8 +243,8 @@ function UI:CalculateMinimapButtonRadius()
         return 1
     end
     
-    local minimapRadius = Minimap:GetWidth() / 2
-    local buttonRadius = minimapButton:GetWidth() / 2
+    local minimapRadius = (Minimap and Minimap:GetWidth() or 140) / 2  -- Fallback to default minimap size
+    local buttonRadius = (minimapButton:GetWidth() or 20) / 2  -- Fallback to default button size
     -- Fixed: Use minimapRadius + MINIMAP_BUTTON_PIXEL_BUFFER to place button ON the edge
     local radius = minimapRadius + MINIMAP_BUTTON_PIXEL_BUFFER
     
@@ -559,6 +559,7 @@ function UI:CreateOptionsTabs(parent)
     local navBackground = CreateFrame("Frame", "HealIQNavBackground", parent, "BackdropTemplate")
     navBackground:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -10)
     -- Make navigation height responsive to frame height
+    local parentHeight = parent:GetHeight() or OPTIONS_FRAME_HEIGHT  -- Get parent height, fallback to default
     local navHeight = parentHeight - 80  -- Navigation height adjusted for content fit
     navBackground:SetSize(navWidth, navHeight)
     navBackground:SetBackdrop({
@@ -1262,7 +1263,7 @@ function UI:CreateStrategyTab(panel)
     -- Talent status frame with responsive sizing
     local talentFrame = CreateFrame("Frame", "HealIQTalentFrame", scrollChild, "BackdropTemplate")
     talentFrame:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
-    local talentFrameWidth = math.max(320, scrollChild:GetWidth() - 20) -- Responsive width
+    local talentFrameWidth = math.max(320, (scrollChild:GetWidth() or 340) - 20) -- Responsive width with fallback
     talentFrame:SetSize(talentFrameWidth, 120)
     talentFrame:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -1350,7 +1351,7 @@ function UI:CreateStrategyTab(panel)
     helpText:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, scrollYOffset)
     helpText:SetText("Strategy settings can also be configured via chat commands:\n/healiq strategy list - View all settings\n/healiq strategy set <setting> <value> - Change a setting")
     helpText:SetTextColor(0.7, 0.7, 0.7, 1)
-    local helpTextWidth = math.max(300, scrollChild:GetWidth() - 20)
+    local helpTextWidth = math.max(300, (scrollChild:GetWidth() or 320) - 20)
     helpText:SetWidth(helpTextWidth)
     helpText:SetJustifyH("LEFT")
     helpText:SetWordWrap(true) -- Enable word wrapping for help text
