@@ -5,7 +5,7 @@ local addonName, HealIQ = ...
 
 -- Create the main addon object
 HealIQ = HealIQ or {}
-HealIQ.version = "0.1.3"
+HealIQ.version = "0.1.4"
 HealIQ.debug = true
 
 -- Default settings
