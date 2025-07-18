@@ -8,6 +8,8 @@ HealIQ = HealIQ or {}
 HealIQ.Rules = HealIQ.Rules or {}
 local Rules = HealIQ.Rules
 
+-- Note: AoERules doesn't use BaseRule, so no defensive check needed for it
+
 Rules.AoERules = {}
 local AoERules = Rules.AoERules
 

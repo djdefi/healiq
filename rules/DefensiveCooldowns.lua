@@ -7,6 +7,14 @@ local addonName, HealIQ = ...
 HealIQ = HealIQ or {}
 HealIQ.Rules = HealIQ.Rules or {}
 local Rules = HealIQ.Rules
+
+-- Defensive check: ensure BaseRule is loaded before proceeding
+if not Rules.BaseRule then
+    print("HealIQ Warning: DefensiveCooldowns loaded before BaseRule")
+    -- Create a dummy BaseRule to prevent errors
+    Rules.BaseRule = {}
+end
+
 local BaseRule = Rules.BaseRule
 
 -- Spell IDs (shared from main Tracker)

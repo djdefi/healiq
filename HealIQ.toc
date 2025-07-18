@@ -6,6 +6,10 @@
 ## SavedVariables: HealIQDB
 ## DefaultState: enabled
 
+# Core files
+Core.lua
+Logging.lua
+
 # Rule modules
 rules/BaseRule.lua
 rules/DefensiveCooldowns.lua
@@ -14,9 +18,7 @@ rules/UtilityRules.lua
 rules/AoERules.lua
 rules/OffensiveRules.lua
 
-# Core files
-Core.lua
-Logging.lua
+# Additional core files
 Tracker.lua
 Engine.lua
 UI.lua
