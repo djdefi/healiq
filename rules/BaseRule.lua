@@ -8,6 +8,8 @@ HealIQ = HealIQ or {}
 HealIQ.Rules = HealIQ.Rules or {}
 local Rules = HealIQ.Rules
 
+-- Note: WoW API functions (GetTime, InCombatLockdown, etc.) should be available when loaded by WoW
+
 -- Base rule interface
 Rules.BaseRule = {}
 local BaseRule = Rules.BaseRule
