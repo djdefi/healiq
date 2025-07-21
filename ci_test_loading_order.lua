@@ -36,17 +36,17 @@ local function validate_loading_order()
     local base_rule_pos = nil
     local first_rule_pos = nil
     
-    for i, file in ipairs(lua_files) do
-        if file == "Core.lua" then
+    for i, luaFile in ipairs(lua_files) do
+        if luaFile == "Core.lua" then
             core_pos = i
-        elseif file == "Logging.lua" then
+        elseif luaFile == "Logging.lua" then
             logging_pos = i
-        elseif file == "rules/BaseRule.lua" then
+        elseif luaFile == "rules/BaseRule.lua" then
             base_rule_pos = i
         end
         
         -- Track the first rule file we encounter
-        if file:match("^rules/") and not first_rule_pos then
+        if luaFile:match("^rules/") and not first_rule_pos then
             first_rule_pos = i
         end
     end
@@ -78,11 +78,12 @@ local function validate_loading_order()
         table.insert(errors, string.format("Logging.lua (pos %d) must load before rule files (pos %d)", logging_pos, first_rule_pos))
     end
     
-    if base_rule_pos and base_rule_pos == first_rule_pos then
-        -- BaseRule.lua is the first rule file, which is correct
-    else
-        table.insert(errors, string.format("BaseRule.lua (pos %d) should be the first rule file (first rule at pos %d)", base_rule_pos or 0, first_rule_pos or 0))
+    if not base_rule_pos then
+        table.insert(errors, "BaseRule.lua not found in .toc file")
+    elseif base_rule_pos ~= first_rule_pos then
+        table.insert(errors, string.format("BaseRule.lua (pos %d) should be the first rule file (first rule at pos %d)", base_rule_pos, first_rule_pos or 0))
     end
+    -- If base_rule_pos == first_rule_pos, then BaseRule.lua is correctly the first rule file
     
     -- Report results
     if #errors > 0 then

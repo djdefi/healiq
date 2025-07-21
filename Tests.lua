@@ -1417,7 +1417,7 @@ function Tests.TestLoadingOrder()
         end
         
         -- Verify specific rule files are present
-        Tests.Assert(string.find(tocContent, "rules/BaseRule%.lua") ~= nil, 
+        Tests.Assert(string.find(tocContent, "rules/BaseRule%.lua") ~= nil,
             "LoadingOrder: BaseRule.lua listed in .toc file")
         Tests.Assert(string.find(tocContent, "rules/DefensiveCooldowns%.lua") ~= nil,
             "LoadingOrder: DefensiveCooldowns.lua listed in .toc file")
@@ -1495,7 +1495,7 @@ function Tests.TestLoadingOrder()
     -- Test that other rule modules are properly loaded
     local ruleModules = {
         "DefensiveCooldowns",
-        "HealingCooldowns", 
+        "HealingCooldowns",
         "UtilityRules",
         "AoERules",
         "OffensiveRules"
@@ -1503,7 +1503,7 @@ function Tests.TestLoadingOrder()
     
     for _, moduleName in ipairs(ruleModules) do
         if HealIQ.Rules[moduleName] then
-            Tests.AssertType("table", HealIQ.Rules[moduleName], 
+            Tests.AssertType("table", HealIQ.Rules[moduleName],
                 "LoadingOrder: " .. moduleName .. " module loaded as table")
         end
     end
@@ -1531,12 +1531,12 @@ function Tests.TestLoadingOrder()
         tempHealIQ.Rules = tempHealIQ.Rules or {}
         
         -- Try to access BaseRule methods without proper initialization
-        local success = pcall(function()
+        local simulationResult = pcall(function()
             tempHealIQ.Rules.BaseRule = tempHealIQ.Rules.BaseRule or {}
             return true
         end)
         
-        return success
+        return simulationResult
     end
     
     local simulationSuccess = simulateLoadingOrderIssue()
@@ -1557,7 +1557,7 @@ function Tests.TestLoadingOrder()
     -- Test that the loading order matches the expected sequence
     local expectedOrder = {
         "Core.lua",
-        "Logging.lua", 
+        "Logging.lua",
         "rules/BaseRule.lua",
         "rules/DefensiveCooldowns.lua",
         "rules/HealingCooldowns.lua",
@@ -1578,4 +1578,4 @@ function Tests.TestLoadingOrder()
     end
 end
 
-HealIQ.Tests = Tests
+HealIQ.Tests = TestsTests

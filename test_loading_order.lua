@@ -17,13 +17,13 @@ local function test_toc_loading_order()
     
     -- Read .toc file
     local tocPath = "HealIQ.toc"
-    local file = io.open(tocPath, "r")
-    if not file then
+    local tocFile = io.open(tocPath, "r")
+    if not tocFile then
         error("Cannot read HealIQ.toc file")
     end
     
-    local content = file:read("*all")
-    file:close()
+    local content = tocFile:read("*all")
+    tocFile:close()
     
     -- Parse file list from .toc
     local files = {}
@@ -63,7 +63,7 @@ local function test_toc_loading_order()
     -- Test that specific rule files are present
     local expectedRuleFiles = {
         "rules/BaseRule.lua",
-        "rules/DefensiveCooldowns.lua", 
+        "rules/DefensiveCooldowns.lua",
         "rules/HealingCooldowns.lua",
         "rules/UtilityRules.lua",
         "rules/AoERules.lua",
@@ -92,8 +92,8 @@ local function test_toc_loading_order()
     
     -- Print loading order for verification
     print("\nLoading order:")
-    for i, file in ipairs(files) do
-        print(string.format("%2d. %s", i, file))
+    for i, luaFile in ipairs(files) do
+        print(string.format("%2d. %s", i, luaFile))
     end
     
     return true
@@ -106,7 +106,7 @@ local function test_rule_file_structure()
     local ruleFiles = {
         "rules/BaseRule.lua",
         "rules/DefensiveCooldowns.lua",
-        "rules/HealingCooldowns.lua", 
+        "rules/HealingCooldowns.lua",
         "rules/UtilityRules.lua",
         "rules/AoERules.lua",
         "rules/OffensiveRules.lua"
