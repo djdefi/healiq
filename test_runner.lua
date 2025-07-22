@@ -352,7 +352,10 @@ local function runTests()
         return false
     end
 
-    -- Load the test module
+    -- Set global reference for Tests.lua to use
+    _G.HealIQ = HealIQ
+
+    -- Load the test module with a custom environment
     local testFile = "Tests.lua"
     local testChunk, err = loadfile(testFile)
     if not testChunk then
@@ -360,17 +363,23 @@ local function runTests()
         return false
     end
 
-    -- Execute the test file in our environment
+    -- Create a custom environment that bypasses the local variable issue
+    local testEnv = setmetatable({}, {__index = _G})
+    testEnv.HealIQ = HealIQ  -- Make sure HealIQ is available in the environment
+    setfenv(testChunk, testEnv)
+
+    -- Execute the test file in our custom environment
     local success, result = pcall(testChunk, "HealIQ", HealIQ)
     if not success then
         print("ERROR: Failed to execute " .. testFile .. ": " .. tostring(result))
         return false
     end
 
-    -- Run the tests
-    if HealIQ.Tests then
+    -- Run the tests - check both local and global HealIQ for Tests module
+    local testsModule = HealIQ.Tests or _G.HealIQ.Tests
+    if testsModule then
         print("Running HealIQ tests...")
-        HealIQ.Tests:RunAll()
+        testsModule:RunAll()
 
         -- Force LuaCov to save stats if available
         if luacov_available then
@@ -383,6 +392,22 @@ local function runTests()
         return true
     else
         print("ERROR: Test module not loaded properly")
+        print("  HealIQ.Tests:", HealIQ.Tests ~= nil)
+        print("  _G.HealIQ.Tests:", _G.HealIQ and _G.HealIQ.Tests ~= nil)
+        print("  _G.HealIQ exists:", _G.HealIQ ~= nil)
+        if _G.HealIQ then
+            print("  _G.HealIQ type:", type(_G.HealIQ))
+            if type(_G.HealIQ) == "table" then
+                local count = 0
+                for k, v in pairs(_G.HealIQ) do
+                    count = count + 1
+                    if count <= 5 then  -- Show first 5 keys
+                        print("    " .. tostring(k) .. ":", type(v))
+                    end
+                end
+                print("  _G.HealIQ has", count, "keys")
+            end
+        end
         return false
     end
 end
