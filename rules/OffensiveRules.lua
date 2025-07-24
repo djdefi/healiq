@@ -7,6 +7,14 @@ local addonName, HealIQ = ...
 HealIQ = HealIQ or {}
 HealIQ.Rules = HealIQ.Rules or {}
 local Rules = HealIQ.Rules
+
+-- Defensive check: ensure BaseRule is loaded before proceeding
+if not Rules.BaseRule then
+    print("HealIQ Warning: OffensiveRules loaded before BaseRule")
+    -- Create a dummy BaseRule to prevent errors
+    Rules.BaseRule = {}
+end
+
 local BaseRule = Rules.BaseRule
 
 Rules.OffensiveRules = {}

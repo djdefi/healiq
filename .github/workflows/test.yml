@@ -108,6 +108,21 @@ jobs:
         
         echo "Version consistency check passed!"
         
+    - name: Run HealIQ loading order tests
+      run: |
+        echo "Running HealIQ loading order regression tests..."
+        if [ -f "ci_test_loading_order.lua" ]; then
+          echo "Executing loading order validation..."
+          lua5.1 ci_test_loading_order.lua
+          echo "Loading order tests completed successfully!"
+        elif [ -f "test_loading_order.lua" ]; then
+          echo "Executing comprehensive loading order tests..."
+          lua5.1 test_loading_order.lua
+          echo "Loading order tests completed successfully!"
+        else
+          echo "Loading order test file not found, skipping"
+        fi
+        
     - name: Run HealIQ quick validation
       run: |
         echo "Running HealIQ quick validation..."

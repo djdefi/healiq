@@ -68,6 +68,56 @@ Healing doesn’t follow a strict rotation, but there are patterns of optimal de
 
 This addon is written in Lua using the WoW AddOn API.
 
+### Development Setup
+
+1. **Quick Setup:**
+   ```bash
+   ./setup-dev.sh
+   ```
+   This script will install Lua, luacheck, and set up the development environment.
+
+2. **Manual Setup:**
+   ```bash
+   # Install dependencies (Ubuntu/Debian)
+   sudo apt-get install lua5.1 luarocks
+   sudo luarocks install luacheck
+   
+   # Or on macOS with Homebrew
+   brew install lua luarocks
+   luarocks install luacheck
+   ```
+
+### Code Quality
+
+This project uses automated linting to catch issues early:
+
+- **Pre-commit hooks** automatically run luacheck before each commit
+- **CI/CD pipeline** runs comprehensive linting on all pull requests
+- **Local linting:** Run `luacheck *.lua` to check your code
+
+### Running Tests
+
+```bash
+# Run the main test suite
+lua5.1 test_runner.lua
+
+# Run basic validation
+lua5.1 Tests.lua
+
+# Run loading order tests (regression test for issue #98)
+lua5.1 test_loading_order.lua
+```
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes (linting will run automatically on commit)
+4. Run tests: `lua5.1 test_runner.lua`
+5. Submit a pull request
+
+The pre-commit hook will prevent commits with linting issues. To bypass temporarily (not recommended): `git commit --no-verify`
+
 Contributions and suggestions welcome via [Issues](https://github.com/djdefi/healiq/issues) and PRs.
 
 ---
