@@ -6,7 +6,7 @@ local addonName, HealIQ = ...
 -- Create the main addon object
 HealIQ = HealIQ or {}
 HealIQ.version = "0.1.5"
-HealIQ.debug = true
+HealIQ.debug = false
 
 -- Initialize namespace for rule modules
 HealIQ.Rules = HealIQ.Rules or {}
@@ -14,7 +14,7 @@ HealIQ.Rules = HealIQ.Rules or {}
 -- Default settings
 local defaults = {
     enabled = true,
-    debug = true, -- Debug mode setting
+    debug = false, -- Debug mode setting
     ui = {
         scale = 1.0,
         x = 0,
