@@ -9,6 +9,8 @@
 # Core files
 Core.lua
 Logging.lua
+Performance.lua
+Validation.lua
 
 # Rule modules
 rules/BaseRule.lua

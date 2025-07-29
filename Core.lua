@@ -1,5 +1,13 @@
 -- HealIQ Core.lua
--- Addon initialization, event registration, and saved variables
+-- Main addon initialization, event registration, and saved variables management
+-- 
+-- This module handles:
+-- * Addon initialization and database setup
+-- * Event registration and handling 
+-- * Session statistics tracking
+-- * Error handling and logging
+-- * Version upgrade management
+-- * Player class/spec validation
 
 local addonName, HealIQ = ...
 
@@ -79,26 +87,29 @@ local defaults = {
     }
 }
 
--- Initialize saved variables
+-- Initialize saved variables with intelligent defaults merging
+-- This function ensures database integrity and handles corruption gracefully
+-- @return void
 function HealIQ:InitializeDB()
     -- Ensure HealIQDB exists
     if not HealIQDB then
         HealIQDB = {}
     end
     
-    -- Validate HealIQDB structure
+    -- Validate HealIQDB structure and handle corruption
     if type(HealIQDB) ~= "table" then
         HealIQDB = {}
         self:Message("HealIQ database was corrupted (type: " .. type(HealIQDB) .. "), resetting to defaults", true)
     end
     
-    -- Check for version upgrade
+    -- Check for version upgrade and migrate settings if needed
     if HealIQDB.version ~= self.version then
         self:OnVersionUpgrade(HealIQDB.version, self.version)
         HealIQDB.version = self.version
     end
     
-    -- Merge defaults with saved settings
+    -- Intelligently merge defaults with saved settings
+    -- This preserves user customizations while adding new features
     for key, value in pairs(defaults) do
         if HealIQDB[key] == nil then
             if type(value) == "table" then
@@ -110,7 +121,7 @@ function HealIQ:InitializeDB()
                 HealIQDB[key] = value
             end
         elseif type(value) == "table" and type(HealIQDB[key]) == "table" then
-            -- Merge nested tables
+            -- Merge nested tables to preserve existing settings while adding new ones
             for subkey, subvalue in pairs(value) do
                 if HealIQDB[key][subkey] == nil then
                     HealIQDB[key][subkey] = subvalue
@@ -196,7 +207,11 @@ function HealIQ:FormatDuration(seconds)
     end
 end
 
--- Error handling wrapper
+-- Enhanced error handling wrapper with comprehensive logging
+-- Safely executes functions with detailed error reporting and debugging
+-- @param func The function to execute safely
+-- @param ... Arguments to pass to the function
+-- @return success (boolean), result (any) - success status and function result
 function HealIQ:SafeCall(func, ...)
     local success, result = pcall(func, ...)
     if not success then
@@ -204,13 +219,14 @@ function HealIQ:SafeCall(func, ...)
         print("|cFFFF0000HealIQ Error:|r " .. errorMsg)
         self:LogError("SafeCall Error: " .. errorMsg)
         
+        -- Enhanced debugging information when debug mode is enabled
         if self.debug then
             print("|cFFFF0000Stack trace:|r " .. debugstack())
             self:DebugLog("Stack trace: " .. debugstack(), "ERROR")
         end
         
-        -- Also report to WoW's error system for copyable errors
-        -- This ensures errors appear in the default error frame
+        -- Report to WoW's error system for copyable errors
+        -- This ensures errors appear in the default error frame for user reporting
         if self.debug then
             -- Construct a complete error message with context and stack trace
             local completeError = "HealIQ SafeCall Error: " .. errorMsg .. "\n" .. debugstack()
@@ -239,6 +255,17 @@ function HealIQ:OnInitialize()
             self.Logging:InitializeVariables()
         end
         self:InitializeSessionStats()
+        
+        -- Initialize new quality modules
+        if self.Performance then
+            self.Performance:Initialize()
+            self:DebugLog("Performance monitoring initialized")
+        end
+        
+        if self.Validation then
+            self.Validation:Initialize()
+            self:DebugLog("Validation system initialized")
+        end
         
         -- Initialize modules
         if self.Tracker then
@@ -295,6 +322,9 @@ function HealIQ:OnPlayerLogin()
     end)
 end
 
+-- Validate player class and spec, enable/disable addon accordingly
+-- Only enables for Restoration Druids to ensure relevant suggestions
+-- @return void
 function HealIQ:OnPlayerEnteringWorld()
     self:SafeCall(function()
         self:Print("Player entering world")
@@ -309,7 +339,7 @@ function HealIQ:OnPlayerEnteringWorld()
         local _, class = UnitClass("player")
         if class == "DRUID" then
             local specIndex = GetSpecialization()
-            if specIndex == 4 then -- Restoration spec
+            if specIndex == 4 then -- Restoration spec (index 4 for druids)
                 self:Print("Restoration Druid detected")
                 self:DebugLog("Restoration Druid detected - enabling addon", "INFO")
                 self.db.enabled = true
