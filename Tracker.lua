@@ -169,9 +169,16 @@ function Tracker:UpdateCooldowns()
     
     -- Track trinket cooldowns (slot 13 and 14)
     for slot = 13, 14 do
-        local itemId = GetInventoryItemID("player", slot)
+        local itemId = GetInventoryItemID and GetInventoryItemID("player", slot)
         if itemId then
-            local startTime, duration, isEnabled = C_Item.GetItemCooldown(itemId)
+            -- Defensive API check for GetItemCooldown
+            local startTime, duration, isEnabled
+            if C_Item and C_Item.GetItemCooldown then
+                startTime, duration, isEnabled = C_Item.GetItemCooldown(itemId)
+            elseif GetItemCooldown then
+                startTime, duration, isEnabled = GetItemCooldown(itemId)
+            end
+            
             -- Defensive check: ensure we got valid values and item is on cooldown
             if startTime and duration and isEnabled and startTime > 0 and duration > 0 then
                 local remaining = (startTime + duration) - currentTime

@@ -145,24 +145,26 @@ function UI:CreateMainFrame()
     glow:SetBlendMode("ADD")
     iconFrame.glow = glow
     
-    -- Create pulsing animation for the glow
-    local glowAnimation = glow:CreateAnimationGroup()
-    glowAnimation:SetLooping("BOUNCE")
-    
-    local fadeIn = glowAnimation:CreateAnimation("Alpha")
-    fadeIn:SetFromAlpha(0.2)
-    fadeIn:SetToAlpha(0.6)
-    fadeIn:SetDuration(1.0)
-    fadeIn:SetSmoothing("IN_OUT")
-    
-    local fadeOut = glowAnimation:CreateAnimation("Alpha")
-    fadeOut:SetFromAlpha(0.6)
-    fadeOut:SetToAlpha(0.2)
-    fadeOut:SetDuration(1.0)
-    fadeOut:SetSmoothing("IN_OUT")
-    
-    glowAnimation:Play()
-    iconFrame.glowAnimation = glowAnimation
+    -- Create pulsing animation for the glow (with defensive API check)
+    if glow.CreateAnimationGroup then
+        local glowAnimation = glow:CreateAnimationGroup()
+        glowAnimation:SetLooping("BOUNCE")
+        
+        local fadeIn = glowAnimation:CreateAnimation("Alpha")
+        fadeIn:SetFromAlpha(0.2)
+        fadeIn:SetToAlpha(0.6)
+        fadeIn:SetDuration(1.0)
+        fadeIn:SetSmoothing("IN_OUT")
+        
+        local fadeOut = glowAnimation:CreateAnimation("Alpha")
+        fadeOut:SetFromAlpha(0.6)
+        fadeOut:SetToAlpha(0.2)
+        fadeOut:SetDuration(1.0)
+        fadeOut:SetSmoothing("IN_OUT")
+        
+        glowAnimation:Play()
+        iconFrame.glowAnimation = glowAnimation
+    end
     
     -- Add click handler for viewing spell information (removed casting functionality)
     iconFrame:SetScript("OnClick", function(self, button)
@@ -209,19 +211,35 @@ function UI:CreateMainFrame()
     spellNameText = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     spellNameText:SetPoint("TOP", iconFrame, "BOTTOM", 0, -4) -- Consistent spacing
     spellNameText:SetTextColor(1, 1, 1, 1)
-    spellNameText:SetShadowColor(0, 0, 0, 1)
-    spellNameText:SetShadowOffset(1, -1)
-    spellNameText:SetJustifyH("CENTER") -- Center-align the text
-    spellNameText:SetJustifyV("TOP") -- Top-align for multi-line support
-    spellNameText:SetWidth(120) -- Set a max width to prevent overflow
-    spellNameText:SetWordWrap(true) -- Enable word wrapping for long spell names
+    if spellNameText.SetShadowColor then
+        spellNameText:SetShadowColor(0, 0, 0, 1)
+        spellNameText:SetShadowOffset(1, -1)
+    end
+    if spellNameText.SetJustifyH then
+        spellNameText:SetJustifyH("CENTER") -- Center-align the text
+    end
+    if spellNameText.SetJustifyV then
+        spellNameText:SetJustifyV("TOP") -- Top-align for multi-line support
+    end
+    if spellNameText.SetWidth then
+        spellNameText:SetWidth(120) -- Set a max width to prevent overflow
+    end
+    if spellNameText.SetWordWrap then
+        spellNameText:SetWordWrap(true) -- Enable word wrapping for long spell names
+    end
     
     -- Create cooldown frame
     cooldownFrame = CreateFrame("Cooldown", "HealIQCooldownFrame", iconFrame, "CooldownFrameTemplate")
     cooldownFrame:SetAllPoints()
-    cooldownFrame:SetDrawEdge(false)
-    cooldownFrame:SetDrawSwipe(true)
-    cooldownFrame:SetReverse(true)
+    if cooldownFrame.SetDrawEdge then
+        cooldownFrame:SetDrawEdge(false)
+    end
+    if cooldownFrame.SetDrawSwipe then
+        cooldownFrame:SetDrawSwipe(true)
+    end
+    if cooldownFrame.SetReverse then
+        cooldownFrame:SetReverse(true)
+    end
     
     -- Create queue frame
     self:CreateQueueFrame()
@@ -467,9 +485,13 @@ function UI:CreateQueueFrame()
             positionText:SetPoint("BOTTOMRIGHT", queueIcon, "BOTTOMRIGHT", -2, 2)
         end
         positionText:SetTextColor(1, 1, 1, 0.9)
-        positionText:SetText(tostring(i + 1)) -- +1 because primary is position 1
-        positionText:SetShadowColor(0, 0, 0, 1)
-        positionText:SetShadowOffset(1, -1)
+        if positionText.SetText then
+            positionText:SetText(tostring(i + 1)) -- +1 because primary is position 1
+        end
+        if positionText.SetShadowColor then
+            positionText:SetShadowColor(0, 0, 0, 1)
+            positionText:SetShadowOffset(1, -1)
+        end
         queueIcon.positionText = positionText
         
         -- Initially hide queue icons
@@ -1445,9 +1467,15 @@ function UI:AddTooltip(frame, title, description)
 end
 
 function UI:MakeFrameDraggable()
-    mainFrame:SetMovable(true)
-    mainFrame:EnableMouse(true)
-    mainFrame:RegisterForDrag("LeftButton")
+    if mainFrame and mainFrame.SetMovable then
+        mainFrame:SetMovable(true)
+    end
+    if mainFrame and mainFrame.EnableMouse then
+        mainFrame:EnableMouse(true)
+    end
+    if mainFrame and mainFrame.RegisterForDrag then
+        mainFrame:RegisterForDrag("LeftButton")
+    end
     
     mainFrame:SetScript("OnDragStart", function(self)
         if HealIQ.db and HealIQ.db.ui and not HealIQ.db.ui.locked then
@@ -1504,8 +1532,12 @@ function UI:UpdateSuggestion(suggestion)
         
         -- Update primary icon
         if iconFrame and iconFrame.icon then
-            iconFrame.icon:SetTexture(suggestion.icon)
-            iconFrame.icon:SetDesaturated(false)
+            if iconFrame.icon.SetTexture then
+                iconFrame.icon:SetTexture(suggestion.icon)
+            end
+            if iconFrame.icon.SetDesaturated then
+                iconFrame.icon:SetDesaturated(false)
+            end
             
             -- Store current suggestion for click handling
             iconFrame.currentSuggestion = suggestion
@@ -1529,7 +1561,9 @@ function UI:UpdateSuggestion(suggestion)
                 if showTargetingIcon then
                     local targetIcon = HealIQ.Engine:GetTargetingSuggestionsIcon(suggestion)
                     if targetIcon then
-                        iconFrame.targetingIcon.icon:SetTexture(targetIcon)
+                        if iconFrame.targetingIcon.icon.SetTexture then
+                            iconFrame.targetingIcon.icon:SetTexture(targetIcon)
+                        end
                         iconFrame.targetingIcon:Show()
                     else
                         iconFrame.targetingIcon:Hide()
@@ -1566,8 +1600,12 @@ function UI:UpdateSuggestion(suggestion)
                 end
             end
             
-            spellNameText:SetText(displayText)
-            spellNameText:Show()
+            if spellNameText and spellNameText.SetText then
+                spellNameText:SetText(displayText)
+            end
+            if spellNameText then
+                spellNameText:Show()
+            end
         else
             if spellNameText then
                 spellNameText:Hide()
@@ -1606,11 +1644,13 @@ function UI:UpdateQueue(queue)
         if i > 1 and i <= #queueIcons + 1 then -- Skip first suggestion (it's the primary)
             local queueIcon = queueIcons[i - 1]
             if queueIcon then
-                queueIcon.icon:SetTexture(suggestion.icon)
+                if queueIcon.icon.SetTexture then
+                    queueIcon.icon:SetTexture(suggestion.icon)
+                end
                 queueIcon:Show()
                 
                 -- Update position text to show queue order more clearly
-                if queueIcon.positionText then
+                if queueIcon.positionText and queueIcon.positionText.SetText then
                     queueIcon.positionText:SetText(tostring(i)) -- Show actual queue position
                 end
                 
@@ -1691,7 +1731,7 @@ end
 
 
 function UI:UpdateScale()
-    if mainFrame and HealIQ.db and HealIQ.db.ui then
+    if mainFrame and mainFrame.SetScale and HealIQ.db and HealIQ.db.ui then
         mainFrame:SetScale(HealIQ.db.ui.scale)
     end
 end

@@ -353,6 +353,19 @@ local function setupEnhancedMockEnvironment()
     _G.C_Item = {
         GetCurrentItemLevel = function(itemLocation) 
             return math.random(200, 500)
+        end,
+        GetItemCooldown = function(itemId)
+            if errorSimulation.simulateErrors and math.random() < 0.05 then
+                return 0, 0, 0 -- Simulate API failure
+            end
+            
+            -- Simulate trinket cooldown states
+            local currentTime = GetTime()
+            if math.random() < 0.3 then -- 30% chance trinket is on cooldown
+                return currentTime - 60, 120, 1 -- 60 seconds remaining on 2min cooldown
+            else
+                return 0, 0, 1 -- Ready to use
+            end
         end
     }
     
