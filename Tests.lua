@@ -1,7 +1,14 @@
 -- HealIQ Tests.lua
 -- Enhanced test infrastructure for HealIQ addon with WoW API mocking
 
-local _, HealIQ = ...
+-- Support both WoW addon environment and external test environment
+local _, addon_HealIQ = ...
+-- Always use the addon parameter for WoW compatibility, but update global if it exists
+local HealIQ = addon_HealIQ
+if _G.HealIQ then
+    -- We're in a test environment, use the global table
+    HealIQ = _G.HealIQ
+end
 
 -- Load WoW API Mock for testing
 local function loadWoWAPIMock()
@@ -27,6 +34,11 @@ end
 local WoWAPIMock = loadWoWAPIMock()
 
 HealIQ.Tests = {}
+-- Also ensure the global is updated
+if _G.HealIQ and _G.HealIQ ~= HealIQ then
+    _G.HealIQ.Tests = HealIQ.Tests
+end
+
 local Tests = HealIQ.Tests
 
 -- Test results storage
@@ -1577,5 +1589,3 @@ function Tests.TestLoadingOrder()
         end
     end
 end
-
-HealIQ.Tests = TestsTests
