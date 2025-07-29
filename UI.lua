@@ -50,29 +50,30 @@ function UI:Initialize()
 end
 
 function UI:CreateMainFrame()
-    -- Check if database is initialized before accessing UI settings
-    if not HealIQ.db or not HealIQ.db.ui then
-        HealIQ:LogError("UI:CreateMainFrame called before database initialization")
-        return
-    end
-    
-    -- Determine total frame size based on queue settings
-    local queueSize = HealIQ.db.ui.queueSize or 3
-    local queueLayout = HealIQ.db.ui.queueLayout or "horizontal"
-    local queueSpacing = HealIQ.db.ui.queueSpacing or 8
-    local queueScale = HealIQ.db.ui.queueScale or 0.75
-    local queueIconSize = math.floor(ICON_SIZE * queueScale) -- Use same calculation as CreateQueueFrame
-    local padding = 8 -- Consistent padding for all elements
-    
-    local frameWidth = FRAME_SIZE + (padding * 2)
-    local frameHeight = FRAME_SIZE + (padding * 2)
-    
-    if HealIQ.db.ui.showQueue then
-        if queueLayout == "horizontal" then
-            -- Fix: Add spacing between icon and queue, plus queue width
-            local queueWidth = (queueSize - 1) * queueIconSize + math.max(0, queueSize - 2) * queueSpacing
-            frameWidth = frameWidth + queueSpacing + queueWidth
-        else
+    HealIQ:SafeCall(function()
+        -- Check if database is initialized before accessing UI settings
+        if not HealIQ.db or not HealIQ.db.ui then
+            HealIQ:LogError("UI:CreateMainFrame called before database initialization")
+            return
+        end
+        
+        -- Determine total frame size based on queue settings
+        local queueSize = HealIQ.db.ui.queueSize or 3
+        local queueLayout = HealIQ.db.ui.queueLayout or "horizontal"
+        local queueSpacing = HealIQ.db.ui.queueSpacing or 8
+        local queueScale = HealIQ.db.ui.queueScale or 0.75
+        local queueIconSize = math.floor(ICON_SIZE * queueScale) -- Use same calculation as CreateQueueFrame
+        local padding = 8 -- Consistent padding for all elements
+        
+        local frameWidth = FRAME_SIZE + (padding * 2)
+        local frameHeight = FRAME_SIZE + (padding * 2)
+        
+        if HealIQ.db.ui.showQueue then
+            if queueLayout == "horizontal" then
+                -- Fix: Add spacing between icon and queue, plus queue width
+                local queueWidth = (queueSize - 1) * queueIconSize + math.max(0, queueSize - 2) * queueSpacing
+                frameWidth = frameWidth + queueSpacing + queueWidth
+            else
             -- Account for spell name text in vertical layout
             local spellNameHeight = HealIQ.db.ui.showSpellName and 25 or 0  -- Match CreateQueueFrame offset
             -- Fix: Add spacing between icon and queue, plus queue height
@@ -231,10 +232,11 @@ function UI:CreateMainFrame()
     -- Update position border based on current settings
     -- This call is necessary here because the frame border needs to be initialized
     -- after all frame components are created and the database is available
-    self:UpdatePositionBorder()
-    
-    -- Initially hide the frame
-    mainFrame:Hide()
+        self:UpdatePositionBorder()
+        
+        -- Initially hide the frame
+        mainFrame:Hide()
+    end)
 end
 
 -- Helper function for minimap button positioning

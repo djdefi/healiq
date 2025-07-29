@@ -6,6 +6,39 @@ local addonName, HealIQ = ...
 HealIQ.Tracker = {}
 local Tracker = HealIQ.Tracker
 
+-- API compatibility helper functions
+local function GetSpellNameCompat(spellId)
+    if C_Spell and C_Spell.GetSpellName then
+        return C_Spell.GetSpellName(spellId)
+    else
+        return GetSpellInfo(spellId)
+    end
+end
+
+local function GetAuraDataCompat(unit, spellName, filter)
+    if C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName then
+        return C_UnitAuras.GetAuraDataBySpellName(unit, spellName, filter)
+    else
+        -- Fallback: scan through auras manually
+        local scanFunc = (filter == "HELPFUL") and UnitBuff or UnitDebuff
+        for i = 1, 40 do
+            local name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, buffSpellId = scanFunc(unit, i)
+            if not name then break end
+            if name == spellName then
+                return {
+                    name = name,
+                    icon = icon,
+                    applications = count or 1,
+                    duration = duration,
+                    expirationTime = expirationTime,
+                    sourceUnit = source
+                }
+            end
+        end
+        return nil
+    end
+end
+
 -- Spell IDs for tracking
 local SPELL_IDS = {
     -- Restoration Druid spells
@@ -88,22 +121,33 @@ end
 function Tracker:UpdateCooldowns()
     local currentTime = GetTime()
     
-    -- Helper function to update cooldown data
+    -- Helper function to update cooldown data with enhanced error handling
     local function updateCooldown(spellId, spellName)
-        local startTime, duration, isEnabled = C_Spell.GetSpellCooldown(spellId)
-        -- Defensive check: ensure we got valid values and spell is on cooldown
-        if startTime and duration and isEnabled and startTime > 0 and duration > 0 then
-            local remaining = (startTime + duration) - currentTime
-            trackedData.cooldowns[spellName] = {
-                remaining = math.max(0, remaining),
-                ready = remaining <= 0,
-                start = startTime,
-                duration = duration
-            }
-        else
-            -- Clear any existing data when spell is not on cooldown
-            trackedData.cooldowns[spellName] = nil
-        end
+        HealIQ:SafeCall(function()
+            local startTime, duration, isEnabled
+            
+            -- Use C_Spell API if available (newer WoW versions), fallback to older API
+            if C_Spell and C_Spell.GetSpellCooldown then
+                startTime, duration, isEnabled = C_Spell.GetSpellCooldown(spellId)
+            else
+                -- Fallback to older API for compatibility
+                startTime, duration, isEnabled = GetSpellCooldown(spellId)
+            end
+            
+            -- Defensive check: ensure we got valid values and spell is on cooldown
+            if startTime and duration and isEnabled and startTime > 0 and duration > 0 then
+                local remaining = (startTime + duration) - currentTime
+                trackedData.cooldowns[spellName] = {
+                    remaining = math.max(0, remaining),
+                    ready = remaining <= 0,
+                    start = startTime,
+                    duration = duration
+                }
+            else
+                -- Clear any existing data when spell is not on cooldown
+                trackedData.cooldowns[spellName] = nil
+            end
+        end)
     end
     
     -- Track existing spells
@@ -157,31 +201,64 @@ end
 function Tracker:UpdatePlayerBuffs()
     local currentTime = GetTime()
     
-    -- Helper function to check for buff
+    -- Helper function to check for buff with enhanced API compatibility
     local function checkBuff(spellId, buffName)
-        local spellName = C_Spell.GetSpellName(spellId)
-        if spellName then
-            local auraData = C_UnitAuras.GetAuraDataBySpellName("player", spellName, "HELPFUL")
-            if auraData then
-                trackedData.playerBuffs[buffName] = {
-                    active = true,
-                    remaining = auraData.expirationTime - currentTime,
-                    stacks = auraData.applications or 1
-                }
+        HealIQ:SafeCall(function()
+            local spellName
+            
+            -- Use C_Spell API if available, fallback to GetSpellInfo
+            if C_Spell and C_Spell.GetSpellName then
+                spellName = C_Spell.GetSpellName(spellId)
             else
+                spellName = GetSpellInfo(spellId)
+            end
+            
+            if spellName then
+                local auraData
+                
+                -- Use C_UnitAuras if available, fallback to UnitBuff
+                if C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName then
+                    auraData = C_UnitAuras.GetAuraDataBySpellName("player", spellName, "HELPFUL")
+                else
+                    -- Fallback: scan through buffs manually
+                    for i = 1, 40 do
+                        local name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, buffSpellId = UnitBuff("player", i)
+                        if not name then break end
+                        if buffSpellId == spellId then
+                            auraData = {
+                                name = name,
+                                icon = icon,
+                                applications = count or 1,
+                                duration = duration,
+                                expirationTime = expirationTime,
+                                sourceUnit = source
+                            }
+                            break
+                        end
+                    end
+                end
+                if auraData then
+                    trackedData.playerBuffs[buffName] = {
+                        active = true,
+                        remaining = auraData.expirationTime - currentTime,
+                        stacks = auraData.applications or 1
+                    }
+                else
+                    trackedData.playerBuffs[buffName] = {
+                        active = false,
+                        remaining = 0,
+                        stacks = 0
+                    }
+                end
+            else
+                -- Spell name lookup failed
                 trackedData.playerBuffs[buffName] = {
                     active = false,
                     remaining = 0,
                     stacks = 0
                 }
             end
-        else
-            trackedData.playerBuffs[buffName] = {
-                active = false,
-                remaining = 0,
-                stacks = 0
-            }
-        end
+        end)
     end
     
     -- Check for existing buffs
@@ -203,58 +280,59 @@ function Tracker:UpdateTargetHots()
         return
     end
     
-    local currentTime = GetTime()
-    
-    -- Check for Lifebloom on target
-    local spellName = C_Spell.GetSpellName(SPELL_IDS.LIFEBLOOM)
-    local auraData = spellName and C_UnitAuras.GetAuraDataBySpellName("target", spellName, "HELPFUL")
-    if auraData then
-        trackedData.targetHots.lifebloom = {
-            active = true,
-            remaining = auraData.expirationTime - currentTime,
-            stacks = auraData.applications or 1
-        }
-    else
-        trackedData.targetHots.lifebloom = {
-            active = false,
-            remaining = 0,
-            stacks = 0
-        }
-    end
-    
-    -- Check for Rejuvenation on target
-    spellName = C_Spell.GetSpellName(SPELL_IDS.REJUVENATION)
-    auraData = spellName and C_UnitAuras.GetAuraDataBySpellName("target", spellName, "HELPFUL")
-    if auraData then
-        trackedData.targetHots.rejuvenation = {
-            active = true,
-            remaining = auraData.expirationTime - currentTime,
-            stacks = auraData.applications or 1
-        }
-    else
-        trackedData.targetHots.rejuvenation = {
-            active = false,
-            remaining = 0,
-            stacks = 0
-        }
-    end
-    
-    -- Check for Regrowth on target
-    spellName = C_Spell.GetSpellName(SPELL_IDS.REGROWTH)
-    auraData = spellName and C_UnitAuras.GetAuraDataBySpellName("target", spellName, "HELPFUL")
-    if auraData then
-        trackedData.targetHots.regrowth = {
-            active = true,
-            remaining = auraData.expirationTime - currentTime,
-            stacks = auraData.applications or 1
-        }
-    else
-        trackedData.targetHots.regrowth = {
-            active = false,
-            remaining = 0,
-            stacks = 0
-        }
-    end
+    HealIQ:SafeCall(function()
+        local currentTime = GetTime()
+        
+        -- Check for Lifebloom on target
+        local spellName = GetSpellNameCompat(SPELL_IDS.LIFEBLOOM)
+        local auraData = spellName and GetAuraDataCompat("target", spellName, "HELPFUL")
+        if auraData then
+            trackedData.targetHots.lifebloom = {
+                active = true,
+                remaining = auraData.expirationTime - currentTime,
+                stacks = auraData.applications or 1
+            }
+        else
+            trackedData.targetHots.lifebloom = {
+                active = false,
+                remaining = 0,
+                stacks = 0
+            }
+        end
+        
+        -- Check for Rejuvenation on target
+        spellName = GetSpellNameCompat(SPELL_IDS.REJUVENATION)
+        if auraData then
+            trackedData.targetHots.rejuvenation = {
+                active = true,
+                remaining = auraData.expirationTime - currentTime,
+                stacks = auraData.applications or 1
+            }
+        else
+            trackedData.targetHots.rejuvenation = {
+                active = false,
+                remaining = 0,
+                stacks = 0
+            }
+        end
+        
+        -- Check for Regrowth on target
+        spellName = GetSpellNameCompat(SPELL_IDS.REGROWTH)
+        auraData = spellName and GetAuraDataCompat("target", spellName, "HELPFUL")
+        if auraData then
+            trackedData.targetHots.regrowth = {
+                active = true,
+                remaining = auraData.expirationTime - currentTime,
+                stacks = auraData.applications or 1
+            }
+        else
+            trackedData.targetHots.regrowth = {
+                active = false,
+                remaining = 0,
+                stacks = 0
+            }
+        end
+    end)
 end
 
 function Tracker:ParseCombatLog()
@@ -391,8 +469,8 @@ function Tracker:ShouldUseIronbark()
     
     local hasIronbark = false
     if targetExists then
-        local spellName = C_Spell.GetSpellName(SPELL_IDS.IRONBARK_BUFF)
-        local auraData = spellName and C_UnitAuras.GetAuraDataBySpellName("target", spellName, "HELPFUL")
+        local spellName = GetSpellNameCompat(SPELL_IDS.IRONBARK_BUFF)
+        local auraData = spellName and GetAuraDataCompat("target", spellName, "HELPFUL")
         hasIronbark = auraData ~= nil
     end
     
