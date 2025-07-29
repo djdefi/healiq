@@ -48,7 +48,7 @@ local SPELL_IDS = {
     WILD_GROWTH = 48438,
     SWIFTMEND = 18562,
     CLEARCASTING = 16870,
-    
+
     -- Major cooldowns
     IRONBARK = 102342,
     EFFLORESCENCE = 145205,
@@ -57,11 +57,11 @@ local SPELL_IDS = {
     NATURES_SWIFTNESS = 132158,
     BARKSKIN = 22812,
     FLOURISH = 197721,
-    
+
     -- New spells from strategy review
     GROVE_GUARDIANS = 102693,
     WRATH = 5176,
-    
+
     -- Buffs
     CLEARCASTING_BUFF = 16870,
     IRONBARK_BUFF = 102342,
@@ -96,7 +96,7 @@ function Tracker:RegisterEvents()
     frame:RegisterEvent("UNIT_AURA")
     frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     frame:RegisterEvent("PLAYER_TARGET_CHANGED")
-    
+
     frame:SetScript("OnEvent", function(self, event, ...)
         Tracker:OnEvent(event, ...)
     end)
@@ -120,12 +120,12 @@ end
 
 function Tracker:UpdateCooldowns()
     local currentTime = GetTime()
-    
+
     -- Helper function to update cooldown data with enhanced error handling
     local function updateCooldown(spellId, spellName)
         HealIQ:SafeCall(function()
             local startTime, duration, isEnabled
-            
+
             -- Use C_Spell API if available (newer WoW versions), fallback to older API
             if C_Spell and C_Spell.GetSpellCooldown then
                 startTime, duration, isEnabled = C_Spell.GetSpellCooldown(spellId)
@@ -133,7 +133,7 @@ function Tracker:UpdateCooldowns()
                 -- Fallback to older API for compatibility
                 startTime, duration, isEnabled = GetSpellCooldown(spellId)
             end
-            
+
             -- Defensive check: ensure we got valid values and spell is on cooldown
             if startTime and duration and isEnabled and startTime > 0 and duration > 0 then
                 local remaining = (startTime + duration) - currentTime
@@ -149,11 +149,11 @@ function Tracker:UpdateCooldowns()
             end
         end)
     end
-    
+
     -- Track existing spells
     updateCooldown(SPELL_IDS.WILD_GROWTH, "wildGrowth")
     updateCooldown(SPELL_IDS.SWIFTMEND, "swiftmend")
-    
+
     -- Track new major cooldowns
     updateCooldown(SPELL_IDS.IRONBARK, "ironbark")
     updateCooldown(SPELL_IDS.EFFLORESCENCE, "efflorescence")
@@ -162,11 +162,11 @@ function Tracker:UpdateCooldowns()
     updateCooldown(SPELL_IDS.NATURES_SWIFTNESS, "naturesSwiftness")
     updateCooldown(SPELL_IDS.BARKSKIN, "barkskin")
     updateCooldown(SPELL_IDS.FLOURISH, "flourish")
-    
+
     -- Track new spells from strategy review
     updateCooldown(SPELL_IDS.GROVE_GUARDIANS, "groveGuardians")
     updateCooldown(SPELL_IDS.WRATH, "wrath")
-    
+
     -- Track trinket cooldowns (slot 13 and 14)
     for slot = 13, 14 do
         local itemId = GetInventoryItemID and GetInventoryItemID("player", slot)
@@ -178,7 +178,7 @@ function Tracker:UpdateCooldowns()
             elseif GetItemCooldown then
                 startTime, duration, isEnabled = GetItemCooldown(itemId)
             end
-            
+
             -- Defensive check: ensure we got valid values and item is on cooldown
             if startTime and duration and isEnabled and startTime > 0 and duration > 0 then
                 local remaining = (startTime + duration) - currentTime
@@ -207,22 +207,22 @@ end
 
 function Tracker:UpdatePlayerBuffs()
     local currentTime = GetTime()
-    
+
     -- Helper function to check for buff with enhanced API compatibility
     local function checkBuff(spellId, buffName)
         HealIQ:SafeCall(function()
             local spellName
-            
+
             -- Use C_Spell API if available, fallback to GetSpellInfo
             if C_Spell and C_Spell.GetSpellName then
                 spellName = C_Spell.GetSpellName(spellId)
             else
                 spellName = GetSpellInfo(spellId)
             end
-            
+
             if spellName then
                 local auraData
-                
+
                 -- Use C_UnitAuras if available, fallback to UnitBuff
                 if C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName then
                     auraData = C_UnitAuras.GetAuraDataBySpellName("player", spellName, "HELPFUL")
@@ -267,16 +267,16 @@ function Tracker:UpdatePlayerBuffs()
             end
         end)
     end
-    
+
     -- Check for existing buffs
     checkBuff(SPELL_IDS.CLEARCASTING_BUFF, "clearcasting")
-    
+
     -- Check for new buffs
     checkBuff(SPELL_IDS.IRONBARK_BUFF, "ironbark")
     checkBuff(SPELL_IDS.BARKSKIN_BUFF, "barkskin")
     checkBuff(SPELL_IDS.NATURES_SWIFTNESS_BUFF, "naturesSwiftness")
     checkBuff(SPELL_IDS.INCARNATION_TREE_BUFF, "incarnationTree")
-    
+
     -- Maintain backward compatibility
     trackedData.buffs.clearcasting = trackedData.playerBuffs.clearcasting
 end
@@ -286,10 +286,10 @@ function Tracker:UpdateTargetHots()
         trackedData.targetHots = {}
         return
     end
-    
+
     HealIQ:SafeCall(function()
         local currentTime = GetTime()
-        
+
         -- Check for Lifebloom on target
         local spellName = GetSpellNameCompat(SPELL_IDS.LIFEBLOOM)
         local auraData = spellName and GetAuraDataCompat("target", spellName, "HELPFUL")
@@ -306,7 +306,7 @@ function Tracker:UpdateTargetHots()
                 stacks = 0
             }
         end
-        
+
         -- Check for Rejuvenation on target
         spellName = GetSpellNameCompat(SPELL_IDS.REJUVENATION)
         if auraData then
@@ -322,7 +322,7 @@ function Tracker:UpdateTargetHots()
                 stacks = 0
             }
         end
-        
+
         -- Check for Regrowth on target
         spellName = GetSpellNameCompat(SPELL_IDS.REGROWTH)
         auraData = spellName and GetAuraDataCompat("target", spellName, "HELPFUL")
@@ -344,13 +344,13 @@ end
 
 function Tracker:ParseCombatLog()
     local timestamp, subevent, _, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags = CombatLogGetCurrentEventInfo()
-    
+
     -- Track recent damage for Wild Growth suggestions
     if subevent == "SWING_DAMAGE" or subevent == "SPELL_DAMAGE" or subevent == "RANGE_DAMAGE" then
         if UnitInParty(destName) or UnitInRaid(destName) then
             local currentTime = GetTime()
             trackedData.recentDamage[destGUID] = currentTime
-            
+
             -- Clean up old damage records (older than 5 seconds)
             -- Use separate cleanup pass to avoid performance issues
             local toRemove = {}
@@ -359,13 +359,13 @@ function Tracker:ParseCombatLog()
                     table.insert(toRemove, guid)
                 end
             end
-            
+
             for _, guid in ipairs(toRemove) do
                 trackedData.recentDamage[guid] = nil
             end
         end
     end
-    
+
     -- Track Efflorescence casting
     if subevent == "SPELL_CAST_SUCCESS" then
         local spellId = select(12, CombatLogGetCurrentEventInfo())
@@ -374,7 +374,7 @@ function Tracker:ParseCombatLog()
             trackedData.efflorescenceExpires = GetTime() + 30 -- Efflorescence lasts 30 seconds
         end
     end
-    
+
     -- Update efflorescence status
     if trackedData.efflorescenceActive and GetTime() > trackedData.efflorescenceExpires then
         trackedData.efflorescenceActive = false
@@ -402,17 +402,17 @@ end
 function Tracker:GetRecentDamageCount()
     local count = 0
     local currentTime = GetTime()
-    
+
     -- Use configurable time window from strategy settings
     local strategy = HealIQ.db and HealIQ.db.strategy or {}
     local timeWindow = strategy.recentDamageWindow or 3 -- default 3 seconds
-    
+
     for guid, time in pairs(trackedData.recentDamage) do
         if currentTime - time <= timeWindow then
             count = count + 1
         end
     end
-    
+
     return count
 end
 
@@ -431,7 +431,7 @@ function Tracker:CanSwiftmend()
     local swiftmendReady = self:IsSpellReady("swiftmend")
     local hasRejuv = trackedData.targetHots.rejuvenation and trackedData.targetHots.rejuvenation.active
     local hasRegrowth = trackedData.targetHots.regrowth and trackedData.targetHots.regrowth.active
-    
+
     return swiftmendReady and (hasRejuv or hasRegrowth)
 end
 
@@ -473,14 +473,14 @@ function Tracker:ShouldUseIronbark()
     local ironbarkReady = self:IsSpellReady("ironbark")
     local targetExists = UnitExists("target")
     local targetIsFriendly = targetExists and UnitIsFriend("player", "target")
-    
+
     local hasIronbark = false
     if targetExists then
         local spellName = GetSpellNameCompat(SPELL_IDS.IRONBARK_BUFF)
         local auraData = spellName and GetAuraDataCompat("target", spellName, "HELPFUL")
         hasIronbark = auraData ~= nil
     end
-    
+
     return ironbarkReady and targetIsFriendly and not hasIronbark
 end
 
@@ -493,7 +493,7 @@ function Tracker:ShouldUseBarkskin()
     local inCombat = InCombatLockdown()
     local playerHealthPercent = UnitHealth("player") / UnitHealthMax("player")
     local lowHealthThreshold = (HealIQ.db and HealIQ.db.strategy and HealIQ.db.strategy.lowHealthThreshold) or 0.5
-    
+
     return barkskinReady and inCombat and (playerHealthPercent <= lowHealthThreshold)
 end
 
@@ -507,7 +507,7 @@ function Tracker:ShouldUseEfflorescence()
     local recentDamageCount = self:GetRecentDamageCount()
     local strategy = HealIQ.db and HealIQ.db.strategy or {}
     local minTargets = strategy.efflorescenceMinTargets or 2
-    
+
     return efflorescenceReady and notActive and recentDamageCount >= minTargets
 end
 
@@ -520,7 +520,7 @@ function Tracker:ShouldUseTranquility()
     local recentDamageCount = self:GetRecentDamageCount()
     local strategy = HealIQ.db and HealIQ.db.strategy or {}
     local minTargets = strategy.tranquilityMinTargets or 4
-    
+
     return tranquilityReady and recentDamageCount >= minTargets
 end
 
@@ -541,7 +541,7 @@ function Tracker:ShouldUseIncarnation()
     local recentDamageCount = self:GetRecentDamageCount()
     local strategy = HealIQ.db and HealIQ.db.strategy or {}
     local minTargets = math.max(2, strategy.wildGrowthMinTargets or 1)
-    
+
     return incarnationReady and recentDamageCount >= minTargets
 end
 

@@ -375,7 +375,7 @@ local function runTests()
         print("ERROR: Failed to execute " .. testFile .. ": " .. tostring(result))
         return false
     end
-    
+
     -- Check if Tests module was loaded correctly by examining what was added to HealIQ
     if HealIQ.Tests then
         print("Tests module loaded successfully in main HealIQ object")
@@ -385,32 +385,32 @@ local function runTests()
     else
         -- If Tests.lua loading fails, create a minimal test to validate core functionality
         print("WARNING: Tests.lua module loading failed, running minimal validation instead")
-        
+
         -- Run basic validation tests
         local validationErrors = {}
-        
+
         -- Test core addon functions
         if not HealIQ.Print then
             table.insert(validationErrors, "HealIQ.Print function missing")
         end
-        
+
         if not HealIQ.SafeCall then
             table.insert(validationErrors, "HealIQ.SafeCall function missing")
         end
-        
+
         if not HealIQ.UI then
             table.insert(validationErrors, "HealIQ.UI module missing")
         end
-        
+
         if not HealIQ.Config then
             table.insert(validationErrors, "HealIQ.Config module missing")
         end
-        
+
         -- Test addon database
         if not HealIQ.db then
             table.insert(validationErrors, "HealIQ.db missing")
         end
-        
+
         if #validationErrors > 0 then
             print("Validation Errors:")
             for _, error in ipairs(validationErrors) do

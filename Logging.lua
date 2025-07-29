@@ -32,11 +32,11 @@ function HealIQ:DebugLog(message, level)
     if not self.debug then
         return
     end
-    
+
     level = level or "DEBUG"
     local timestamp = date("%H:%M:%S")
     local logEntry = string.format("[%s] [%s] %s", timestamp, level, tostring(message))
-    
+
     -- Print to chat with color coding
     local color = "|cFF888888"
     if level == "ERROR" then
@@ -46,7 +46,7 @@ function HealIQ:DebugLog(message, level)
     elseif level == "INFO" then
         color = "|cFF00FF00"
     end
-    
+
     print(color .. "[HealIQ] " .. logEntry .. "|r")
 end
 
@@ -74,13 +74,13 @@ end
 
 function HealIQ:GenerateDiagnosticDump()
     local dump = {}
-    
+
     -- Header
     table.insert(dump, "=== HealIQ Diagnostic Dump ===")
     table.insert(dump, "Generated: " .. date("%Y-%m-%d %H:%M:%S"))
     table.insert(dump, "Version: " .. self.version)
     table.insert(dump, "")
-    
+
     -- Session Statistics with Enhanced Analysis
     table.insert(dump, "=== Session Statistics ===")
     if self.sessionStats then
@@ -93,7 +93,7 @@ function HealIQ:GenerateDiagnosticDump()
         table.insert(dump, "Rules Processed: " .. (self.sessionStats.rulesProcessed or 0))
         table.insert(dump, "Errors Logged: " .. (self.sessionStats.errorsLogged or 0))
         table.insert(dump, "Events Handled: " .. (self.sessionStats.eventsHandled or 0))
-        
+
         -- Performance Analysis
         if sessionDuration > 0 and self.sessionStats.suggestions then
             local suggestionsPerMinute = (self.sessionStats.suggestions * 60) / sessionDuration
@@ -107,7 +107,7 @@ function HealIQ:GenerateDiagnosticDump()
                 table.insert(dump, "Suggestion Efficiency: " .. string.format("%.1f%%", efficiency))
             end
         end
-        
+
         -- Rule trigger counts with analysis
         if self.sessionStats.ruleTriggers and next(self.sessionStats.ruleTriggers) then
             table.insert(dump, "")
@@ -119,14 +119,14 @@ function HealIQ:GenerateDiagnosticDump()
                 totalTriggers = totalTriggers + count
             end
             table.sort(sortedRules, function(a, b) return a.count > b.count end)
-            
+
             table.insert(dump, "Most Active Rules:")
             for i, rule in ipairs(sortedRules) do
                 local percentage = (rule.count / totalTriggers) * 100
                 table.insert(dump, string.format("  %d. %s: %d (%.1f%%)", i, rule.name, rule.count, percentage))
                 if i >= 5 then break end -- Top 5 only
             end
-            
+
             -- Rule frequency recommendations
             table.insert(dump, "")
             table.insert(dump, "=== Strategy Recommendations ===")
@@ -146,7 +146,7 @@ function HealIQ:GenerateDiagnosticDump()
         table.insert(dump, "Session statistics not yet initialized")
     end
     table.insert(dump, "")
-    
+
     -- Configuration with Strategy Analysis
     table.insert(dump, "=== Configuration ===")
     if self.db then
@@ -156,7 +156,7 @@ function HealIQ:GenerateDiagnosticDump()
         table.insert(dump, "Database not yet initialized")
     end
     table.insert(dump, "")
-    
+
     -- Enhanced Strategy Configuration Analysis
     table.insert(dump, "=== Strategy Configuration Analysis ===")
     if self.db and self.db.strategy then
@@ -172,10 +172,10 @@ function HealIQ:GenerateDiagnosticDump()
         else
             groupType = "Large Group (Raid)"
         end
-        
+
         table.insert(dump, "Detected Group Type: " .. groupType .. " (" .. groupSize .. " members)")
         table.insert(dump, "")
-        
+
         -- Key thresholds with recommendations
         table.insert(dump, "Key Thresholds:")
         local wildGrowthMin = self.db.strategy.wildGrowthMinTargets or 1
@@ -187,19 +187,19 @@ function HealIQ:GenerateDiagnosticDump()
         elseif groupType == "Large Group (Raid)" and wildGrowthMin < 3 then
             table.insert(dump, "    → Recommendation: Consider 3+ for raid content")
         end
-        
+
         local tranqMin = self.db.strategy.tranquilityMinTargets or 4
         table.insert(dump, "  Tranquility Min Targets: " .. tranqMin)
         if groupType == "Small Group (5-man)" and tranqMin > 3 then
             table.insert(dump, "    → Recommendation: Consider 2-3 for 5-man content")
         end
-        
+
         local effloMin = self.db.strategy.efflorescenceMinTargets or 2
         table.insert(dump, "  Efflorescence Min Targets: " .. effloMin)
-        
+
         local lowHealthThresh = self.db.strategy.lowHealthThreshold or 0.3
         table.insert(dump, "  Low Health Threshold: " .. string.format("%.0f%%", lowHealthThresh * 100))
-        
+
         table.insert(dump, "")
         table.insert(dump, "Strategy Toggles:")
         local strategies = {
@@ -211,7 +211,7 @@ function HealIQ:GenerateDiagnosticDump()
             {"poolGroveGuardians", "Pool Grove Guardians"},
             {"emergencyNaturesSwiftness", "Emergency Nature's Swiftness"}
         }
-        
+
         for _, strategy in ipairs(strategies) do
             local key, name = strategy[1], strategy[2]
             local enabled = self.db.strategy[key]
@@ -223,7 +223,7 @@ function HealIQ:GenerateDiagnosticDump()
         table.insert(dump, "Strategy configuration not yet initialized")
     end
     table.insert(dump, "")
-    
+
     -- UI Configuration
     table.insert(dump, "=== UI Configuration ===")
     if self.db and self.db.ui then
@@ -237,7 +237,7 @@ function HealIQ:GenerateDiagnosticDump()
         table.insert(dump, "UI configuration not yet initialized")
     end
     table.insert(dump, "")
-    
+
     -- Rules Configuration
     table.insert(dump, "=== Rules Configuration ===")
     if self.db and self.db.rules then
@@ -250,15 +250,15 @@ function HealIQ:GenerateDiagnosticDump()
                 table.insert(disabledRules, rule)
             end
         end
-        
+
         table.sort(enabledRules)
         table.sort(disabledRules)
-        
+
         table.insert(dump, "Enabled Rules (" .. #enabledRules .. "):")
         for _, rule in ipairs(enabledRules) do
             table.insert(dump, "  " .. rule)
         end
-        
+
         if #disabledRules > 0 then
             table.insert(dump, "")
             table.insert(dump, "Disabled Rules (" .. #disabledRules .. "):")
@@ -270,7 +270,7 @@ function HealIQ:GenerateDiagnosticDump()
         table.insert(dump, "Rules configuration not yet initialized")
     end
     table.insert(dump, "")
-    
+
     -- Current State
     table.insert(dump, "=== Current State ===")
     local _, class = UnitClass("player")
@@ -279,7 +279,7 @@ function HealIQ:GenerateDiagnosticDump()
     table.insert(dump, "Specialization: " .. (spec or "Unknown"))
     table.insert(dump, "In Combat: " .. tostring(InCombatLockdown()))
     table.insert(dump, "")
-    
+
     -- Debugging Tips
     table.insert(dump, "=== Debugging Tips ===")
     table.insert(dump, "• Use '/healiq debug' to toggle real-time debug output")
@@ -288,7 +288,7 @@ function HealIQ:GenerateDiagnosticDump()
     table.insert(dump, "• Adjust min target thresholds based on group size")
     table.insert(dump, "• Check suggestion efficiency for performance insights")
     table.insert(dump, "")
-    
+
     -- Export Instructions
     table.insert(dump, "=== Export Instructions ===")
     table.insert(dump, "• Click in this text area to select all content")
@@ -297,7 +297,7 @@ function HealIQ:GenerateDiagnosticDump()
     table.insert(dump, "• Data includes all session metrics and configuration")
     table.insert(dump, "• Use the Refresh button above to get latest data")
     table.insert(dump, "")
-    
+
     return table.concat(dump, "\n")
 end
 

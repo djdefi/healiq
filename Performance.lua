@@ -35,15 +35,15 @@ local performanceData = {
 function Performance:ProfileFunction(functionName, func, ...)
     local startTime = debugprofilestop and debugprofilestop() or GetTime() * 1000
     local startMemory = collectgarbage("count")
-    
+
     local success, result = HealIQ:SafeCall(func, ...)
-    
+
     local endTime = debugprofilestop and debugprofilestop() or GetTime() * 1000
     local endMemory = collectgarbage("count")
-    
+
     local executionTime = endTime - startTime
     local memoryDelta = endMemory - startMemory
-    
+
     -- Track performance data
     if not performanceData.functionTimes[functionName] then
         performanceData.functionTimes[functionName] = {
@@ -54,26 +54,26 @@ function Performance:ProfileFunction(functionName, func, ...)
             avgTime = 0
         }
     end
-    
+
     local stats = performanceData.functionTimes[functionName]
     stats.totalTime = stats.totalTime + executionTime
     stats.calls = stats.calls + 1
     stats.maxTime = math.max(stats.maxTime, executionTime)
     stats.minTime = math.min(stats.minTime, executionTime)
     stats.avgTime = stats.totalTime / stats.calls
-    
+
     -- Track memory usage
     if memoryDelta > 0 then
         performanceData.memoryUsage[functionName] = (performanceData.memoryUsage[functionName] or 0) + memoryDelta
     end
-    
+
     -- Check for performance warnings
     if executionTime > performanceData.frameTimeTargets.critical then
         local warningLevel = "WARNING"
         if executionTime > performanceData.frameTimeTargets.error then
             warningLevel = "ERROR"
         end
-        
+
         table.insert(performanceData.performanceWarnings, {
             timestamp = GetTime(),
             function_name = functionName,
@@ -81,23 +81,23 @@ function Performance:ProfileFunction(functionName, func, ...)
             level = warningLevel,
             memory_delta = memoryDelta
         })
-        
+
         if HealIQ.debug then
-            HealIQ:DebugLog(string.format("Performance %s: %s took %.2fms (threshold: %.2fms)", 
+            HealIQ:DebugLog(string.format("Performance %s: %s took %.2fms (threshold: %.2fms)",
                 warningLevel, functionName, executionTime, performanceData.frameTimeTargets.critical), warningLevel)
         end
     end
-    
+
     -- Automatic garbage collection when threshold exceeded
     if endMemory > performanceData.gcThreshold and (GetTime() - performanceData.lastGC) > 5 then
         collectgarbage("collect")
         performanceData.lastGC = GetTime()
         if HealIQ.debug then
-            HealIQ:DebugLog(string.format("Automatic GC triggered. Memory before: %.1fKB, after: %.1fKB", 
+            HealIQ:DebugLog(string.format("Automatic GC triggered. Memory before: %.1fKB, after: %.1fKB",
                 endMemory, collectgarbage("count")), "INFO")
         end
     end
-    
+
     return success, result, executionTime
 end
 
@@ -116,33 +116,33 @@ end
 -- @return string Formatted performance report
 function Performance:GeneratePerformanceReport()
     local report = {}
-    
+
     table.insert(report, "=== HealIQ Performance Report ===")
     table.insert(report, "Generated: " .. date("%Y-%m-%d %H:%M:%S"))
     table.insert(report, "")
-    
+
     -- Function performance summary
     table.insert(report, "=== Function Performance ===")
     local sortedFunctions = {}
     for functionName, stats in pairs(performanceData.functionTimes) do
         table.insert(sortedFunctions, {name = functionName, stats = stats})
     end
-    
+
     -- Sort by average execution time
     table.sort(sortedFunctions, function(a, b)
         return a.stats.avgTime > b.stats.avgTime
     end)
-    
-    table.insert(report, string.format("%-30s %8s %8s %8s %8s %8s", 
+
+    table.insert(report, string.format("%-30s %8s %8s %8s %8s %8s",
         "Function", "Calls", "Total(ms)", "Avg(ms)", "Min(ms)", "Max(ms)"))
     table.insert(report, string.rep("-", 80))
-    
+
     for _, func in ipairs(sortedFunctions) do
         local stats = func.stats
         table.insert(report, string.format("%-30s %8d %8.2f %8.2f %8.2f %8.2f",
             func.name, stats.calls, stats.totalTime, stats.avgTime, stats.minTime, stats.maxTime))
     end
-    
+
     -- Memory usage summary
     table.insert(report, "")
     table.insert(report, "=== Memory Usage ===")
@@ -153,30 +153,30 @@ function Performance:GeneratePerformanceReport()
     end
     table.insert(report, string.format("%-30s %8.2f KB", "TOTAL TRACKED", totalMemory))
     table.insert(report, string.format("%-30s %8.2f KB", "CURRENT USAGE", collectgarbage("count")))
-    
+
     -- Performance warnings
     table.insert(report, "")
     table.insert(report, "=== Performance Warnings ===")
     if #performanceData.performanceWarnings > 0 then
         table.insert(report, string.format("%-20s %-30s %10s %8s", "Time", "Function", "Duration", "Level"))
         table.insert(report, string.rep("-", 70))
-        
+
         -- Show last 10 warnings
         local startIdx = math.max(1, #performanceData.performanceWarnings - 9)
         for i = startIdx, #performanceData.performanceWarnings do
             local warning = performanceData.performanceWarnings[i]
             table.insert(report, string.format("%-20s %-30s %8.2fms %8s",
-                date("%H:%M:%S", warning.timestamp), warning.function_name, 
+                date("%H:%M:%S", warning.timestamp), warning.function_name,
                 warning.execution_time, warning.level))
         end
     else
         table.insert(report, "No performance warnings detected")
     end
-    
+
     -- Performance recommendations
     table.insert(report, "")
     table.insert(report, "=== Recommendations ===")
-    
+
     local hasSlowFunctions = false
     for _, func in ipairs(sortedFunctions) do
         if func.stats.avgTime > performanceData.frameTimeTargets.warning then
@@ -184,15 +184,15 @@ function Performance:GeneratePerformanceReport()
                 table.insert(report, "Functions exceeding performance targets:")
                 hasSlowFunctions = true
             end
-            table.insert(report, string.format("- %s: %.2fms avg (target: %.2fms)", 
+            table.insert(report, string.format("- %s: %.2fms avg (target: %.2fms)",
                 func.name, func.stats.avgTime, performanceData.frameTimeTargets.critical))
         end
     end
-    
+
     if not hasSlowFunctions then
         table.insert(report, "All functions within performance targets")
     end
-    
+
     return table.concat(report, "\n")
 end
 
@@ -202,7 +202,7 @@ function Performance:Reset()
     performanceData.memoryUsage = {}
     performanceData.performanceWarnings = {}
     performanceData.lastGC = GetTime()
-    
+
     if HealIQ.debug then
         HealIQ:DebugLog("Performance tracking data reset", "INFO")
     end
@@ -220,14 +220,14 @@ end
 function Performance:HasPerformanceIssues()
     local recentWarnings = 0
     local currentTime = GetTime()
-    
+
     -- Check for warnings in the last 60 seconds
     for _, warning in ipairs(performanceData.performanceWarnings) do
         if currentTime - warning.timestamp < 60 then
             recentWarnings = recentWarnings + 1
         end
     end
-    
+
     return recentWarnings > 5 -- More than 5 warnings in last minute
 end
 
@@ -237,14 +237,14 @@ function Performance:OptimizePerformance()
         -- Reduce update frequency for non-critical systems
         if HealIQ.Engine and HealIQ.Engine.updateInterval then
             HealIQ.Engine.updateInterval = math.min(HealIQ.Engine.updateInterval * 1.5, 1.0)
-            HealIQ:DebugLog(string.format("Performance optimization: Increased update interval to %.2fs", 
+            HealIQ:DebugLog(string.format("Performance optimization: Increased update interval to %.2fs",
                 HealIQ.Engine.updateInterval), "INFO")
         end
-        
+
         -- Force garbage collection
         collectgarbage("collect")
         performanceData.lastGC = GetTime()
-        
+
         HealIQ:DebugLog("Automatic performance optimization applied", "WARN")
     end
 end
@@ -253,7 +253,7 @@ end
 function Performance:Initialize()
     HealIQ:SafeCall(function()
         self:Reset()
-        
+
         -- Set up periodic optimization check
         local optimizationFrame = CreateFrame("Frame")
         optimizationFrame:SetScript("OnUpdate", function(self, elapsed)
@@ -263,7 +263,7 @@ function Performance:Initialize()
                 self.timeSinceLastCheck = 0
             end
         end)
-        
+
         HealIQ:Print("Performance monitoring initialized")
     end)
 end

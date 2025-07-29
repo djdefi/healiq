@@ -1,9 +1,9 @@
 -- HealIQ Core.lua
 -- Main addon initialization, event registration, and saved variables management
--- 
+--
 -- This module handles:
 -- * Addon initialization and database setup
--- * Event registration and handling 
+-- * Event registration and handling
 -- * Session statistics tracking
 -- * Error handling and logging
 -- * Version upgrade management
@@ -50,7 +50,7 @@ local defaults = {
         lifebloom = true,
         swiftmend = true,
         rejuvenation = true,
-        
+
         -- Enhanced rules
         ironbark = true,
         efflorescence = true,
@@ -59,7 +59,7 @@ local defaults = {
         naturesSwiftness = true,
         barkskin = true,
         flourish = true,
-        
+
         -- New spells from strategy review
         groveGuardians = true,
         wrath = true,
@@ -76,7 +76,7 @@ local defaults = {
         useWrathForMana = true,                  -- Fill downtime with Wrath for mana
         poolGroveGuardians = true,               -- Pool Grove Guardian charges for cooldowns
         emergencyNaturesSwiftness = true,       -- Use Nature's Swiftness for emergency heals
-        
+
         -- Tunable thresholds
         wildGrowthMinTargets = 1,                -- Minimum targets damaged to suggest Wild Growth (solo-friendly)
         tranquilityMinTargets = 4,               -- Minimum targets damaged to suggest Tranquility
@@ -95,19 +95,19 @@ function HealIQ:InitializeDB()
     if not HealIQDB then
         HealIQDB = {}
     end
-    
+
     -- Validate HealIQDB structure and handle corruption
     if type(HealIQDB) ~= "table" then
         HealIQDB = {}
         self:Message("HealIQ database was corrupted (type: " .. type(HealIQDB) .. "), resetting to defaults", true)
     end
-    
+
     -- Check for version upgrade and migrate settings if needed
     if HealIQDB.version ~= self.version then
         self:OnVersionUpgrade(HealIQDB.version, self.version)
         HealIQDB.version = self.version
     end
-    
+
     -- Intelligently merge defaults with saved settings
     -- This preserves user customizations while adding new features
     for key, value in pairs(defaults) do
@@ -129,7 +129,7 @@ function HealIQ:InitializeDB()
             end
         end
     end
-    
+
     self.db = HealIQDB
     self:Print("Database initialized with " .. self:CountSettings() .. " settings")
 end
@@ -156,11 +156,11 @@ function HealIQ:CountSettings()
         end
         return c
     end
-    
+
     if self.db then
         count = countTable(self.db)
     end
-    
+
     return count
 end
 
@@ -197,7 +197,7 @@ function HealIQ:FormatDuration(seconds)
     local hours = math.floor(seconds / 3600)
     local minutes = math.floor((seconds % 3600) / 60)
     local secs = seconds % 60
-    
+
     if hours > 0 then
         return string.format("%dh %dm %ds", hours, minutes, secs)
     elseif minutes > 0 then
@@ -218,13 +218,13 @@ function HealIQ:SafeCall(func, ...)
         local errorMsg = tostring(result)
         print("|cFFFF0000HealIQ Error:|r " .. errorMsg)
         self:LogError("SafeCall Error: " .. errorMsg)
-        
+
         -- Enhanced debugging information when debug mode is enabled
         if self.debug then
             print("|cFFFF0000Stack trace:|r " .. debugstack())
             self:DebugLog("Stack trace: " .. debugstack(), "ERROR")
         end
-        
+
         -- Report to WoW's error system for copyable errors
         -- This ensures errors appear in the default error frame for user reporting
         if self.debug then
@@ -232,7 +232,7 @@ function HealIQ:SafeCall(func, ...)
             local completeError = "HealIQ SafeCall Error: " .. errorMsg .. "\n" .. debugstack()
             geterrorhandler()(completeError)
         end
-        
+
         return false, result
     end
     return true, result
@@ -249,45 +249,45 @@ function HealIQ:OnInitialize()
     self:SafeCall(function()
         self:InitializeDB()
         self:Print("HealIQ " .. self.version .. " loaded")
-        
+
         -- Initialize session statistics
         if self.Logging then
             self.Logging:InitializeVariables()
         end
         self:InitializeSessionStats()
-        
+
         -- Initialize new quality modules
         if self.Performance then
             self.Performance:Initialize()
             self:DebugLog("Performance monitoring initialized")
         end
-        
+
         if self.Validation then
             self.Validation:Initialize()
             self:DebugLog("Validation system initialized")
         end
-        
+
         -- Initialize modules
         if self.Tracker then
             self.Tracker:Initialize()
             self:DebugLog("Tracker module initialized")
         end
-        
+
         if self.Engine then
             self.Engine:Initialize()
             self:DebugLog("Engine module initialized")
         end
-        
+
         if self.UI then
             self.UI:Initialize()
             self:DebugLog("UI module initialized")
         end
-        
+
         if self.Config then
             self.Config:Initialize()
             self:DebugLog("Config module initialized")
         end
-        
+
         self:Message("HealIQ " .. self.version .. " initialized successfully")
         self:DebugLog("HealIQ initialization completed successfully", "INFO")
     end)
@@ -301,7 +301,7 @@ function HealIQ:OnEvent(event, ...)
             self.sessionStats.eventsHandled = self.sessionStats.eventsHandled + 1
         end
         self:DebugLog("Event received: " .. event)
-        
+
         if event == "ADDON_LOADED" then
             local loadedAddon = args[1]
             if loadedAddon == addonName then
@@ -329,12 +329,12 @@ function HealIQ:OnPlayerEnteringWorld()
     self:SafeCall(function()
         self:Print("Player entering world")
         self:DebugLog("Player entering world", "INFO")
-        
+
         if not self.db then
             self:DebugLog("Database not yet initialized during OnPlayerEnteringWorld", "WARN")
             return
         end
-        
+
         -- Check if player is a Restoration Druid
         local _, class = UnitClass("player")
         if class == "DRUID" then
@@ -377,12 +377,12 @@ function HealIQ:Cleanup()
         if self.UI then
             self.UI:Hide()
         end
-        
+
         if self.Engine then
             -- Stop update loop
             self.Engine:StopUpdateLoop()
         end
-        
+
         self:Print("HealIQ cleanup completed")
     end)
 end
