@@ -8,6 +8,9 @@ HealIQ = HealIQ or {}
 HealIQ.version = "0.1.5"
 HealIQ.debug = true
 
+-- Initialize namespace for rule modules
+HealIQ.Rules = HealIQ.Rules or {}
+
 -- Default settings
 local defaults = {
     enabled = true,
