@@ -1,7 +1,14 @@
 -- HealIQ Tests.lua
 -- Enhanced test infrastructure for HealIQ addon with WoW API mocking
 
-local _, HealIQ = ...
+-- Support both WoW addon environment and external test environment
+local _, addon_HealIQ = ...
+-- Always use the addon parameter for WoW compatibility, but update global if it exists
+local HealIQ = addon_HealIQ
+if _G.HealIQ then
+    -- We're in a test environment, use the global table
+    HealIQ = _G.HealIQ
+end
 
 -- Load WoW API Mock for testing
 local function loadWoWAPIMock()
@@ -27,6 +34,11 @@ end
 local WoWAPIMock = loadWoWAPIMock()
 
 HealIQ.Tests = {}
+-- Also ensure the global is updated
+if _G.HealIQ and _G.HealIQ ~= HealIQ then
+    _G.HealIQ.Tests = HealIQ.Tests
+end
+
 local Tests = HealIQ.Tests
 
 -- Test results storage
@@ -40,7 +52,7 @@ function Tests.Initialize()
         -- Install WoW API mocks for testing
         WoWAPIMock.Install()
         WoWAPIMock.Reset()
-        
+
         -- Initialize test framework
         testResults = {}
         totalTests = 0
@@ -168,7 +180,7 @@ function Tests.TestCore()
     -- Test CountSettings function
     if HealIQ.CountSettings then
         Tests.AssertType("function", HealIQ.CountSettings, "Core: CountSettings is function")
-        
+
         -- Test with mock database
         local originalDB = HealIQ.db
         HealIQ.db = {
@@ -183,18 +195,18 @@ function Tests.TestCore()
                 lifebloom = true
             }
         }
-        
+
         local count = HealIQ:CountSettings()
         Tests.AssertType("number", count, "Core: CountSettings returns number")
         Tests.Assert(count > 0, "Core: CountSettings counts nested settings")
-        
+
         HealIQ.db = originalDB -- Restore
     end
 
     -- Test OnVersionUpgrade function
     if HealIQ.OnVersionUpgrade then
         Tests.AssertType("function", HealIQ.OnVersionUpgrade, "Core: OnVersionUpgrade is function")
-        
+
         -- Test version upgrade handling (just verify it executes without error)
         local upgradeSuccess = pcall(function()
             HealIQ:OnVersionUpgrade("0.0.1", "0.0.2")
@@ -207,7 +219,7 @@ function Tests.TestCore()
     if HealIQ.InitializeDB then
         -- Save original global
         local originalHealIQDB = _G.HealIQDB
-        
+
         -- Test with corrupted database (wrong type)
         _G.HealIQDB = "corrupted_string"
         local corruptSuccess = pcall(function()
@@ -215,7 +227,7 @@ function Tests.TestCore()
         end)
         Tests.Assert(corruptSuccess, "Core: InitializeDB handles corrupted database")
         Tests.AssertType("table", _G.HealIQDB, "Core: InitializeDB resets corrupted database to table")
-        
+
         -- Test with nil database
         _G.HealIQDB = nil
         local nilSuccess = pcall(function()
@@ -223,7 +235,7 @@ function Tests.TestCore()
         end)
         Tests.Assert(nilSuccess, "Core: InitializeDB handles nil database")
         Tests.AssertType("table", _G.HealIQDB, "Core: InitializeDB creates database when nil")
-        
+
         -- Test database structure after initialization
         if _G.HealIQDB then
             Tests.AssertType("table", _G.HealIQDB, "Core: Initialized database is table")
@@ -231,7 +243,7 @@ function Tests.TestCore()
             Tests.AssertNotNil(_G.HealIQDB.ui, "Core: Database has ui section")
             Tests.AssertNotNil(_G.HealIQDB.rules, "Core: Database has rules section")
         end
-        
+
         -- Restore original
         _G.HealIQDB = originalHealIQDB
     end
@@ -239,9 +251,9 @@ function Tests.TestCore()
     -- Test InitializeSessionStats function (note: may be overridden by Logging.lua)
     if HealIQ.InitializeSessionStats then
         Tests.AssertType("function", HealIQ.InitializeSessionStats, "Core: InitializeSessionStats is function")
-        
+
         local originalStats = HealIQ.sessionStats
-        
+
         -- The Logging.lua version only sets startTime if sessionStats exists
         -- So we need to create a basic sessionStats first
         HealIQ.sessionStats = {
@@ -250,12 +262,12 @@ function Tests.TestCore()
             errorsLogged = 0,
             eventsHandled = 0
         }
-        
+
         HealIQ:InitializeSessionStats()
-        
+
         -- The function should ensure sessionStats exists and has startTime set
         Tests.AssertNotNil(HealIQ.sessionStats, "Core: InitializeSessionStats ensures sessionStats exists")
-        
+
         if HealIQ.sessionStats then
             Tests.AssertType("table", HealIQ.sessionStats, "Core: sessionStats is table")
             -- The Logging.lua version sets startTime
@@ -263,28 +275,28 @@ function Tests.TestCore()
                 Tests.AssertType("number", HealIQ.sessionStats.startTime, "Core: sessionStats has numeric startTime")
             end
         end
-        
+
         HealIQ.sessionStats = originalStats -- Restore
     end
 
     -- Test Print function behavior
     if HealIQ.Print then
         local originalDebug = HealIQ.debug
-        
+
         -- Test with debug enabled
         HealIQ.debug = true
         local debugSuccess = pcall(function()
             HealIQ:Print("Test message")
         end)
         Tests.Assert(debugSuccess, "Core: Print executes without error when debug enabled")
-        
+
         -- Test with debug disabled
         HealIQ.debug = false
         local noDebugSuccess = pcall(function()
             HealIQ:Print("Test message")
         end)
         Tests.Assert(noDebugSuccess, "Core: Print executes without error when debug disabled")
-        
+
         HealIQ.debug = originalDebug -- Restore
     end
 end
@@ -318,21 +330,21 @@ function Tests.TestUI()
 
     if HealIQ.UI.SetScale then
         Tests.AssertType("function", HealIQ.UI.SetScale, "UI: SetScale function exists")
-        
+
         -- Test SetScale with valid values
         if HealIQ.db and HealIQ.db.ui then
             local originalScale = HealIQ.db.ui.scale
-            
+
             -- Test valid scale values
             HealIQ.UI:SetScale(1.0)
             Tests.AssertEqual(1.0, HealIQ.db.ui.scale, "UI: SetScale sets valid scale 1.0")
-            
+
             HealIQ.UI:SetScale(1.5)
             Tests.AssertEqual(1.5, HealIQ.db.ui.scale, "UI: SetScale sets valid scale 1.5")
-            
+
             HealIQ.UI:SetScale(0.8)
             Tests.AssertEqual(0.8, HealIQ.db.ui.scale, "UI: SetScale sets valid scale 0.8")
-            
+
             -- Restore original
             HealIQ.db.ui.scale = originalScale
         end
@@ -340,23 +352,23 @@ function Tests.TestUI()
 
     if HealIQ.UI.ResetPosition then
         Tests.AssertType("function", HealIQ.UI.ResetPosition, "UI: ResetPosition function exists")
-        
+
         -- Test ResetPosition functionality
         if HealIQ.db and HealIQ.db.ui then
             local originalX = HealIQ.db.ui.x
             local originalY = HealIQ.db.ui.y
-            
+
             -- Change position
             HealIQ.db.ui.x = 100
             HealIQ.db.ui.y = 200
-            
+
             -- Reset position
             HealIQ.UI:ResetPosition()
-            
+
             -- Verify it changed (exact values depend on implementation)
             Tests.Assert(HealIQ.db.ui.x ~= 100 or HealIQ.db.ui.y ~= 200,
                 "UI: ResetPosition changes position values")
-            
+
             -- Restore (or leave as reset, which is fine)
         end
     end
@@ -369,32 +381,32 @@ function Tests.TestUI()
     -- Test UI setter functions
     if HealIQ.UI.SetShowSpellName then
         Tests.AssertType("function", HealIQ.UI.SetShowSpellName, "UI: SetShowSpellName function exists")
-        
+
         if HealIQ.db and HealIQ.db.ui then
             local original = HealIQ.db.ui.showSpellName
-            
+
             HealIQ.UI:SetShowSpellName(true)
             Tests.Assert(HealIQ.db.ui.showSpellName == true, "UI: SetShowSpellName sets true")
-            
+
             HealIQ.UI:SetShowSpellName(false)
             Tests.Assert(HealIQ.db.ui.showSpellName == false, "UI: SetShowSpellName sets false")
-            
+
             HealIQ.db.ui.showSpellName = original -- Restore
         end
     end
 
     if HealIQ.UI.SetShowCooldown then
         Tests.AssertType("function", HealIQ.UI.SetShowCooldown, "UI: SetShowCooldown function exists")
-        
+
         if HealIQ.db and HealIQ.db.ui then
             local original = HealIQ.db.ui.showCooldown
-            
+
             HealIQ.UI:SetShowCooldown(true)
             Tests.Assert(HealIQ.db.ui.showCooldown == true, "UI: SetShowCooldown sets true")
-            
+
             HealIQ.UI:SetShowCooldown(false)
             Tests.Assert(HealIQ.db.ui.showCooldown == false, "UI: SetShowCooldown sets false")
-            
+
             HealIQ.db.ui.showCooldown = original -- Restore
         end
     end
@@ -435,7 +447,7 @@ function Tests.TestUI()
     -- Test GetFrameInfo function
     if HealIQ.UI.GetFrameInfo then
         Tests.AssertType("function", HealIQ.UI.GetFrameInfo, "UI: GetFrameInfo is function")
-        
+
         local frameInfo = HealIQ.UI:GetFrameInfo()
         -- frameInfo might be nil if no frame exists yet, which is valid
         if frameInfo then
@@ -449,7 +461,7 @@ function Tests.TestUI()
     -- Test RecreateFrames function
     if HealIQ.UI.RecreateFrames then
         Tests.AssertType("function", HealIQ.UI.RecreateFrames, "UI: RecreateFrames is function")
-        
+
         -- Test that it executes without error (may require WoW API)
         local success = pcall(function()
             HealIQ.UI:RecreateFrames()
@@ -461,7 +473,7 @@ function Tests.TestUI()
     -- Test UpdateOptionsFrame function
     if HealIQ.UI.UpdateOptionsFrame then
         Tests.AssertType("function", HealIQ.UI.UpdateOptionsFrame, "UI: UpdateOptionsFrame is function")
-        
+
         local success = pcall(function()
             HealIQ.UI:UpdateOptionsFrame()
         end)
@@ -471,7 +483,7 @@ function Tests.TestUI()
     -- Test SetEnabled function behavior (UI visibility, not database state)
     if HealIQ.UI.SetEnabled then
         Tests.AssertType("function", HealIQ.UI.SetEnabled, "UI: SetEnabled function exists")
-        
+
         -- Test that it executes without error (controls UI visibility, not db.enabled)
         local success1 = pcall(function()
             HealIQ.UI:SetEnabled(true)
@@ -507,37 +519,37 @@ function Tests.TestConfig()
     -- Test command functions exist
     if HealIQ.Config.commands then
         Tests.AssertType("table", HealIQ.Config.commands, "Config: Commands table exists")
-        
+
         if HealIQ.Config.commands.version then
             Tests.AssertType("function", HealIQ.Config.commands.version,
                 "Config: Version command is function")
         end
-        
+
         if HealIQ.Config.commands.enable then
             Tests.AssertType("function", HealIQ.Config.commands.enable,
                 "Config: Enable command is function")
         end
-        
+
         if HealIQ.Config.commands.disable then
             Tests.AssertType("function", HealIQ.Config.commands.disable,
                 "Config: Disable command is function")
         end
-        
+
         if HealIQ.Config.commands.toggle then
             Tests.AssertType("function", HealIQ.Config.commands.toggle,
                 "Config: Toggle command is function")
         end
-        
+
         if HealIQ.Config.commands.help then
             Tests.AssertType("function", HealIQ.Config.commands.help,
                 "Config: Help command is function")
         end
-        
+
         if HealIQ.Config.commands.config then
             Tests.AssertType("function", HealIQ.Config.commands.config,
                 "Config: Config command is function")
         end
-        
+
         if HealIQ.Config.commands.ui then
             Tests.AssertType("function", HealIQ.Config.commands.ui,
                 "Config: UI command is function")
@@ -554,7 +566,7 @@ function Tests.TestConfig()
             Tests.Assert(HealIQ.db.enabled == true, "Config: Enable command sets enabled to true")
             HealIQ.db.enabled = originalEnabled -- Restore
         end
-        
+
         -- Test disable command
         if HealIQ.Config.commands.disable then
             local originalEnabled = HealIQ.db.enabled
@@ -563,7 +575,7 @@ function Tests.TestConfig()
             Tests.Assert(HealIQ.db.enabled == false, "Config: Disable command sets enabled to false")
             HealIQ.db.enabled = originalEnabled -- Restore
         end
-        
+
         -- Test toggle command
         if HealIQ.Config.commands.toggle then
             local originalEnabled = HealIQ.db.enabled
@@ -602,7 +614,7 @@ function Tests.TestConfig()
             end)
             Tests.Assert(success, "Config: Version command executes without error")
         end
-        
+
         -- Test help command
         if HealIQ.Config.commands.help then
             local success = pcall(function()
@@ -610,7 +622,7 @@ function Tests.TestConfig()
             end)
             Tests.Assert(success, "Config: Help command executes without error")
         end
-        
+
         -- Test config command (opens options)
         if HealIQ.Config.commands.config then
             local success = pcall(function()
@@ -618,7 +630,7 @@ function Tests.TestConfig()
             end)
             Tests.Assert(success, "Config: Config command executes without error")
         end
-        
+
         -- Test status command (may use WoW API)
         if HealIQ.Config.commands.status then
             local success = pcall(function()
@@ -638,7 +650,7 @@ function Tests.TestConfig()
         HealIQ.Config.commands.ui("unlock")
         Tests.Assert(HealIQ.db.ui.locked == false, "Config: UI unlock command works")
         HealIQ.db.ui.locked = originalLocked -- Restore
-        
+
         -- Test queue size validation (may trigger UI recreation, use pcall)
         local originalQueueSize = HealIQ.db.ui.queueSize
         local success1 = pcall(function()
@@ -648,7 +660,7 @@ function Tests.TestConfig()
             Tests.AssertEqual(3, HealIQ.db.ui.queueSize, "Config: UI queuesize command sets valid size")
         end
         HealIQ.db.ui.queueSize = originalQueueSize -- Restore
-        
+
         -- Test layout setting (may trigger UI recreation, use pcall)
         local originalLayout = HealIQ.db.ui.queueLayout
         local success2 = pcall(function()
@@ -741,11 +753,11 @@ function Tests.TestLogging()
         -- Test DebugLog function exists and behavior
         if HealIQ.DebugLog then
             Tests.AssertType("function", HealIQ.DebugLog, "Logging: DebugLog is function")
-            
+
             -- Test debug logging with debug enabled
             local originalDebug = HealIQ.debug
             HealIQ.debug = true
-            
+
             -- This should execute without error (we can't easily test print output)
             local success = pcall(function()
                 HealIQ:DebugLog("Test message")
@@ -754,14 +766,14 @@ function Tests.TestLogging()
                 HealIQ:DebugLog("Test info message", "INFO")
             end)
             Tests.Assert(success, "Logging: DebugLog executes without error")
-            
+
             HealIQ.debug = originalDebug -- Restore
         end
 
         -- Test LogError function
         if HealIQ.LogError then
             Tests.AssertType("function", HealIQ.LogError, "Logging: LogError is function")
-            
+
             -- Test error logging increments counter
             if HealIQ.sessionStats then
                 local originalErrors = HealIQ.sessionStats.errorsLogged
@@ -775,7 +787,7 @@ function Tests.TestLogging()
         if HealIQ.InitializeSessionStats then
             Tests.AssertType("function", HealIQ.InitializeSessionStats,
                 "Logging: InitializeSessionStats is function")
-            
+
             -- Test that it sets start time
             local oldStats = HealIQ.sessionStats
             HealIQ.sessionStats = {
@@ -784,11 +796,11 @@ function Tests.TestLogging()
                 errorsLogged = 0,
                 eventsHandled = 0
             }
-            
+
             HealIQ:InitializeSessionStats()
             Tests.AssertNotNil(HealIQ.sessionStats.startTime, "Logging: InitializeSessionStats sets startTime")
             Tests.AssertType("number", HealIQ.sessionStats.startTime, "Logging: startTime is number")
-            
+
             HealIQ.sessionStats = oldStats -- Restore
         end
 
@@ -796,12 +808,12 @@ function Tests.TestLogging()
         if HealIQ.GenerateDiagnosticDump then
             Tests.AssertType("function", HealIQ.GenerateDiagnosticDump,
                 "Logging: GenerateDiagnosticDump is function")
-            
+
             -- Use pcall since it may use WoW API functions not available in test environment
             local success, dump = pcall(function()
                 return HealIQ:GenerateDiagnosticDump()
             end)
-            
+
             if success then
                 Tests.AssertType("string", dump, "Logging: GenerateDiagnosticDump returns string")
                 Tests.Assert(string.len(dump) > 0, "Logging: Diagnostic dump is not empty")
@@ -818,14 +830,14 @@ function Tests.TestLogging()
         -- Test FormatDuration function if it exists
         if HealIQ.FormatDuration then
             Tests.AssertType("function", HealIQ.FormatDuration, "Logging: FormatDuration is function")
-            
+
             -- Test various duration formats
             local duration1 = HealIQ:FormatDuration(65)  -- 1 minute 5 seconds
             Tests.AssertType("string", duration1, "Logging: FormatDuration returns string for 65 seconds")
-            
+
             local duration2 = HealIQ:FormatDuration(3661)  -- 1 hour 1 minute 1 second
             Tests.AssertType("string", duration2, "Logging: FormatDuration returns string for 3661 seconds")
-            
+
             local duration3 = HealIQ:FormatDuration(30)  -- 30 seconds
             Tests.AssertType("string", duration3, "Logging: FormatDuration returns string for 30 seconds")
         end
@@ -960,30 +972,30 @@ end
 -- Enhanced tests with WoW API mocking for better coverage
 function Tests.RunMockedEngineTests()
     HealIQ:Print("Running enhanced Engine tests with WoW API mocking...")
-    
+
     if not HealIQ.Engine then
         Tests.Assert(false, "Engine: Module not loaded")
         return
     end
-    
+
     -- Test Engine initialization
     Tests.AssertType("table", HealIQ.Engine, "Engine: Engine module is table")
-    
+
     -- Test GetSuggestion function with mocked game state
     if HealIQ.Engine.GetSuggestion then
         Tests.AssertType("function", HealIQ.Engine.GetSuggestion, "Engine: GetSuggestion is function")
-        
+
         -- Test with different health scenarios
         WoWAPIMock.SetGameState({
             targetExists = true,
             targetHealth = 0.3, -- Low health
             targetMaxHealth = 10000
         })
-        
+
         local success, suggestion = pcall(function()
             return HealIQ.Engine:GetSuggestion()
         end)
-        
+
         if success and suggestion then
             Tests.AssertType("table", suggestion, "Engine: GetSuggestion returns table")
             if suggestion.spellId then
@@ -996,46 +1008,46 @@ function Tests.RunMockedEngineTests()
             Tests.Assert(true, "Engine: GetSuggestion requires full WoW environment")
         end
     end
-    
+
     -- Test GetTargetHealth function
     if HealIQ.Engine.GetTargetHealth then
         Tests.AssertType("function", HealIQ.Engine.GetTargetHealth, "Engine: GetTargetHealth is function")
-        
+
         local success, health, maxHealth = pcall(function()
             return HealIQ.Engine:GetTargetHealth("target")
         end)
-        
+
         if success then
             Tests.AssertType("number", health, "Engine: GetTargetHealth returns health number")
             Tests.AssertType("number", maxHealth, "Engine: GetTargetHealth returns maxHealth number")
             Tests.Assert(health <= maxHealth, "Engine: Health <= maxHealth")
         end
     end
-    
+
     -- Test spell cooldown checking
     if HealIQ.Engine.IsSpellOnCooldown then
         Tests.AssertType("function", HealIQ.Engine.IsSpellOnCooldown, "Engine: IsSpellOnCooldown is function")
-        
+
         -- Set up mock cooldown
         WoWAPIMock.SetSpellCooldown(774, GetTime(), 1.5) -- Rejuvenation on cooldown
-        
+
         local success, onCooldown = pcall(function()
             return HealIQ.Engine:IsSpellOnCooldown(774)
         end)
-        
+
         if success then
             Tests.AssertType("boolean", onCooldown, "Engine: IsSpellOnCooldown returns boolean")
         end
     end
-    
+
     -- Test priority calculation
     if HealIQ.Engine.CalculatePriority then
         Tests.AssertType("function", HealIQ.Engine.CalculatePriority, "Engine: CalculatePriority is function")
-        
+
         local success, priority = pcall(function()
             return HealIQ.Engine:CalculatePriority("target", 0.3)
         end)
-        
+
         if success and priority then
             Tests.AssertType("number", priority, "Engine: CalculatePriority returns number")
             Tests.Assert(priority >= 0, "Engine: Priority is non-negative")
@@ -1045,56 +1057,56 @@ end
 
 function Tests.RunMockedUITests()
     HealIQ:Print("Running enhanced UI tests with WoW API mocking...")
-    
+
     if not HealIQ.UI then
         Tests.Assert(false, "UI: Module not loaded")
         return
     end
-    
+
     Tests.AssertType("table", HealIQ.UI, "UI: UI module is table")
-    
+
     -- Test frame creation functions
     if HealIQ.UI.CreateMainFrame then
         Tests.AssertType("function", HealIQ.UI.CreateMainFrame, "UI: CreateMainFrame is function")
-        
+
         local success = pcall(function()
             HealIQ.UI:CreateMainFrame()
         end)
         Tests.Assert(success, "UI: CreateMainFrame executes without error")
     end
-    
+
     if HealIQ.UI.CreateMinimapButton then
         Tests.AssertType("function", HealIQ.UI.CreateMinimapButton, "UI: CreateMinimapButton is function")
-        
+
         local success = pcall(function()
             HealIQ.UI:CreateMinimapButton()
         end)
         Tests.Assert(success, "UI: CreateMinimapButton executes without error")
     end
-    
+
     if HealIQ.UI.CreateOptionsFrame then
         Tests.AssertType("function", HealIQ.UI.CreateOptionsFrame, "UI: CreateOptionsFrame is function")
-        
+
         local success = pcall(function()
             HealIQ.UI:CreateOptionsFrame()
         end)
         Tests.Assert(success, "UI: CreateOptionsFrame executes without error")
     end
-    
+
     -- Test CreateOptionsTabs with nil parent height safety
     if HealIQ.UI.CreateOptionsTabs then
         Tests.AssertType("function", HealIQ.UI.CreateOptionsTabs, "UI: CreateOptionsTabs is function")
-        
+
         -- Create a mock parent frame with nil height to test fallback
         local mockParent = {
             GetHeight = function() return nil end  -- Simulate nil height
         }
-        
+
         local success = pcall(function()
             HealIQ.UI:CreateOptionsTabs(mockParent)
         end)
         Tests.Assert(success, "UI: CreateOptionsTabs handles nil parent height without error")
-        
+
         -- Test with valid parent height
         mockParent.GetHeight = function() return 500 end
         local success2 = pcall(function()
@@ -1105,11 +1117,11 @@ function Tests.RunMockedUITests()
         -- Test that the UI.lua source code contains the fix for parentHeight
         Tests.Assert(true, "UI: CreateOptionsTabs function protection against undefined parentHeight exists in source")
     end
-    
+
     -- Test utility functions that don't require complex UI state
     if HealIQ.UI.SetScale then
         Tests.AssertType("function", HealIQ.UI.SetScale, "UI: SetScale is function")
-        
+
         local success = pcall(function()
             HealIQ.UI:SetScale(1.0)
             HealIQ.UI:SetScale(0.5)
@@ -1117,49 +1129,49 @@ function Tests.RunMockedUITests()
         end)
         Tests.Assert(success, "UI: SetScale handles different values")
     end
-    
+
     if HealIQ.UI.GetScale then
         Tests.AssertType("function", HealIQ.UI.GetScale, "UI: GetScale is function")
-        
+
         local success, scale = pcall(function()
             return HealIQ.UI:GetScale()
         end)
-        
+
         if success and scale then
             Tests.AssertType("number", scale, "UI: GetScale returns number")
             Tests.Assert(scale > 0, "UI: Scale is positive")
         end
     end
-    
+
     -- Test Show/Hide functions
     if HealIQ.UI.Show then
         Tests.AssertType("function", HealIQ.UI.Show, "UI: Show is function")
-        
+
         local success = pcall(function()
             HealIQ.UI:Show()
         end)
         Tests.Assert(success, "UI: Show executes without error")
     end
-    
+
     if HealIQ.UI.Hide then
         Tests.AssertType("function", HealIQ.UI.Hide, "UI: Hide is function")
-        
+
         local success = pcall(function()
             HealIQ.UI:Hide()
         end)
         Tests.Assert(success, "UI: Hide executes without error")
     end
-    
+
     -- Test CalculateMinimapButtonRadius with nil safety
     if HealIQ.UI.CalculateMinimapButtonRadius then
         Tests.AssertType("function", HealIQ.UI.CalculateMinimapButtonRadius, "UI: CalculateMinimapButtonRadius is function")
-        
+
         -- Test that it handles nil Minimap and minimapButton gracefully
         local success, radius = pcall(function()
             return HealIQ.UI:CalculateMinimapButtonRadius()
         end)
         Tests.Assert(success, "UI: CalculateMinimapButtonRadius executes without error")
-        
+
         if radius then
             Tests.AssertType("number", radius, "UI: CalculateMinimapButtonRadius returns number")
             Tests.Assert(radius > 0, "UI: CalculateMinimapButtonRadius returns positive value")
@@ -1168,11 +1180,11 @@ function Tests.RunMockedUITests()
         -- Test that the UI.lua source code contains fixes for nil safety
         Tests.Assert(true, "UI: CalculateMinimapButtonRadius function protection against undefined Minimap/minimapButton exists in source")
     end
-    
+
     -- Test positioning functions
     if HealIQ.UI.SetPosition then
         Tests.AssertType("function", HealIQ.UI.SetPosition, "UI: SetPosition is function")
-        
+
         local success = pcall(function()
             HealIQ.UI:SetPosition(100, 200)
             HealIQ.UI:SetPosition(0, 0)
@@ -1180,29 +1192,29 @@ function Tests.RunMockedUITests()
         end)
         Tests.Assert(success, "UI: SetPosition handles different coordinates")
     end
-    
+
     if HealIQ.UI.GetPosition then
         Tests.AssertType("function", HealIQ.UI.GetPosition, "UI: GetPosition is function")
-        
+
         local success, x, y = pcall(function()
             return HealIQ.UI:GetPosition()
         end)
-        
+
         if success and x and y then
             Tests.AssertType("number", x, "UI: GetPosition returns x coordinate")
             Tests.AssertType("number", y, "UI: GetPosition returns y coordinate")
         end
     end
-    
+
     -- Test UI functions with nil safety for scrollChild width
     if HealIQ.UI.CreateStrategyTab then
         Tests.AssertType("function", HealIQ.UI.CreateStrategyTab, "UI: CreateStrategyTab is function")
-        
+
         -- Create a mock scrollChild with nil width to test fallback
         local mockScrollChild = {
             GetWidth = function() return nil end  -- Simulate nil width
         }
-        
+
         local success = pcall(function()
             HealIQ.UI:CreateStrategyTab(mockScrollChild)
         end)
@@ -1212,7 +1224,7 @@ function Tests.RunMockedUITests()
         -- Test that the UI.lua source code contains fixes for scrollChild width nil safety
         Tests.Assert(true, "UI: CreateStrategyTab function protection against undefined scrollChild width exists in source")
     end
-    
+
     -- Test that the source code contains the specific fixes we implemented
     Tests.Assert(true, "UI: Fixed parentHeight undefined variable error in CreateOptionsTabs function")
     Tests.Assert(true, "UI: Fixed Minimap:GetWidth() undefined variable error in CalculateMinimapButtonRadius function")
@@ -1222,18 +1234,18 @@ end
 
 function Tests.RunMockedTrackerTests()
     HealIQ:Print("Running enhanced Tracker tests with WoW API mocking...")
-    
+
     if not HealIQ.Tracker then
         Tests.Assert(false, "Tracker: Module not loaded")
         return
     end
-    
+
     Tests.AssertType("table", HealIQ.Tracker, "Tracker: Tracker module is table")
-    
+
     -- Test buff tracking functions
     if HealIQ.Tracker.HasBuff then
         Tests.AssertType("function", HealIQ.Tracker.HasBuff, "Tracker: HasBuff is function")
-        
+
         -- Set up mock buff
         WoWAPIMock.SetUnitBuff("target", 1, {
             name = "Rejuvenation",
@@ -1247,70 +1259,70 @@ function Tests.RunMockedTrackerTests()
             nameplateShowPersonal = true,
             spellId = 774
         })
-        
+
         local success, hasBuff = pcall(function()
             return HealIQ.Tracker:HasBuff("target", 774) -- Rejuvenation
         end)
-        
+
         if success then
             Tests.AssertType("boolean", hasBuff, "Tracker: HasBuff returns boolean")
         end
     end
-    
+
     if HealIQ.Tracker.GetBuffDuration then
         Tests.AssertType("function", HealIQ.Tracker.GetBuffDuration, "Tracker: GetBuffDuration is function")
-        
+
         local success, duration = pcall(function()
             return HealIQ.Tracker:GetBuffDuration("target", 774)
         end)
-        
+
         if success and duration then
             Tests.AssertType("number", duration, "Tracker: GetBuffDuration returns number")
             Tests.Assert(duration >= 0, "Tracker: Duration is non-negative")
         end
     end
-    
+
     -- Test combat state tracking
     if HealIQ.Tracker.IsInCombat then
         Tests.AssertType("function", HealIQ.Tracker.IsInCombat, "Tracker: IsInCombat is function")
-        
+
         -- Test with combat state false
         WoWAPIMock.SetGameState({inCombat = false})
-        
+
         local success, inCombat = pcall(function()
             return HealIQ.Tracker:IsInCombat()
         end)
-        
+
         if success then
             Tests.AssertType("boolean", inCombat, "Tracker: IsInCombat returns boolean")
         end
-        
+
         -- Test with combat state true
         WoWAPIMock.SetGameState({inCombat = true})
-        
+
         success, inCombat = pcall(function()
             return HealIQ.Tracker:IsInCombat()
         end)
-        
+
         if success then
             Tests.AssertType("boolean", inCombat, "Tracker: IsInCombat returns boolean when in combat")
         end
     end
-    
+
     -- Test spell tracking
     if HealIQ.Tracker.TrackSpellCast then
         Tests.AssertType("function", HealIQ.Tracker.TrackSpellCast, "Tracker: TrackSpellCast is function")
-        
+
         local success = pcall(function()
             HealIQ.Tracker:TrackSpellCast(774, "target") -- Rejuvenation on target
         end)
         Tests.Assert(success, "Tracker: TrackSpellCast executes without error")
     end
-    
+
     -- Test combat log processing
     if HealIQ.Tracker.ProcessCombatLogEvent then
         Tests.AssertType("function", HealIQ.Tracker.ProcessCombatLogEvent, "Tracker: ProcessCombatLogEvent is function")
-        
+
         -- Add mock combat log event
         WoWAPIMock.AddCombatLogEvent(
             GetTime(), -- timestamp
@@ -1328,7 +1340,7 @@ function Tests.RunMockedTrackerTests()
             "Rejuvenation", -- spellName
             1 -- spellSchool
         )
-        
+
         local success = pcall(function()
             HealIQ.Tracker:ProcessCombatLogEvent()
         end)
@@ -1339,26 +1351,26 @@ end
 -- Enhanced test runner that includes mocked tests
 function Tests.RunAllTestsEnhanced()
     Tests.Initialize()
-    
+
     -- Run original tests
     Tests.TestCore()
     Tests.TestConfig()
     Tests.TestTracker()
     Tests.TestUI()
     Tests.TestLoadingOrder()
-    
+
     -- Run enhanced mocked tests
     Tests.RunMockedEngineTests()
     Tests.RunMockedUITests()
     Tests.RunMockedTrackerTests()
-    
+
     -- Generate comprehensive test report
     HealIQ:Print("\n=== Enhanced Test Results with WoW API Mocking ===")
     HealIQ:Print(string.format("Total Tests: %d", totalTests))
     HealIQ:Print(string.format("Passed: %d", passedTests))
     HealIQ:Print(string.format("Failed: %d", totalTests - passedTests))
     HealIQ:Print(string.format("Success Rate: %.1f%%", (passedTests / totalTests) * 100))
-    
+
     -- Show failed tests
     local failedTests = {}
     for _, result in ipairs(testResults) do
@@ -1366,7 +1378,7 @@ function Tests.RunAllTestsEnhanced()
             table.insert(failedTests, result)
         end
     end
-    
+
     if #failedTests > 0 then
         HealIQ:Print("\n=== Failed Tests ===")
         for _, result in ipairs(failedTests) do
@@ -1375,7 +1387,7 @@ function Tests.RunAllTestsEnhanced()
     else
         HealIQ:Print("\n🎉 All tests passed!")
     end
-    
+
     return totalTests, passedTests
 end
 
@@ -1384,7 +1396,7 @@ function Tests.TestLoadingOrder()
     -- Test .toc file loading order
     local tocPath = "HealIQ.toc"
     local tocContent = ""
-    
+
     -- Try to read .toc file
     local success, content = pcall(function()
         local file = io.open(tocPath, "r")
@@ -1395,27 +1407,27 @@ function Tests.TestLoadingOrder()
         end
         return nil
     end)
-    
+
     if success and content then
         tocContent = content
-        
+
         -- Check that Core.lua comes before rules/ files
         local corePos = string.find(tocContent, "Core%.lua")
         local rulesPos = string.find(tocContent, "rules/")
-        
+
         Tests.AssertNotNil(corePos, "LoadingOrder: Core.lua found in .toc file")
         Tests.AssertNotNil(rulesPos, "LoadingOrder: rules/ directory found in .toc file")
-        
+
         if corePos and rulesPos then
             Tests.Assert(corePos < rulesPos, "LoadingOrder: Core.lua loads before rules/ files")
         end
-        
+
         -- Check that Logging.lua comes before rules/ files
         local loggingPos = string.find(tocContent, "Logging%.lua")
         if loggingPos and rulesPos then
             Tests.Assert(loggingPos < rulesPos, "LoadingOrder: Logging.lua loads before rules/ files")
         end
-        
+
         -- Verify specific rule files are present
         Tests.Assert(string.find(tocContent, "rules/BaseRule%.lua") ~= nil,
             "LoadingOrder: BaseRule.lua listed in .toc file")
@@ -1432,18 +1444,18 @@ function Tests.TestLoadingOrder()
     else
         Tests.Assert(false, "LoadingOrder: Unable to read .toc file for validation")
     end
-    
+
     -- Test that HealIQ structure is properly initialized for rule files
     Tests.AssertNotNil(HealIQ, "LoadingOrder: HealIQ namespace exists")
-    
+
     -- Initialize Rules if it doesn't exist (for test environment)
     if not HealIQ.Rules then
         HealIQ.Rules = {}
     end
-    
+
     Tests.AssertNotNil(HealIQ.Rules, "LoadingOrder: HealIQ.Rules namespace exists")
     Tests.AssertType("table", HealIQ.Rules, "LoadingOrder: HealIQ.Rules is a table")
-    
+
     -- Test that BaseRule is available (should be loaded after Core.lua)
     if not HealIQ.Rules.BaseRule then
         -- Create a mock BaseRule for testing
@@ -1452,7 +1464,7 @@ function Tests.TestLoadingOrder()
                 seconds = seconds or 5
                 local currentTime = GetTime()
                 local count = 0
-                
+
                 if tracker and tracker.trackedData and tracker.trackedData.recentDamage then
                     for timestamp, _ in pairs(tracker.trackedData.recentDamage) do
                         if currentTime - timestamp <= seconds then
@@ -1460,21 +1472,21 @@ function Tests.TestLoadingOrder()
                         end
                     end
                 end
-                
+
                 return count
             end
         }
     end
-    
+
     Tests.AssertNotNil(HealIQ.Rules.BaseRule, "LoadingOrder: BaseRule is available in HealIQ.Rules")
     Tests.AssertType("table", HealIQ.Rules.BaseRule, "LoadingOrder: BaseRule is a table")
-    
+
     -- Test that BaseRule has expected methods
     if HealIQ.Rules.BaseRule then
         Tests.AssertType("function", HealIQ.Rules.BaseRule.GetRecentDamageCount,
             "LoadingOrder: BaseRule.GetRecentDamageCount function exists")
     end
-    
+
     -- Test that rule files can access HealIQ structure
     local mockTracker = {
         trackedData = {
@@ -1485,13 +1497,13 @@ function Tests.TestLoadingOrder()
             }
         }
     }
-    
+
     if HealIQ.Rules.BaseRule and HealIQ.Rules.BaseRule.GetRecentDamageCount then
         local damageCount = HealIQ.Rules.BaseRule:GetRecentDamageCount(mockTracker, 5)
         Tests.AssertType("number", damageCount, "LoadingOrder: BaseRule methods work correctly")
         Tests.AssertEqual(2, damageCount, "LoadingOrder: BaseRule correctly filters recent damage")
     end
-    
+
     -- Test that other rule modules are properly loaded
     local ruleModules = {
         "DefensiveCooldowns",
@@ -1500,60 +1512,60 @@ function Tests.TestLoadingOrder()
         "AoERules",
         "OffensiveRules"
     }
-    
+
     for _, moduleName in ipairs(ruleModules) do
         if HealIQ.Rules[moduleName] then
             Tests.AssertType("table", HealIQ.Rules[moduleName],
                 "LoadingOrder: " .. moduleName .. " module loaded as table")
         end
     end
-    
+
     -- Test defensive loading - verify rule files handle missing HealIQ gracefully
     local originalHealIQ = HealIQ
-    
+
     -- Temporarily simulate uninitialized HealIQ
     _G.HealIQ = nil
     -- Simulate addon loading context
     local HealIQ_temp = {}
-    
+
     -- Restore HealIQ
     _G.HealIQ = originalHealIQ
-    
+
     Tests.Assert(true, "LoadingOrder: Rule files handle missing HealIQ gracefully")
-    
+
     -- Test that all rule files have defensive initialization
     Tests.Assert(HealIQ.Rules ~= nil, "LoadingOrder: HealIQ.Rules properly initialized")
-    
+
     -- Simulate the loading order issue scenario
     local function simulateLoadingOrderIssue()
         -- This would simulate what happens when rules load before Core.lua
         local tempHealIQ = {}
         tempHealIQ.Rules = tempHealIQ.Rules or {}
-        
+
         -- Try to access BaseRule methods without proper initialization
         local simulationResult = pcall(function()
             tempHealIQ.Rules.BaseRule = tempHealIQ.Rules.BaseRule or {}
             return true
         end)
-        
+
         return simulationResult
     end
-    
+
     local simulationSuccess = simulateLoadingOrderIssue()
     Tests.Assert(simulationSuccess, "LoadingOrder: Defensive initialization prevents loading failures")
-    
+
     -- Test that Core.lua initializes required structures
     Tests.AssertNotNil(HealIQ.version, "LoadingOrder: Core.lua sets version")
     Tests.AssertNotNil(HealIQ.SafeCall, "LoadingOrder: Core.lua provides SafeCall function")
-    
+
     -- Test that logging is available for rule files
     if HealIQ.DebugLog then
         Tests.AssertType("function", HealIQ.DebugLog, "LoadingOrder: Logging available for rule files")
     end
-    
+
     -- Verify the fix prevents the original error
     Tests.Assert(true, "LoadingOrder: Fixed .toc loading order prevents 'Error loading Interface/AddOns/HealIQ/rules/BaseRule.lua'")
-    
+
     -- Test that the loading order matches the expected sequence
     local expectedOrder = {
         "Core.lua",
@@ -1565,7 +1577,7 @@ function Tests.TestLoadingOrder()
         "rules/AoERules.lua",
         "rules/OffensiveRules.lua"
     }
-    
+
     if tocContent then
         local currentPos = 0
         for i, filename in ipairs(expectedOrder) do
@@ -1577,5 +1589,3 @@ function Tests.TestLoadingOrder()
         end
     end
 end
-
-HealIQ.Tests = TestsTests

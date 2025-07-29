@@ -21,7 +21,7 @@ end
 function Config:RegisterSlashCommands()
     SLASH_HEALIQ1 = "/healiq"
     SLASH_HEALIQ2 = "/hiq"
-    
+
     SlashCmdList["HEALIQ"] = function(msg)
         Config:HandleSlashCommand(msg)
     end
@@ -33,9 +33,9 @@ function Config:HandleSlashCommand(msg)
         for word in msg:gmatch("%S+") do
             table.insert(args, word:lower())
         end
-        
+
         local command = args[1] or "help"
-        
+
         if commands[command] then
             commands[command](unpack(args, 2))
         else
@@ -62,6 +62,9 @@ commands.help = function()
     print("|cFFFFFF00/healiq test targeting|r - Test targeting suggestions")
     print("|cFFFFFF00/healiq debug|r - Toggle debug mode")
     print("|cFFFFFF00/healiq dump|r - Generate diagnostic dump")
+    print("|cFFFFFF00/healiq health|r - Run comprehensive health check")
+    print("|cFFFFFF00/healiq performance|r - Show performance report")
+    print("|cFFFFFF00/healiq memory|r - Show memory usage information")
     print("|cFFFFFF00/healiq reset|r - Reset all settings")
     print("|cFFFFFF00/healiq reload|r - Reload addon configuration")
     print("|cFFFFFF00/healiq status|r - Show current status")
@@ -80,11 +83,11 @@ commands.toggle = function()
         print("|cFFFF0000HealIQ|r Database not yet initialized")
         return
     end
-    
+
     HealIQ.db.enabled = not HealIQ.db.enabled
     local status = HealIQ.db.enabled and "enabled" or "disabled"
     print("|cFF00FF00HealIQ|r " .. status)
-    
+
     if HealIQ.UI then
         HealIQ.UI:SetEnabled(HealIQ.db.enabled)
     end
@@ -101,10 +104,10 @@ commands.enable = function()
         print("|cFFFF0000HealIQ|r Database not yet initialized")
         return
     end
-    
+
     HealIQ.db.enabled = true
     print("|cFF00FF00HealIQ|r enabled")
-    
+
     if HealIQ.UI then
         HealIQ.UI:SetEnabled(true)
     end
@@ -115,10 +118,10 @@ commands.disable = function()
         print("|cFFFF0000HealIQ|r Database not yet initialized")
         return
     end
-    
+
     HealIQ.db.enabled = false
     print("|cFF00FF00HealIQ|r disabled")
-    
+
     if HealIQ.UI then
         HealIQ.UI:SetEnabled(false)
     end
@@ -129,7 +132,7 @@ commands.ui = function(subcommand, ...)
         print("|cFFFF0000HealIQ|r Database not yet initialized")
         return
     end
-    
+
     if subcommand == "lock" then
         HealIQ.db.ui.locked = true
         print("|cFF00FF00HealIQ|r UI locked")
@@ -223,7 +226,7 @@ commands.rules = function(subcommand, ...)
         print("|cFFFF0000HealIQ|r Database not yet initialized")
         return
     end
-    
+
     if subcommand == "list" then
         print("|cFF00FF00HealIQ Rules:|r")
         for rule, enabled in pairs(HealIQ.db.rules) do
@@ -263,7 +266,7 @@ commands.strategy = function(subcommand, ...)
         print("|cFFFF0000HealIQ|r Database not yet initialized")
         return
     end
-    
+
     if subcommand == "list" then
         print("|cFF00FF00HealIQ Strategy Settings:|r")
         for setting, value in pairs(HealIQ.db.strategy) do
@@ -280,7 +283,7 @@ commands.strategy = function(subcommand, ...)
         local value = select(2, ...)
         if setting and value and HealIQ.db.strategy[setting] ~= nil then
             local oldValue = HealIQ.db.strategy[setting]
-            
+
             -- Convert value based on current type
             if type(oldValue) == "boolean" then
                 if value == "true" or value == "1" or value == "on" then
@@ -303,9 +306,9 @@ commands.strategy = function(subcommand, ...)
                 print("|cFFFF0000HealIQ|r Cannot set setting of type: " .. type(oldValue))
                 return
             end
-            
+
             print("|cFF00FF00HealIQ|r Strategy setting '" .. setting .. "' set to " .. tostring(HealIQ.db.strategy[setting]))
-            
+
             -- Force engine update to apply changes
             if HealIQ.Engine then
                 HealIQ.Engine:ForceUpdate()
@@ -335,13 +338,13 @@ commands.strategy = function(subcommand, ...)
                 recentDamageWindow = 3,
                 lowHealthThreshold = 0.3,
             }
-            
+
             for setting, defaultValue in pairs(defaults) do
                 HealIQ.db.strategy[setting] = defaultValue
             end
-            
+
             print("|cFF00FF00HealIQ|r Strategy settings reset to defaults")
-            
+
             if HealIQ.Engine then
                 HealIQ.Engine:ForceUpdate()
             end
@@ -364,7 +367,7 @@ commands.test = function(subcommand)
         print("|cFFFF0000HealIQ|r Database not yet initialized")
         return
     end
-    
+
     if subcommand == "engine" then
         if HealIQ.Engine and HealIQ.db.rules then
             print("|cFF00FF00HealIQ|r Testing engine rules...")
@@ -388,7 +391,7 @@ commands.test = function(subcommand)
             else
                 print("  Queue is empty")
             end
-            
+
             -- Force UI update
             if HealIQ.UI then
                 HealIQ.UI:UpdateQueue(queue)
@@ -405,12 +408,12 @@ commands.test = function(subcommand)
     elseif subcommand == "targeting" then
         if HealIQ.Engine and HealIQ.UI then
             print("|cFF00FF00HealIQ|r Testing targeting suggestions...")
-            
+
             -- Test each spell's targeting suggestions
             for spellName, spellData in pairs(HealIQ.Engine.SPELLS) do
                 local targetText = HealIQ.Engine:GetTargetingSuggestionsText(spellData)
                 local targetDesc = HealIQ.Engine:GetTargetingSuggestionsDescription(spellData)
-                
+
                 print("  " .. spellData.name .. ":")
                 if targetText then
                     print("    → " .. targetText)
@@ -421,7 +424,7 @@ commands.test = function(subcommand)
                     print("    → No targeting suggestion")
                 end
             end
-            
+
             -- Show a test suggestion with targeting
             local testSuggestion = HealIQ.Engine.SPELLS.REJUVENATION
             HealIQ.UI:UpdateSuggestion(testSuggestion)
@@ -446,16 +449,16 @@ end
 
 commands.dump = function()
     local dump = HealIQ:GenerateDiagnosticDump()
-    
+
     -- Print dump to chat (this would normally be saved to file)
     print("|cFF00FF00HealIQ|r Diagnostic dump generated:")
     print("|cFF888888" .. string.rep("-", 50) .. "|r")
-    
+
     -- Split dump into lines and print each
     for line in dump:gmatch("[^\n]+") do
         print("|cFF888888" .. line .. "|r")
     end
-    
+
     print("|cFF888888" .. string.rep("-", 50) .. "|r")
     print("|cFF00FF00HealIQ|r Diagnostic dump complete")
 end
@@ -465,13 +468,13 @@ commands.reset = function()
         print("|cFFFF0000HealIQ|r Database not yet initialized")
         return
     end
-    
+
     print("|cFF00FF00HealIQ|r Resetting all settings...")
-    
+
     -- Reset to defaults
     HealIQ.db.enabled = true
     HealIQ.db.debug = false
-    
+
     if HealIQ.db.ui then
         HealIQ.db.ui.scale = 1.0
         HealIQ.db.ui.x = 0
@@ -488,55 +491,55 @@ commands.reset = function()
         HealIQ.db.ui.minimapAngle = -math.pi/4
         HealIQ.db.ui.showPositionBorder = false
     end
-    
+
     if HealIQ.db.rules then
         for rule in pairs(HealIQ.db.rules) do
             HealIQ.db.rules[rule] = true
         end
     end
-    
+
     if HealIQ.UI then
         HealIQ.UI:RecreateFrames()
     end
-    
+
     print("|cFF00FF00HealIQ|r Settings reset to defaults")
 end
 
 commands.reload = function()
     print("|cFF00FF00HealIQ|r Reloading addon configuration...")
-    
+
     -- Reinitialize all modules
     if HealIQ.Tracker then
         HealIQ.Tracker:Initialize()
     end
-    
+
     if HealIQ.Engine then
         HealIQ.Engine:Initialize()
     end
-    
+
     if HealIQ.UI then
         HealIQ.UI:RecreateFrames()
     end
-    
+
     -- Force an update
     if HealIQ.Engine then
         HealIQ.Engine:ForceUpdate()
     end
-    
+
     print("|cFF00FF00HealIQ|r Addon reloaded successfully")
 end
 
 commands.status = function()
     print("|cFF00FF00HealIQ v" .. HealIQ.version .. " Status:|r")
-    
+
     if not HealIQ.db then
         print("  |cFFFF0000Database not yet initialized|r")
         return
     end
-    
+
     print("  Enabled: " .. (HealIQ.db.enabled and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
     print("  Debug: " .. (HealIQ.debug and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
-    
+
     if HealIQ.db.ui then
         print("  UI Scale: " .. HealIQ.db.ui.scale)
         print("  UI Position: " .. HealIQ.db.ui.x .. ", " .. HealIQ.db.ui.y)
@@ -547,7 +550,7 @@ commands.status = function()
     else
         print("  UI: |cFFFF0000Not yet initialized|r")
     end
-    
+
     -- Show current suggestion
     if HealIQ.Engine then
         local suggestion = HealIQ.Engine:GetCurrentSuggestion()
@@ -556,7 +559,7 @@ commands.status = function()
         else
             print("  Current Suggestion: |cFFFF0000None|r")
         end
-        
+
         -- Show current queue
         local queue = HealIQ.Engine:GetCurrentQueue()
         if queue and #queue > 0 then
@@ -571,7 +574,7 @@ commands.status = function()
     else
         print("  Engine: |cFFFF0000Not yet initialized|r")
     end
-    
+
     -- Show active rules
     if HealIQ.db.rules then
         local activeRules = {}
@@ -584,7 +587,7 @@ commands.status = function()
     else
         print("  Rules: |cFFFF0000Not yet initialized|r")
     end
-    
+
     -- Show spec info
     local _, class = UnitClass("player")
     local specIndex = GetSpecialization()
@@ -592,7 +595,7 @@ commands.status = function()
     print("  Class: |cFF00FF00" .. class .. "|r")
     print("  Spec: |cFF00FF00" .. specName .. "|r")
     print("  In Combat: " .. (InCombatLockdown() and "|cFF00FF00Yes|r" or "|cFFFF0000No|r"))
-    
+
     -- Show session statistics
     if HealIQ.sessionStats and HealIQ.sessionStats.startTime then
         print("  |cFF00FF00Session Statistics:|r")
@@ -603,36 +606,154 @@ commands.status = function()
         print("    Events Handled: " .. HealIQ.sessionStats.eventsHandled)
         print("    Errors Logged: " .. HealIQ.sessionStats.errorsLogged)
     end
-    
+
     -- Show addon status
-    local addonVersion = C_AddOns.GetAddOnMetadata("HealIQ", "Version") or "Unknown"
+    local addonVersion = C_AddOns and C_AddOns.GetAddOnMetadata("HealIQ", "Version") or GetAddOnMetadata("HealIQ", "Version") or "Unknown"
     print("  Addon Version: |cFF00FF00" .. addonVersion .. "|r")
 end
 
--- Public configuration methods
-function Config:SetOption(category, option, value)
-    if not HealIQ.db then
-        return false
+-- Comprehensive health check command
+commands.health = function()
+    print("|cFF00FF00HealIQ Health Check:|r")
+
+    if HealIQ.Validation then
+        local healthCheck = HealIQ.Validation:HealthCheck()
+
+        -- Show overall status
+        local statusColor = "|cFF00FF00" -- Green
+        if healthCheck.overall_status == "WARNING" then
+            statusColor = "|cFFFFFF00" -- Yellow
+        elseif healthCheck.overall_status == "CRITICAL" then
+            statusColor = "|cFFFF0000" -- Red
+        end
+
+        print("  Overall Status: " .. statusColor .. healthCheck.overall_status .. "|r")
+        print("  Success Rate: " .. string.format("%.1f%%", healthCheck.success_rate * 100) .. " (" .. healthCheck.checks_passed .. "/" .. healthCheck.total_checks .. ")")
+
+        -- Show failed checks
+        local failedChecks = {}
+        for _, check in ipairs(healthCheck.checks) do
+            if check.status == "FAIL" then
+                table.insert(failedChecks, check.name .. ": " .. check.message)
+            end
+        end
+
+        if #failedChecks > 0 then
+            print("  |cFFFF0000Failed Checks:|r")
+            for _, failure in ipairs(failedChecks) do
+                print("    - " .. failure)
+            end
+        else
+            print("  |cFF00FF00All checks passed!|r")
+        end
+    else
+        print("  |cFFFF0000Health check system not available|r")
     end
-    
-    if category == "ui" and HealIQ.db.ui and HealIQ.db.ui[option] ~= nil then
-        HealIQ.db.ui[option] = value
-        return true
-    elseif category == "rules" and HealIQ.db.rules and HealIQ.db.rules[option] ~= nil then
-        HealIQ.db.rules[option] = value
-        return true
-    elseif category == "general" and HealIQ.db[option] ~= nil then
-        HealIQ.db[option] = value
-        return true
-    end
-    return false
 end
 
+-- Performance diagnostics command
+commands.performance = function()
+    print("|cFF00FF00HealIQ Performance Report:|r")
+
+    if HealIQ.Performance then
+        print(HealIQ.Performance:GeneratePerformanceReport())
+    else
+        print("  |cFFFF0000Performance monitoring not available|r")
+    end
+end
+
+-- Memory usage command
+commands.memory = function()
+    print("|cFF00FF00HealIQ Memory Usage:|r")
+
+    local beforeGC = collectgarbage("count")
+    collectgarbage("collect")
+    local afterGC = collectgarbage("count")
+
+    print("  Memory before GC: " .. string.format("%.2f KB", beforeGC))
+    print("  Memory after GC: " .. string.format("%.2f KB", afterGC))
+    print("  Memory freed: " .. string.format("%.2f KB", beforeGC - afterGC))
+
+    if HealIQ.Performance then
+        local performanceData = HealIQ.Performance:ExportData()
+        if performanceData.memory then
+            local totalTracked = 0
+            for _, memUsage in pairs(performanceData.memory) do
+                totalTracked = totalTracked + memUsage
+            end
+            print("  Tracked allocations: " .. string.format("%.2f KB", totalTracked))
+        end
+    end
+end
+
+-- Enhanced configuration methods with validation
+-- @param category Configuration category (ui, rules, general)
+-- @param option Configuration option name
+-- @param value New value to set
+-- @return boolean, string Success status and error message
+function Config:SetOption(category, option, value)
+    if not HealIQ.db then
+        return false, "Database not initialized"
+    end
+
+    -- Use validation if available
+    if HealIQ.Validation then
+        local success, error, sanitizedValue = HealIQ.Validation:ValidateConfigValue(category, option, value)
+        if not success then
+            return false, error
+        end
+        value = sanitizedValue
+    end
+
+    -- Apply the validated value
+    if category == "ui" and HealIQ.db.ui and HealIQ.db.ui[option] ~= nil then
+        local oldValue = HealIQ.db.ui[option]
+        HealIQ.db.ui[option] = value
+
+        -- Trigger UI updates if necessary
+        if HealIQ.UI then
+            if option == "scale" and HealIQ.UI.SetScale then
+                HealIQ.UI:SetScale(value)
+            elseif option == "locked" and HealIQ.UI.SetLocked then
+                HealIQ.UI:SetLocked(value)
+            elseif option == "queueSize" and HealIQ.UI.RecreateFrames then
+                HealIQ.UI:RecreateFrames()
+            end
+        end
+
+        HealIQ:DebugLog(string.format("UI setting changed: %s = %s (was %s)", option, tostring(value), tostring(oldValue)), "INFO")
+        return true, "Setting updated"
+    elseif category == "rules" and HealIQ.db.rules and HealIQ.db.rules[option] ~= nil then
+        local oldValue = HealIQ.db.rules[option]
+        HealIQ.db.rules[option] = value
+        HealIQ:DebugLog(string.format("Rule setting changed: %s = %s (was %s)", option, tostring(value), tostring(oldValue)), "INFO")
+        return true, "Rule updated"
+    elseif category == "general" and HealIQ.db[option] ~= nil then
+        local oldValue = HealIQ.db[option]
+        HealIQ.db[option] = value
+
+        -- Special handling for general settings
+        if option == "debug" then
+            HealIQ.debug = value
+        elseif option == "enabled" and HealIQ.UI then
+            HealIQ.UI:SetEnabled(value)
+        end
+
+        HealIQ:DebugLog(string.format("General setting changed: %s = %s (was %s)", option, tostring(value), tostring(oldValue)), "INFO")
+        return true, "General setting updated"
+    end
+    return false, "Unknown configuration option: " .. tostring(category) .. "." .. tostring(option)
+end
+
+-- Get configuration option with fallback handling
+-- @param category Configuration category (ui, rules, general)
+-- @param option Configuration option name
+-- @return any The configuration value or nil if not found
 function Config:GetOption(category, option)
     if not HealIQ.db then
         return nil
     end
-    
+
     if category == "ui" and HealIQ.db.ui then
         return HealIQ.db.ui[option]
     elseif category == "rules" and HealIQ.db.rules then

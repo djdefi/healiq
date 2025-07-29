@@ -283,11 +283,11 @@ end
 function WoWAPIMock.Install()
     -- Frame creation
     _G.CreateFrame = WoWAPIMock.CreateFrame
-    
+
     -- Time and combat
     _G.GetTime = WoWAPIMock.GetTime
     _G.InCombatLockdown = WoWAPIMock.InCombatLockdown
-    
+
     -- Unit functions
     _G.UnitExists = WoWAPIMock.UnitExists
     _G.UnitHealth = WoWAPIMock.UnitHealth
@@ -295,14 +295,14 @@ function WoWAPIMock.Install()
     _G.UnitName = WoWAPIMock.UnitName
     _G.UnitClass = WoWAPIMock.UnitClass
     _G.UnitBuff = WoWAPIMock.UnitBuff
-    
+
     -- Spell functions
     _G.GetSpellCooldown = WoWAPIMock.GetSpellCooldown
     _G.GetSpellInfo = WoWAPIMock.GetSpellInfo
-    
+
     -- Combat log
     _G.CombatLogGetCurrentEventInfo = WoWAPIMock.CombatLogGetCurrentEventInfo
-    
+
     -- Additional API functions
     _G.GetPlayerInfoByGUID = WoWAPIMock.GetPlayerInfoByGUID
     _G.IsInInstance = WoWAPIMock.IsInInstance
@@ -312,7 +312,7 @@ function WoWAPIMock.Install()
     _G.UnitPower = WoWAPIMock.UnitPower
     _G.UnitPowerMax = WoWAPIMock.UnitPowerMax
     _G.GetAddOnMetadata = WoWAPIMock.GetAddOnMetadata
-    
+
     -- Mock additional globals that might be needed
     _G.print = _G.print or function(...) print(...) end
 end
