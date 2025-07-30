@@ -30,7 +30,7 @@ local MINIMAP_BUTTON_PIXEL_BUFFER = 2
 
 -- UI Border colors (configurable for accessibility)
 local BORDER_COLORS = {
-    positioning = {0, 1, 1, 0.8},     -- Cyan for positioning aid
+    positioning = {0, 1, 1, 1.0},     -- Bright cyan for positioning aid
     locked = {1, 0, 0, 0.5},          -- Red when UI is locked
     unlocked = {0, 1, 0, 0.5},        -- Green when UI is unlocked
     targeting = {0, 0, 0, 0.8}        -- Dark border for targeting indicators
@@ -97,8 +97,8 @@ function UI:CreateMainFrame()
 
     -- Create border for better visual definition with consistent padding
     local border = mainFrame:CreateTexture(nil, "BORDER")
-    border:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", padding - 1, -(padding - 1))
-    border:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -(padding - 1), padding - 1)
+    border:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", padding - 2, -(padding - 2))
+    border:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -(padding - 2), padding - 2)
     border:SetColorTexture(0.3, 0.3, 0.3, 0.8)
 
     -- Store border reference for ToggleLock function
@@ -683,7 +683,7 @@ function UI:CreateGeneralTab(panel)
     generalHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
     generalHeader:SetText("General Settings")
     generalHeader:SetTextColor(1, 0.8, 0, 1)
-    yOffset = yOffset - 30
+    yOffset = yOffset - 35
 
     -- Enable/Disable checkbox
     local enableCheck = CreateFrame("CheckButton", "HealIQEnableCheck", panel, "UICheckButtonTemplate")
@@ -761,7 +761,7 @@ function UI:CreateGeneralTab(panel)
     positionHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
     positionHeader:SetText("Position Settings")
     positionHeader:SetTextColor(1, 0.8, 0, 1)
-    yOffset = yOffset - 30
+    yOffset = yOffset - 35
 
     -- UI Position buttons
     local resetPosButton = CreateFrame("Button", "HealIQResetPosButton", panel, "UIPanelButtonTemplate")
@@ -828,7 +828,7 @@ function UI:CreateDisplayTab(panel)
     displayHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
     displayHeader:SetText("Display Settings")
     displayHeader:SetTextColor(1, 0.8, 0, 1)
-    yOffset = yOffset - 30
+    yOffset = yOffset - 35
 
     -- UI Scale slider (Main UI)
     local scaleSlider = CreateFrame("Slider", "HealIQScaleSlider", panel, "OptionsSliderTemplate")
@@ -946,7 +946,7 @@ function UI:CreateQueueTab(panel)
     queueHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
     queueHeader:SetText("Queue Display Settings")
     queueHeader:SetTextColor(1, 0.8, 0, 1)
-    yOffset = yOffset - 30
+    yOffset = yOffset - 35
 
     -- Queue options
     local showQueueCheck = CreateFrame("CheckButton", "HealIQShowQueueCheck", panel, "UICheckButtonTemplate")
@@ -1040,7 +1040,7 @@ function UI:CreateRulesTab(panel)
     rulesHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
     rulesHeader:SetText("Suggestion Rules")
     rulesHeader:SetTextColor(1, 0.8, 0, 1)
-    yOffset = yOffset - 30
+    yOffset = yOffset - 35
 
     local rulesDesc = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     rulesDesc:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
@@ -1143,11 +1143,11 @@ function UI:CreateStrategyTab(panel)
     strategyHeader:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
     strategyHeader:SetText("Healing Strategy Settings")
     strategyHeader:SetTextColor(1, 0.8, 0, 1)
-    yOffset = yOffset - 30
+    yOffset = yOffset - 35
 
     local strategyDesc = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     strategyDesc:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, yOffset)
-    strategyDesc:SetText("Configure enhanced healing strategy based on Wowhead guide")
+    strategyDesc:SetText("Configure enhanced healing strategy settings")
     strategyDesc:SetTextColor(0.8, 0.8, 0.8, 1)
     yOffset = yOffset - 25
 
@@ -2173,8 +2173,8 @@ function UI:CreateStatsSummarySection(parent)
     -- Summary stats frame with responsive sizing
     local summaryFrame = CreateFrame("Frame", "HealIQStatsSummaryFrame", parent, "BackdropTemplate")
     summaryFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yOffset)
-    local parentWidth = parent:GetWidth() or 350
-    local summaryWidth = math.max(320, parentWidth - 20) -- Responsive width with padding
+    local parentWidth = parent:GetWidth() or 380
+    local summaryWidth = math.max(320, parentWidth - 30) -- Responsive width with padding
     summaryFrame:SetSize(summaryWidth, 120)
     summaryFrame:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -2215,8 +2215,8 @@ function UI:CreateRuleMetricsSection(parent)
     -- Interactive rule metrics frame with responsive sizing
     local metricsFrame = CreateFrame("Frame", "HealIQStatsMetricsFrame", parent, "BackdropTemplate")
     metricsFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yOffset)
-    local parentWidth = parent:GetWidth() or 350
-    local metricsWidth = math.max(320, parentWidth - 20) -- Responsive width with padding
+    local parentWidth = parent:GetWidth() or 380
+    local metricsWidth = math.max(320, parentWidth - 30) -- Responsive width with padding
     metricsFrame:SetSize(metricsWidth, 160)
     metricsFrame:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -2259,8 +2259,8 @@ function UI:CreateRawDataSection(parent)
     -- Raw data copyable text area with responsive sizing
     local rawDataFrame = CreateFrame("ScrollFrame", "HealIQStatsRawDataFrame", parent, "UIPanelScrollFrameTemplate")
     rawDataFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yOffset)
-    local parentWidth = parent:GetWidth() or 350
-    local rawDataWidth = math.max(320, parentWidth - 20) -- Responsive width with scrollbar space
+    local parentWidth = parent:GetWidth() or 380
+    local rawDataWidth = math.max(320, parentWidth - 30) -- Responsive width with scrollbar space
     rawDataFrame:SetSize(rawDataWidth, 200)
 
     local rawDataChild = CreateFrame("Frame", "HealIQStatsRawDataChild", rawDataFrame)
