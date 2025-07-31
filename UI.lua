@@ -634,7 +634,7 @@ function UI:CreateOptionsTabs(parent)
 
         -- Create content panel - positioned to the right of navigation with responsive sizing
         local panel = CreateFrame("Frame", "HealIQPanel" .. tab.id, parent)
-        panel:SetPoint("TOPLEFT", parent, "TOPLEFT", navWidth + 20, -10)
+        panel:SetPoint("TOPLEFT", parent, "TOPLEFT", navWidth + 20, -15) -- Increased top margin from -10 to -15
         panel:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -10, 40)
         panel:Hide()
 
@@ -676,7 +676,7 @@ function UI:ShowOptionsTab(tabId)
 end
 
 function UI:CreateGeneralTab(panel)
-    local yOffset = -10
+    local yOffset = -5  -- Reduced from -10 to provide more space at top
 
     -- General Settings Section
     local generalHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -821,7 +821,7 @@ function UI:CreateGeneralTab(panel)
     self:AddTooltip(minimapResetButton, "Reset Minimap Icon Position", "Moves the minimap icon back to its default position.")
 end
 function UI:CreateDisplayTab(panel)
-    local yOffset = -10
+    local yOffset = -5  -- Reduced from -10 to provide more space at top
 
     -- Display Settings Section
     local displayHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -939,7 +939,7 @@ function UI:CreateDisplayTab(panel)
 end
 
 function UI:CreateQueueTab(panel)
-    local yOffset = -10
+    local yOffset = -5  -- Reduced from -10 to provide more space at top
 
     -- Queue Settings Section
     local queueHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -1033,7 +1033,7 @@ function UI:CreateQueueTab(panel)
     optionsFrame.queueLayoutButton = queueLayoutButton
 end
 function UI:CreateRulesTab(panel)
-    local yOffset = -10
+    local yOffset = -5  -- Reduced from -10 to provide more space at top
 
     -- Rules section
     local rulesHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -1136,7 +1136,7 @@ function UI:GetRuleTooltip(ruleKey)
 end
 
 function UI:CreateStrategyTab(panel)
-    local yOffset = -10
+    local yOffset = -5  -- Reduced from -10 to provide more space at top
 
     -- Strategy section
     local strategyHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -1974,9 +1974,16 @@ function UI:UpdatePositionBorder()
         -- Show positioning aid border (cyan)
         mainFrame.border:SetColorTexture(unpack(BORDER_COLORS.positioning))
         mainFrame.border:Show()
+        -- Debug message to confirm the feature is working
+        if HealIQ.debug then
+            HealIQ:DebugLog("Position border shown", "INFO")
+        end
     else
         -- Hide border when not explicitly requested
         mainFrame.border:Hide()
+        if HealIQ.debug then
+            HealIQ:DebugLog("Position border hidden", "INFO")
+        end
     end
 end
 
@@ -2051,9 +2058,14 @@ function UI:UpdateOptionsFrame()
             optionsFrame.showTargetingIconCheck:SetChecked(showTargetingIcon)
         end
 
-        -- Update frame positioning checkbox
+        -- Update frame positioning checkbox with explicit default handling
         if optionsFrame.showFrameCheck then
-            optionsFrame.showFrameCheck:SetChecked(HealIQ.db.ui.showPositionBorder)
+            local showPositionBorder = HealIQ.db.ui.showPositionBorder
+            if showPositionBorder == nil then
+                showPositionBorder = false -- Explicit default to false
+                HealIQ.db.ui.showPositionBorder = false
+            end
+            optionsFrame.showFrameCheck:SetChecked(showPositionBorder)
         end
 
         -- Update queue options
@@ -2111,7 +2123,7 @@ function UI:CreateStatisticsTab(panel)
     local SCROLL_CHILD_HEIGHT = 1000  -- Increased to accommodate new visual sections
     local MAX_DISPLAYED_RULES = 8     -- Show more rules in interactive view
 
-    local yOffset = -10
+    local yOffset = -5  -- Reduced from -10 to provide more space at top
 
     -- Enhanced Statistics Header with description
     local statisticsHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -2136,11 +2148,16 @@ function UI:CreateStatisticsTab(panel)
     end)
     self:AddTooltip(refreshButton, "Refresh Statistics", "Update all statistics with the latest session data.")
 
-    -- Copy to clipboard helper text
+    -- Copy to clipboard helper text with proper width constraint
     local copyHelper = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     copyHelper:SetPoint("LEFT", refreshButton, "RIGHT", 15, 0)
     copyHelper:SetText("Click in text areas below to select and copy (Ctrl+C)")
     copyHelper:SetTextColor(0.7, 0.7, 0.7, 1)
+    -- Prevent overflow by constraining width
+    local availableWidth = math.max(200, (panel:GetWidth() or 280) - 120) -- Leave room for refresh button
+    copyHelper:SetWidth(availableWidth)
+    copyHelper:SetWordWrap(true)
+    copyHelper:SetJustifyH("LEFT")
     yOffset = yOffset - 35
 
     -- Create main content area with organized sections
