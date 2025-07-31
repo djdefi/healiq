@@ -31,7 +31,7 @@ function OffensiveRules:ShouldUseWrath(tracker)
     end
     
     -- Only suggest Wrath during low activity periods
-    local inCombat = BaseRule:IsInCombat()
+    local inCombat = BaseRule and BaseRule.IsInCombat and BaseRule:IsInCombat() or false
     local recentDamageCount = tracker:GetRecentDamageCount()
     local hasTarget = UnitExists("target")
     local targetIsEnemy = hasTarget and UnitIsEnemy("player", "target")
@@ -53,7 +53,7 @@ function OffensiveRules:HasImmediateHealingNeeds(tracker)
     
     if targetIsFriendly then
         -- Check if target has low health
-        local healthPercent = BaseRule:GetHealthPercent("target")
+        local healthPercent = BaseRule and BaseRule.GetHealthPercent and BaseRule:GetHealthPercent("target") or 100
         local strategy = HealIQ.db and HealIQ.db.strategy or {}
         local lowHealthThreshold = strategy.lowHealthThreshold or 30
         

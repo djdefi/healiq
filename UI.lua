@@ -633,9 +633,9 @@ function UI:CreateOptionsTabs(parent)
         optionsFrame.tabs[tab.id] = navButton
 
         -- Create content panel - positioned to the right of navigation with responsive sizing
-        -- Increased top margin to -30 to avoid overlapping with header bar
+        -- Increased top margin to -35 to ensure proper clearance of header bar
         local panel = CreateFrame("Frame", "HealIQPanel" .. tab.id, parent)
-        panel:SetPoint("TOPLEFT", parent, "TOPLEFT", navWidth + 20, -30)
+        panel:SetPoint("TOPLEFT", parent, "TOPLEFT", navWidth + 20, -35)
         panel:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -10, 40)
         panel:Hide()
 
