@@ -17,12 +17,14 @@ local BaseRule = Rules.BaseRule
 -- Common rule utilities that can be used by all rule types
 function BaseRule:GetRecentDamageCount(tracker, seconds)
     seconds = seconds or 5
-    local currentTime = GetTime()
+    local currentTime = GetTime and GetTime() or 0
     local count = 0
     
-    for timestamp, _ in pairs(tracker.trackedData.recentDamage) do
-        if currentTime - timestamp <= seconds then
-            count = count + 1
+    if tracker and tracker.trackedData and tracker.trackedData.recentDamage then
+        for timestamp, _ in pairs(tracker.trackedData.recentDamage) do
+            if currentTime - timestamp <= seconds then
+                count = count + 1
+            end
         end
     end
     
@@ -30,14 +32,14 @@ function BaseRule:GetRecentDamageCount(tracker, seconds)
 end
 
 function BaseRule:IsInCombat()
-    return InCombatLockdown()
+    return InCombatLockdown and InCombatLockdown() or false
 end
 
 function BaseRule:GetGroupSize()
-    if IsInRaid() then
-        return GetNumGroupMembers()
-    elseif IsInGroup() then
-        return GetNumSubgroupMembers()
+    if IsInRaid and IsInRaid() then
+        return GetNumGroupMembers and GetNumGroupMembers() or 1
+    elseif IsInGroup and IsInGroup() then
+        return GetNumSubgroupMembers and GetNumSubgroupMembers() or 1
     else
         return 1
     end
@@ -45,8 +47,8 @@ end
 
 function BaseRule:GetHealthPercent(unit)
     unit = unit or "player"
-    local health = UnitHealth(unit)
-    local maxHealth = UnitHealthMax(unit)
+    local health = UnitHealth and UnitHealth(unit) or 100
+    local maxHealth = UnitHealthMax and UnitHealthMax(unit) or 100
     
     if maxHealth == 0 then
         return 100
@@ -57,6 +59,10 @@ end
 
 -- Helper to check if spell is ready (not on cooldown)
 function BaseRule:IsSpellReady(spellID)
+    if not GetSpellCooldown then
+        return false
+    end
     local start, duration = GetSpellCooldown(spellID)
-    return start == 0 or (start > 0 and (start + duration - GetTime()) <= 0)
+    local currentTime = GetTime and GetTime() or 0
+    return start == 0 or (start > 0 and (start + duration - currentTime) <= 0)
 end
