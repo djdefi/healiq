@@ -633,8 +633,9 @@ function UI:CreateOptionsTabs(parent)
         optionsFrame.tabs[tab.id] = navButton
 
         -- Create content panel - positioned to the right of navigation with responsive sizing
+        -- Increased top margin to -30 to avoid overlapping with header bar
         local panel = CreateFrame("Frame", "HealIQPanel" .. tab.id, parent)
-        panel:SetPoint("TOPLEFT", parent, "TOPLEFT", navWidth + 20, -15) -- Increased top margin from -10 to -15
+        panel:SetPoint("TOPLEFT", parent, "TOPLEFT", navWidth + 20, -30)
         panel:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -10, 40)
         panel:Hide()
 
@@ -1094,8 +1095,8 @@ function UI:CreateRulesTab(panel)
         check.text:SetPoint("LEFT", check, "RIGHT", 5, 0)
         check.text:SetText(rule.name)
         -- Responsive width constraint to prevent text overflow in rules tab
-        local panelWidth = panel:GetWidth() or 280
-        local availableWidth = math.max(200, panelWidth - 60) -- Leave room for checkbox and margins
+        local panelWidth = panel:GetWidth() or 260  -- Fixed: account for nav sidebar
+        local availableWidth = math.max(180, panelWidth - 60) -- Leave room for checkbox and margins
         check.text:SetWidth(availableWidth)
         check.text:SetJustifyH("LEFT")
         check.text:SetWordWrap(true)
@@ -1158,7 +1159,7 @@ function UI:CreateStrategyTab(panel)
 
     local scrollChild = CreateFrame("Frame", "HealIQStrategyScrollChild", scrollFrame)
     -- Make scroll child responsive to available space
-    local availableWidth = math.max(320, panel:GetWidth() - 30) -- Account for scrollbar
+    local availableWidth = math.max(240, panel:GetWidth() - 30) -- Fixed: account for nav sidebar and scrollbar
     local contentHeight = 900  -- Increased to ensure all content fits
     scrollChild:SetSize(availableWidth, contentHeight)
     scrollFrame:SetScrollChild(scrollChild)
@@ -1194,8 +1195,8 @@ function UI:CreateStrategyTab(panel)
         check.text:SetPoint("LEFT", check, "RIGHT", 5, 0)
         check.text:SetText(toggle.name)
         -- Responsive width constraint to prevent text overflow
-        local scrollChildWidth = scrollChild:GetWidth() or 320
-        local textWidth = math.max(240, scrollChildWidth - 40) -- Leave room for checkbox and scrollbar
+        local scrollChildWidth = scrollChild:GetWidth() or 240  -- Fixed: account for nav sidebar
+        local textWidth = math.max(200, scrollChildWidth - 40) -- Leave room for checkbox and scrollbar
         check.text:SetWidth(textWidth)
         check.text:SetJustifyH("LEFT")
         check.text:SetWordWrap(true)  -- Allow text wrapping for long names
@@ -2154,7 +2155,7 @@ function UI:CreateStatisticsTab(panel)
     copyHelper:SetText("Click in text areas below to select and copy (Ctrl+C)")
     copyHelper:SetTextColor(0.7, 0.7, 0.7, 1)
     -- Prevent overflow by constraining width
-    local availableWidth = math.max(200, (panel:GetWidth() or 280) - 120) -- Leave room for refresh button
+    local availableWidth = math.max(150, (panel:GetWidth() or 260) - 120) -- Leave room for refresh button
     copyHelper:SetWidth(availableWidth)
     copyHelper:SetWordWrap(true)
     copyHelper:SetJustifyH("LEFT")
@@ -2190,8 +2191,8 @@ function UI:CreateStatsSummarySection(parent)
     -- Summary stats frame with responsive sizing
     local summaryFrame = CreateFrame("Frame", "HealIQStatsSummaryFrame", parent, "BackdropTemplate")
     summaryFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yOffset)
-    local parentWidth = parent:GetWidth() or 380
-    local summaryWidth = math.max(320, parentWidth - 30) -- Responsive width with padding
+    local parentWidth = parent:GetWidth() or 260  -- Fixed: account for nav sidebar (400 - 130 - 10)
+    local summaryWidth = math.max(240, parentWidth - 30) -- Responsive width with padding
     summaryFrame:SetSize(summaryWidth, 120)
     summaryFrame:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -2232,8 +2233,8 @@ function UI:CreateRuleMetricsSection(parent)
     -- Interactive rule metrics frame with responsive sizing
     local metricsFrame = CreateFrame("Frame", "HealIQStatsMetricsFrame", parent, "BackdropTemplate")
     metricsFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yOffset)
-    local parentWidth = parent:GetWidth() or 380
-    local metricsWidth = math.max(320, parentWidth - 30) -- Responsive width with padding
+    local parentWidth = parent:GetWidth() or 260  -- Fixed: account for nav sidebar (400 - 130 - 10)
+    local metricsWidth = math.max(240, parentWidth - 30) -- Responsive width with padding
     metricsFrame:SetSize(metricsWidth, 160)
     metricsFrame:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -2276,8 +2277,8 @@ function UI:CreateRawDataSection(parent)
     -- Raw data copyable text area with responsive sizing
     local rawDataFrame = CreateFrame("ScrollFrame", "HealIQStatsRawDataFrame", parent, "UIPanelScrollFrameTemplate")
     rawDataFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yOffset)
-    local parentWidth = parent:GetWidth() or 380
-    local rawDataWidth = math.max(320, parentWidth - 30) -- Responsive width with scrollbar space
+    local parentWidth = parent:GetWidth() or 260  -- Fixed: account for nav sidebar (400 - 130 - 10)
+    local rawDataWidth = math.max(240, parentWidth - 30) -- Responsive width with scrollbar space
     rawDataFrame:SetSize(rawDataWidth, 200)
 
     local rawDataChild = CreateFrame("Frame", "HealIQStatsRawDataChild", rawDataFrame)
