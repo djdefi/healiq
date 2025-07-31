@@ -4,7 +4,9 @@
 local addonName, HealIQ = ...
 
 -- Ensure HealIQ is initialized before accessing its properties
-HealIQ = HealIQ or {}
+-- Handle case where namespace might not be fully initialized yet
+HealIQ = HealIQ or _G.HealIQ or {}
+_G.HealIQ = HealIQ  -- Ensure global reference is set
 HealIQ.Rules = HealIQ.Rules or {}
 local Rules = HealIQ.Rules
 
