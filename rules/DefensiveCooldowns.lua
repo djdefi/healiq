@@ -45,7 +45,7 @@ function DefensiveCooldowns:ShouldUseIronbark(tracker)
     -- Enhanced logic: suggest with target if ready and needed, or without target as reminder
     if targetIsFriendly then
         return ironbarkReady and not hasIronbark
-    elseif ironbarkReady and (BaseRule:IsInCombat() and (IsInGroup() or IsInRaid())) then
+    elseif ironbarkReady and (HealIQ.Rules.safeCallBaseRule("IsInCombat", false) and (IsInGroup() or IsInRaid())) then
         -- Suggest as reminder when in combat with group but no target
         return true
     end
@@ -56,10 +56,10 @@ end
 function DefensiveCooldowns:ShouldUseBarkskin(tracker)
     -- Suggest Barkskin if available and player is taking damage
     local barkskinReady = tracker:IsSpellReady("barkskin")
-    local inCombat = BaseRule:IsInCombat()
+    local inCombat = HealIQ.Rules.safeCallBaseRule("IsInCombat", false)
     
     -- Enhanced logic: consider player health and threat
-    local playerHealthPercent = BaseRule:GetHealthPercent("player")
+    local playerHealthPercent = HealIQ.Rules.safeCallBaseRule("GetHealthPercent", 100, "player")
     local lowHealthThreshold = (HealIQ.db and HealIQ.db.strategy and HealIQ.db.strategy.lowHealthThreshold) or 50
     
     return barkskinReady and inCombat and (playerHealthPercent <= lowHealthThreshold)

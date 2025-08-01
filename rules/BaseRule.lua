@@ -4,7 +4,9 @@
 local addonName, HealIQ = ...
 
 -- Ensure HealIQ is initialized before accessing its properties
-HealIQ = HealIQ or {}
+-- Handle case where namespace might not be fully initialized yet
+HealIQ = HealIQ or _G.HealIQ or {}
+_G.HealIQ = HealIQ  -- Ensure global reference is set
 HealIQ.Rules = HealIQ.Rules or {}
 local Rules = HealIQ.Rules
 
@@ -13,6 +15,14 @@ local Rules = HealIQ.Rules
 -- Base rule interface
 Rules.BaseRule = {}
 local BaseRule = Rules.BaseRule
+
+-- Safe method call helper to prevent runtime errors when BaseRule methods are called before BaseRule is ready
+function Rules.safeCallBaseRule(methodName, fallback, ...)
+    if not BaseRule or not BaseRule[methodName] or type(BaseRule[methodName]) ~= "function" then
+        return fallback
+    end
+    return BaseRule[methodName](BaseRule, ...)
+end
 
 -- Common rule utilities that can be used by all rule types
 function BaseRule:GetRecentDamageCount(tracker, seconds)

@@ -56,7 +56,7 @@ function HealingCooldowns:ShouldUseNaturesSwiftness(tracker)
     
     -- Emergency situations (low health targets)
     if targetExists and targetIsFriendly then
-        local healthPercent = BaseRule:GetHealthPercent("target")
+        local healthPercent = HealIQ.Rules.safeCallBaseRule("GetHealthPercent", 100, "target")
         local lowHealthThreshold = strategy.lowHealthThreshold or 30
         if healthPercent <= lowHealthThreshold then
             shouldSuggest = true
@@ -64,9 +64,9 @@ function HealingCooldowns:ShouldUseNaturesSwiftness(tracker)
     end
     
     -- Proactive use during combat with group damage
-    if not shouldSuggest and BaseRule:IsInCombat() then
+    if not shouldSuggest and HealIQ.Rules.safeCallBaseRule("IsInCombat", false) then
         local recentDamageCount = tracker:GetRecentDamageCount()
-        local groupSize = BaseRule:GetGroupSize()
+        local groupSize = HealIQ.Rules.safeCallBaseRule("GetGroupSize", 1)
         -- Suggest if significant group damage (25% of group or 2+ people)
         if recentDamageCount >= math.max(2, math.floor(groupSize * 0.25)) then
             shouldSuggest = true
@@ -77,7 +77,11 @@ function HealingCooldowns:ShouldUseNaturesSwiftness(tracker)
     local emergencyOnly = strategy.emergencyNaturesSwiftness == true
     if emergencyOnly then
         -- Only suggest in emergency situations when this setting is true
-        shouldSuggest = targetExists and targetIsFriendly and BaseRule:GetHealthPercent("target") <= (strategy.lowHealthThreshold or 30)
+        local hasTarget = targetExists
+        local isFriendly = targetIsFriendly
+        local healthPercent = HealIQ.Rules.safeCallBaseRule("GetHealthPercent", 100, "target")
+        local lowHealthThreshold = strategy.lowHealthThreshold or 30
+        shouldSuggest = hasTarget and isFriendly and healthPercent <= lowHealthThreshold
     end
     
     return naturesSwiftnessReady and shouldSuggest
