@@ -16,6 +16,14 @@ local Rules = HealIQ.Rules
 Rules.BaseRule = {}
 local BaseRule = Rules.BaseRule
 
+-- Safe method call helper to prevent runtime errors when BaseRule methods are called before BaseRule is ready
+function Rules.safeCallBaseRule(methodName, fallback, ...)
+    if not BaseRule or not BaseRule[methodName] or type(BaseRule[methodName]) ~= "function" then
+        return fallback
+    end
+    return BaseRule[methodName](BaseRule, ...)
+end
+
 -- Common rule utilities that can be used by all rule types
 function BaseRule:GetRecentDamageCount(tracker, seconds)
     seconds = seconds or 5

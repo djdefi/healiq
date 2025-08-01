@@ -70,7 +70,7 @@ function UtilityRules:ShouldUseGroveGuardians(tracker)
     local recentDamageCount = tracker:GetRecentDamageCount()
     local minTargets = strategy.wildGrowthMinTargets or 1
     local hasOtherCooldowns = tracker:HasPlayerBuff("incarnationTree") or tracker:HasPlayerBuff("naturesSwiftness")
-    local inCombat = BaseRule and BaseRule.IsInCombat and BaseRule:IsInCombat() or false
+    local inCombat = HealIQ.Rules.safeCallBaseRule("IsInCombat", false)
     
     -- Suggest if:
     -- 1. High damage to group, OR
