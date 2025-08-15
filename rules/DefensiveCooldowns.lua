@@ -4,6 +4,9 @@
 local addonName, HealIQ = ...
 
 -- Ensure HealIQ is initialized before accessing its properties
+if type(HealIQ) ~= "table" then
+    HealIQ = _G.HealIQ or {}
+end
 HealIQ = HealIQ or {}
 HealIQ.Rules = HealIQ.Rules or {}
 local Rules = HealIQ.Rules

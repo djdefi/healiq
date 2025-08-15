@@ -130,6 +130,23 @@ local function validate_rule_files()
                 content:find("local addonName, HealIQ = ...") or
                 content:find("HealIQ%.Rules = HealIQ%.Rules or {}")
             )
+            
+            -- Check for parameter type checking (essential for handling WoW loading issues)
+            local has_type_check = content:find("type%(HealIQ%) ~= \"table\"")
+
+            if not has_defensive then
+                table.insert(errors, rule_file .. " lacks defensive initialization")
+            end
+
+            if not has_type_check then
+                table.insert(errors, rule_file .. " lacks parameter type checking")
+            end
+            
+            -- Test that the file can actually load without errors
+            local success, err = pcall(dofile, rule_file)
+            if not success then
+                table.insert(errors, rule_file .. " fails to load: " .. tostring(err))
+            end
 
             if not has_defensive then
                 table.insert(errors, rule_file .. " lacks defensive initialization")
