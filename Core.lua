@@ -13,7 +13,7 @@ local addonName, HealIQ = ...
 
 -- Create the main addon object
 HealIQ = HealIQ or {}
-HealIQ.version = "0.1.9"
+HealIQ.version = "0.1.10"
 HealIQ.debug = false
 
 -- Initialize namespace for rule modules
