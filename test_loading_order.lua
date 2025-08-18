@@ -118,13 +118,19 @@ local function test_rule_file_structure()
             local content = file:read("*all")
             file:close()
 
-            -- Check for defensive initialization patterns
+            -- Check for correct global namespace access pattern (WoW-compatible)
+            local hasCorrectPattern = (
+                content:find("local HealIQ = _G%.HealIQ") and
+                not content:find("local addonName, HealIQ = %.")
+            )
+            
+            -- Check for defensive initialization
             local hasDefensiveInit = (
-                content:find("HealIQ = HealIQ or {}") or
-                content:find("local addonName, HealIQ = ...") or
-                content:find("HealIQ%.Rules = HealIQ%.Rules or {}")
+                content:find("HealIQ%.Rules = HealIQ%.Rules or {}") or
+                content:find("_G%.HealIQ = _G%.HealIQ or {}")
             )
 
+            print_result(hasCorrectPattern, ruleFile .. " uses correct global namespace pattern")
             print_result(hasDefensiveInit, ruleFile .. " has defensive initialization")
         else
             print_result(false, ruleFile .. " could not be read")

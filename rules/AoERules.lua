@@ -1,40 +1,21 @@
 -- HealIQ Rules/AoERules.lua
 -- Area of effect healing rules (Efflorescence)
 
--- Robust parameter handling for WoW addon loading
-local addonName, HealIQ = ...
+-- Access HealIQ from global namespace (established by Core.lua)
+-- This is the correct pattern for WoW addon files loaded after the main file
+local HealIQ = _G.HealIQ
 
--- Enhanced defensive initialization to prevent loading failures
-local function initializeHealIQ()
-    -- Check if parameters were passed correctly
-    if type(HealIQ) ~= "table" then
-        -- Fallback to global namespace
-        HealIQ = _G.HealIQ
-        if type(HealIQ) ~= "table" then
-            print("HealIQ Error: AoERules.lua loaded before Core.lua - addon not initialized")
-            return nil
-        end
-    end
-    
-    -- Ensure global reference is set and initialize Rules namespace
-    _G.HealIQ = HealIQ
-    HealIQ.Rules = HealIQ.Rules or {}
-    
-    return HealIQ.Rules
-end
-
--- Initialize with error handling
-local Rules
-local success, result = pcall(initializeHealIQ)
-if success and result then
-    Rules = result
-else
-    print("HealIQ Error: Failed to initialize AoERules.lua - " .. tostring(result or "unknown error"))
-    -- Minimal fallback
+-- Defensive initialization to ensure HealIQ exists
+if not HealIQ or type(HealIQ) ~= "table" then
+    print("HealIQ Error: AoERules.lua loaded before Core.lua - addon not properly initialized")
+    -- Create minimal fallback structure to prevent crashes
     _G.HealIQ = _G.HealIQ or {}
-    _G.HealIQ.Rules = _G.HealIQ.Rules or {}
-    Rules = _G.HealIQ.Rules
+    HealIQ = _G.HealIQ
 end
+
+-- Initialize Rules namespace
+HealIQ.Rules = HealIQ.Rules or {}
+local Rules = HealIQ.Rules
 
 -- Note: AoERules doesn't use BaseRule, so no defensive check needed for it
 
