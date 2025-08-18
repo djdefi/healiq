@@ -443,6 +443,10 @@ end
 
 commands.debug = function()
     HealIQ.debug = not HealIQ.debug
+    -- Save debug state to database so it persists across sessions
+    if HealIQ.db then
+        HealIQ.db.debug = HealIQ.debug
+    end
     local status = HealIQ.debug and "enabled" or "disabled"
     print("|cFF00FF00HealIQ|r Debug mode " .. status)
 end

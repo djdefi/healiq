@@ -131,6 +131,12 @@ function HealIQ:InitializeDB()
     end
 
     self.db = HealIQDB
+    
+    -- Restore debug state from saved settings
+    if self.db.debug ~= nil then
+        self.debug = self.db.debug
+    end
+    
     self:Print("Database initialized with " .. self:CountSettings() .. " settings")
 end
 
