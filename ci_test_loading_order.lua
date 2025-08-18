@@ -124,32 +124,58 @@ local function validate_rule_files()
             local content = file:read("*all")
             file:close()
 
-            -- Check for defensive initialization patterns
-            local has_defensive = (
-                content:find("HealIQ = HealIQ or {}") or
-                content:find("local addonName, HealIQ = ...") or
-                content:find("HealIQ%.Rules = HealIQ%.Rules or {}")
+            -- Check for correct global namespace access pattern (not the old parameter pattern)
+            -- Look for the correct pattern and ensure no non-comment lines use the wrong pattern
+            local has_correct_pattern = content:find("local HealIQ = _G%.HealIQ")
+            local has_incorrect_pattern = false
+            
+            -- Check each line to see if it uses the incorrect pattern (but not in comments)
+            for line in content:gmatch("[^\r\n]+") do
+                local trimmed_line = line:gsub("^%s*", "")
+                if trimmed_line:find("^local addonName, HealIQ = ") and not trimmed_line:find("^%-%-") then
+                    has_incorrect_pattern = true
+                    break
+                end
+            end
+            
+            has_correct_pattern = has_correct_pattern and not has_incorrect_pattern
+            
+            -- Check for defensive initialization (essential for handling WoW loading issues)
+            local has_defensive_init = (
+                content:find("HealIQ%.Rules = HealIQ%.Rules or {}") or
+                content:find("_G%.HealIQ = _G%.HealIQ or {}")
             )
             
-            -- Check for parameter type checking (essential for handling WoW loading issues)
-            local has_type_check = content:find("type%(HealIQ%) ~= \"table\"")
+            -- Check for proper error handling
+            local has_error_handling = content:find("addon not properly initialized")
 
-            if not has_defensive then
+            if not has_correct_pattern then
+                table.insert(errors, rule_file .. " does not use correct global namespace pattern")
+            end
+            
+            if not has_defensive_init then
                 table.insert(errors, rule_file .. " lacks defensive initialization")
             end
-
-            if not has_type_check then
-                table.insert(errors, rule_file .. " lacks parameter type checking")
+            
+            if not has_error_handling then
+                table.insert(errors, rule_file .. " lacks proper error handling")
             end
             
             -- Test that the file can actually load without errors
+            -- Set up minimal HealIQ environment first to prevent defensive initialization errors
+            local original_healiq = _G.HealIQ
+            _G.HealIQ = _G.HealIQ or {
+                Rules = {},
+                Logging = { Error = function(msg) end }
+            }
+            
             local success, err = pcall(dofile, rule_file)
+            
+            -- Restore original state
+            _G.HealIQ = original_healiq
+            
             if not success then
                 table.insert(errors, rule_file .. " fails to load: " .. tostring(err))
-            end
-
-            if not has_defensive then
-                table.insert(errors, rule_file .. " lacks defensive initialization")
             end
         end
     end

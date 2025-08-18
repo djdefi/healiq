@@ -1,41 +1,38 @@
 -- HealIQ Rules/BaseRule.lua
 -- Base interface and common functionality for spell rules
+--
+-- BEST PRACTICE: Global Namespace Access Pattern
+-- This file demonstrates the correct WoW addon pattern for secondary files:
+-- 1. Main addon file (Core.lua) uses: local addonName, HealIQ = ...
+-- 2. Secondary files (like this) use: local HealIQ = _G.HealIQ
+-- This pattern is used by successful addons like MDT, WoWPro, AdiBags, etc.
 
--- Robust parameter handling for WoW addon loading
--- Handle both parameter passing and global namespace scenarios
-local addonName, HealIQ = ...
+-- Access HealIQ from global namespace (established by Core.lua)
+-- This is the correct pattern for WoW addon files loaded after the main file
+local HealIQ = _G.HealIQ
 
--- Enhanced defensive initialization to prevent loading failures
-local function initializeHealIQ()
-    -- Check if parameters were passed correctly
-    if type(HealIQ) ~= "table" then
-        -- Fallback to global namespace
-        HealIQ = _G.HealIQ
-        if type(HealIQ) ~= "table" then
-            -- Last resort: create minimal structure
-            HealIQ = {}
-            print("HealIQ Warning: BaseRule.lua loaded without proper HealIQ initialization")
-        end
-    end
+-- BEST PRACTICE: Defensive initialization with detailed error reporting
+if not HealIQ or type(HealIQ) ~= "table" then
+    -- Enhanced error reporting for better debugging
+    local errorMsg = string.format(
+        "HealIQ Error: BaseRule.lua loaded before Core.lua - addon not properly initialized. " ..
+        "HealIQ type: %s, expected: table",
+        type(HealIQ)
+    )
+    print(errorMsg)
     
-    -- Ensure global reference is always set
-    _G.HealIQ = HealIQ
-    
-    -- Initialize Rules namespace with error handling
-    HealIQ.Rules = HealIQ.Rules or {}
-    
-    return HealIQ
-end
-
--- Initialize with error handling
-local success, result = pcall(initializeHealIQ)
-if not success then
-    print("HealIQ Error: Failed to initialize BaseRule.lua - " .. tostring(result))
-    -- Create minimal fallback structure
+    -- Create minimal fallback structure to prevent crashes
     _G.HealIQ = _G.HealIQ or {}
-    _G.HealIQ.Rules = _G.HealIQ.Rules or {}
     HealIQ = _G.HealIQ
+    
+    -- Log this for debugging
+    if _G.HealIQ.Logging and _G.HealIQ.Logging.Error then
+        _G.HealIQ.Logging.Error("BaseRule.lua initialization error: " .. errorMsg)
+    end
 end
+
+-- Initialize Rules namespace
+HealIQ.Rules = HealIQ.Rules or {}
 
 local Rules = HealIQ.Rules
 

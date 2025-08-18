@@ -19,6 +19,19 @@ HealIQ.debug = false
 -- Initialize namespace for rule modules
 HealIQ.Rules = HealIQ.Rules or {}
 
+-- Best Practice: Prepare for LibStub integration (optional library support)
+HealIQ.LibStub = _G.LibStub -- Will be nil if LibStub not available, won't break anything
+
+-- Best Practice: Enhanced addon metadata for better debugging
+HealIQ.addonName = addonName
+HealIQ.buildInfo = {
+    tocVersion = "110107",
+    author = "djdefi",
+    category = "Healing",
+    license = "MIT",
+    website = "https://github.com/djdefi/healiq"
+}
+
 -- Default settings
 local defaults = {
     enabled = true,
