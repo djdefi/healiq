@@ -1,16 +1,34 @@
 -- HealIQ Rules/BaseRule.lua
 -- Base interface and common functionality for spell rules
+--
+-- BEST PRACTICE: Global Namespace Access Pattern
+-- This file demonstrates the correct WoW addon pattern for secondary files:
+-- 1. Main addon file (Core.lua) uses: local addonName, HealIQ = ...
+-- 2. Secondary files (like this) use: local HealIQ = _G.HealIQ
+-- This pattern is used by successful addons like MDT, WoWPro, AdiBags, etc.
 
 -- Access HealIQ from global namespace (established by Core.lua)
 -- This is the correct pattern for WoW addon files loaded after the main file
 local HealIQ = _G.HealIQ
 
--- Defensive initialization to ensure HealIQ exists
+-- BEST PRACTICE: Defensive initialization with detailed error reporting
 if not HealIQ or type(HealIQ) ~= "table" then
-    print("HealIQ Error: BaseRule.lua loaded before Core.lua - addon not properly initialized")
+    -- Enhanced error reporting for better debugging
+    local errorMsg = string.format(
+        "HealIQ Error: BaseRule.lua loaded before Core.lua - addon not properly initialized. " ..
+        "HealIQ type: %s, expected: table",
+        type(HealIQ)
+    )
+    print(errorMsg)
+    
     -- Create minimal fallback structure to prevent crashes
     _G.HealIQ = _G.HealIQ or {}
     HealIQ = _G.HealIQ
+    
+    -- Log this for debugging
+    if _G.HealIQ.Logging and _G.HealIQ.Logging.Error then
+        _G.HealIQ.Logging.Error("BaseRule.lua initialization error: " .. errorMsg)
+    end
 end
 
 -- Initialize Rules namespace
