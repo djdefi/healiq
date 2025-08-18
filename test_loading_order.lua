@@ -119,10 +119,20 @@ local function test_rule_file_structure()
             file:close()
 
             -- Check for correct global namespace access pattern (WoW-compatible)
-            local hasCorrectPattern = (
-                content:find("local HealIQ = _G%.HealIQ") and
-                not content:find("local addonName, HealIQ = %.")
-            )
+            -- Look for the correct pattern and ensure no non-comment lines use the wrong pattern
+            local hasCorrectPattern = content:find("local HealIQ = _G%.HealIQ")
+            local hasIncorrectPattern = false
+            
+            -- Check each line to see if it uses the incorrect pattern (but not in comments)
+            for line in content:gmatch("[^\r\n]+") do
+                local trimmedLine = line:gsub("^%s*", "")
+                if trimmedLine:find("^local addonName, HealIQ = ") and not trimmedLine:find("^%-%-") then
+                    hasIncorrectPattern = true
+                    break
+                end
+            end
+            
+            hasCorrectPattern = hasCorrectPattern and not hasIncorrectPattern
             
             -- Check for defensive initialization
             local hasDefensiveInit = (
