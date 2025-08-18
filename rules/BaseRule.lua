@@ -1,16 +1,42 @@
 -- HealIQ Rules/BaseRule.lua
 -- Base interface and common functionality for spell rules
 
+-- Robust parameter handling for WoW addon loading
+-- Handle both parameter passing and global namespace scenarios
 local addonName, HealIQ = ...
 
--- Ensure HealIQ is initialized before accessing its properties
--- Handle case where namespace might not be fully initialized yet or parameters are not passed correctly
-if type(HealIQ) ~= "table" then
-    HealIQ = _G.HealIQ or {}
+-- Enhanced defensive initialization to prevent loading failures
+local function initializeHealIQ()
+    -- Check if parameters were passed correctly
+    if type(HealIQ) ~= "table" then
+        -- Fallback to global namespace
+        HealIQ = _G.HealIQ
+        if type(HealIQ) ~= "table" then
+            -- Last resort: create minimal structure
+            HealIQ = {}
+            print("HealIQ Warning: BaseRule.lua loaded without proper HealIQ initialization")
+        end
+    end
+    
+    -- Ensure global reference is always set
+    _G.HealIQ = HealIQ
+    
+    -- Initialize Rules namespace with error handling
+    HealIQ.Rules = HealIQ.Rules or {}
+    
+    return HealIQ
 end
-HealIQ = HealIQ or {}
-_G.HealIQ = HealIQ  -- Ensure global reference is set
-HealIQ.Rules = HealIQ.Rules or {}
+
+-- Initialize with error handling
+local success, result = pcall(initializeHealIQ)
+if not success then
+    print("HealIQ Error: Failed to initialize BaseRule.lua - " .. tostring(result))
+    -- Create minimal fallback structure
+    _G.HealIQ = _G.HealIQ or {}
+    _G.HealIQ.Rules = _G.HealIQ.Rules or {}
+    HealIQ = _G.HealIQ
+end
+
 local Rules = HealIQ.Rules
 
 -- Note: WoW API functions (GetTime, InCombatLockdown, etc.) should be available when loaded by WoW

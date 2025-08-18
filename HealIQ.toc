@@ -5,22 +5,27 @@
 ## Version: 0.1.10
 ## SavedVariables: HealIQDB
 ## DefaultState: enabled
+## X-Category: Healing
+## X-License: MIT
+## X-Website: https://github.com/djdefi/healiq
 
-# Core files
+## Core initialization files (must load first)
 Core.lua
 Logging.lua
 Performance.lua
 Validation.lua
 
-# Rule modules
+## Rule system base (must load before specific rules)
 rules/BaseRule.lua
+
+## Specific rule implementations (depend on BaseRule)
 rules/DefensiveCooldowns.lua
 rules/HealingCooldowns.lua
 rules/UtilityRules.lua
 rules/AoERules.lua
 rules/OffensiveRules.lua
 
-# Additional core files
+## Core system files (depend on rules being loaded)
 Tracker.lua
 Engine.lua
 UI.lua

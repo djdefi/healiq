@@ -8,9 +8,39 @@
 -- * Safe type conversion utilities
 -- * Error prevention mechanisms
 
+-- Robust parameter handling for WoW addon loading
 local addonName, HealIQ = ...
 
-HealIQ.Validation = {}
+-- Enhanced defensive initialization to prevent loading failures
+local function initializeHealIQ()
+    -- Check if parameters were passed correctly
+    if type(HealIQ) ~= "table" then
+        -- Fallback to global namespace
+        HealIQ = _G.HealIQ
+        if type(HealIQ) ~= "table" then
+            print("HealIQ Error: Validation.lua loaded before Core.lua - addon not initialized")
+            return nil
+        end
+    end
+    
+    -- Ensure global reference is set
+    _G.HealIQ = HealIQ
+    
+    return HealIQ
+end
+
+-- Initialize with error handling
+local initSuccess, initResult = pcall(initializeHealIQ)
+if initSuccess and initResult then
+    HealIQ = initResult
+else
+    print("HealIQ Error: Failed to initialize Validation.lua - " .. tostring(initResult or "unknown error"))
+    -- Minimal fallback
+    _G.HealIQ = _G.HealIQ or {}
+    HealIQ = _G.HealIQ
+end
+
+HealIQ.Validation = HealIQ.Validation or {}
 local Validation = HealIQ.Validation
 
 -- Type validation utilities

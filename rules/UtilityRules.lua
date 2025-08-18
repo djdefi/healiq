@@ -1,15 +1,40 @@
 -- HealIQ Rules/UtilityRules.lua
 -- Utility and buff rules (Flourish, Grove Guardians)
 
+-- Robust parameter handling for WoW addon loading
 local addonName, HealIQ = ...
 
--- Ensure HealIQ is initialized before accessing its properties
-if type(HealIQ) ~= "table" then
-    HealIQ = _G.HealIQ or {}
+-- Enhanced defensive initialization to prevent loading failures
+local function initializeHealIQ()
+    -- Check if parameters were passed correctly
+    if type(HealIQ) ~= "table" then
+        -- Fallback to global namespace
+        HealIQ = _G.HealIQ
+        if type(HealIQ) ~= "table" then
+            print("HealIQ Error: UtilityRules.lua loaded before Core.lua - addon not initialized")
+            return nil
+        end
+    end
+    
+    -- Ensure global reference is set and initialize Rules namespace
+    _G.HealIQ = HealIQ
+    HealIQ.Rules = HealIQ.Rules or {}
+    
+    return HealIQ.Rules
 end
-HealIQ = HealIQ or {}
-HealIQ.Rules = HealIQ.Rules or {}
-local Rules = HealIQ.Rules
+
+-- Initialize with error handling
+local Rules
+local success, result = pcall(initializeHealIQ)
+if success and result then
+    Rules = result
+else
+    print("HealIQ Error: Failed to initialize UtilityRules.lua - " .. tostring(result or "unknown error"))
+    -- Minimal fallback
+    _G.HealIQ = _G.HealIQ or {}
+    _G.HealIQ.Rules = _G.HealIQ.Rules or {}
+    Rules = _G.HealIQ.Rules
+end
 
 -- Defensive check: ensure BaseRule is loaded before proceeding
 if not Rules.BaseRule then
