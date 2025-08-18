@@ -125,10 +125,20 @@ local function validate_rule_files()
             file:close()
 
             -- Check for correct global namespace access pattern (not the old parameter pattern)
-            local has_correct_pattern = (
-                content:find("local HealIQ = _G%.HealIQ") and
-                not content:find("local addonName, HealIQ = %.%.%.")
-            )
+            -- Look for the correct pattern and ensure no non-comment lines use the wrong pattern
+            local has_correct_pattern = content:find("local HealIQ = _G%.HealIQ")
+            local has_incorrect_pattern = false
+            
+            -- Check each line to see if it uses the incorrect pattern (but not in comments)
+            for line in content:gmatch("[^\r\n]+") do
+                local trimmed_line = line:gsub("^%s*", "")
+                if trimmed_line:find("^local addonName, HealIQ = ") and not trimmed_line:find("^%-%-") then
+                    has_incorrect_pattern = true
+                    break
+                end
+            end
+            
+            has_correct_pattern = has_correct_pattern and not has_incorrect_pattern
             
             -- Check for defensive initialization (essential for handling WoW loading issues)
             local has_defensive_init = (
@@ -152,7 +162,18 @@ local function validate_rule_files()
             end
             
             -- Test that the file can actually load without errors
+            -- Set up minimal HealIQ environment first to prevent defensive initialization errors
+            local original_healiq = _G.HealIQ
+            _G.HealIQ = _G.HealIQ or {
+                Rules = {},
+                Logging = { Error = function(msg) end }
+            }
+            
             local success, err = pcall(dofile, rule_file)
+            
+            -- Restore original state
+            _G.HealIQ = original_healiq
+            
             if not success then
                 table.insert(errors, rule_file .. " fails to load: " .. tostring(err))
             end
