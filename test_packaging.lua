@@ -86,17 +86,14 @@ local function is_file_covered_by_pkgmeta(tocFile, pkgmetaFiles)
 
     -- Check directory inclusion (e.g., rules/ covers rules/BaseRule.lua)
     for _, pkgFile in ipairs(pkgmetaFiles) do
-        local normalizedPkg = normalize_path(pkgFile)
-        if normalizedPkg:match("/$") or normalizedPkg:match("/[^/]*$") then
-            -- This is a directory or contains directory structure
-            local dirPath = normalizedPkg:gsub("/[^/]*$", "") .. "/"
-            if tocFile:match("^" .. dirPath:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")) then
+        -- Only treat entries ending with '/' as directories
+        if pkgFile:sub(-1) == "/" then
+            local dirPath = pkgFile
+            -- Escape special pattern characters
+            local escapedDirPath = dirPath:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
+            if tocFile:match("^" .. escapedDirPath) then
                 return true
             end
-        end
-        -- Also check if pkgmeta entry is a directory that would include this file
-        if tocFile:match("^" .. normalizedPkg:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1") .. "/") then
-            return true
         end
     end
 
@@ -177,10 +174,9 @@ local function test_critical_files_in_pkgmeta()
         "HealIQ.toc"
     }
 
-    -- Critical directories that must be included
+    -- Critical directories that must be included (use only canonical form; normalization handles variants)
     local criticalDirs = {
-        "rules/",
-        "rules"  -- Support both with and without trailing slash
+        "rules/"
     }
 
     for _, criticalFile in ipairs(criticalFiles) do
@@ -344,12 +340,14 @@ local function test_additional_consistency_checks()
     local tocFiles = parse_toc_files()
     local hardcodedPaths = {}
 
+    local HARDCODED_ADDON_PATH = "Interface/AddOns/HealIQ/"
+
     for _, tocFile in ipairs(tocFiles) do
         local content, err = read_file(tocFile)
         if content then
             -- Look for potentially problematic hardcoded paths
             for line in content:gmatch("[^\r\n]+") do
-                if line:find("Interface/AddOns/HealIQ/") and not line:find("%-%-") then
+                if line:find(HARDCODED_ADDON_PATH) and not line:find("%-%-") then
                     table.insert(hardcodedPaths, {file = tocFile, line = line:gsub("^%s*", "")})
                 end
             end

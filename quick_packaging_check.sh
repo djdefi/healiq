@@ -6,9 +6,25 @@ echo "🔍 Quick Packaging Validation"
 echo "============================="
 
 # Check that key files exist
-echo "Checking critical files..."
+echo "Checking critical files from TOC..."
 missing_files=()
-for file in HealIQ.toc .pkgmeta Core.lua Engine.lua rules/BaseRule.lua; do
+
+# Read critical files from HealIQ.toc instead of hardcoding them
+critical_files=(HealIQ.toc .pkgmeta)
+if [ -f "HealIQ.toc" ]; then
+    # Add Core.lua, Engine.lua, and the first rule file as critical examples
+    critical_files+=(Core.lua Engine.lua)
+    # Add the first rules file we can find in TOC
+    first_rule=$(grep -E "^rules/.*\.lua" HealIQ.toc | head -n1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    if [ -n "$first_rule" ]; then
+        critical_files+=("$first_rule")
+    fi
+else
+    # Fallback to hardcoded list if TOC is missing
+    critical_files+=(Core.lua Engine.lua rules/BaseRule.lua)
+fi
+
+for file in "${critical_files[@]}"; do
     if [ ! -f "$file" ]; then
         missing_files+=("$file")
     fi
