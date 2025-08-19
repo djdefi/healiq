@@ -108,6 +108,17 @@ jobs:
         
         echo "Version consistency check passed!"
         
+    - name: Run HealIQ packaging validation tests
+      run: |
+        echo "Running HealIQ packaging validation tests..."
+        if [ -f "test_packaging.lua" ]; then
+          echo "Executing packaging validation..."
+          lua5.1 test_packaging.lua
+          echo "Packaging validation tests completed successfully!"
+        else
+          echo "Packaging validation test file not found, skipping"
+        fi
+        
     - name: Run HealIQ loading order tests
       run: |
         echo "Running HealIQ loading order regression tests..."

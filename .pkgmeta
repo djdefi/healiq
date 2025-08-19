@@ -15,11 +15,14 @@ move-folders:
         - Tracker.lua
         - Config.lua
         - Logging.lua
+        - Performance.lua
+        - Validation.lua
         - HealIQ.toc
         - README.md
         - LICENSE
         - CHANGELOG.md
         - INSTALL.md
+        - rules/
 
 # Files to ignore (not include in the package)
 ignore:
@@ -28,11 +31,21 @@ ignore:
     - .gitignore
     - DESIGN.md
     - CHANGELOG.md.backup
+    - CHANGELOG.md.bak
     - "*.backup"
+    - "*.bak"
+    - "*.tmp"
+    - "luacov.*"
+    - "coverage*"
     - .pkgmeta
     - Tests.lua
     - test_runner.lua
+    - test_packaging.lua
+    - test_loading_order.lua
     - validate_runner.lua
+    - WoWAPIMock.lua
+    - setup-dev.sh
+    - quick_packaging_check.sh
 
 # Manual changelog - use the CHANGELOG.md file
 manual-changelog: CHANGELOG.md
