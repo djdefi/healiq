@@ -19,7 +19,7 @@ if not HealIQ or type(HealIQ) ~= "table" then
         "HealIQ type: %s, expected: table",
         type(HealIQ)
     )
-    print(errorMsg)
+    if print then print(errorMsg) end
     
     -- Create minimal fallback structure to prevent crashes
     _G.HealIQ = _G.HealIQ or {}

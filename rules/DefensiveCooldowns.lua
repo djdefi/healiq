@@ -7,7 +7,7 @@ local HealIQ = _G.HealIQ
 
 -- Defensive initialization to ensure HealIQ exists
 if not HealIQ or type(HealIQ) ~= "table" then
-    print("HealIQ Error: DefensiveCooldowns.lua loaded before Core.lua - addon not properly initialized")
+    if print then print("HealIQ Error: DefensiveCooldowns.lua loaded before Core.lua - addon not properly initialized") end
     -- Create minimal fallback structure to prevent crashes
     _G.HealIQ = _G.HealIQ or {}
     HealIQ = _G.HealIQ
@@ -19,7 +19,7 @@ local Rules = HealIQ.Rules
 
 -- Defensive check: ensure BaseRule is loaded before proceeding
 if not Rules.BaseRule then
-    print("HealIQ Warning: DefensiveCooldowns loaded before BaseRule")
+    if print then print("HealIQ Warning: DefensiveCooldowns loaded before BaseRule") end
     -- Create a dummy BaseRule to prevent errors
     Rules.BaseRule = {}
 end
