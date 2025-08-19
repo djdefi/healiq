@@ -57,6 +57,11 @@ local TARGET_TYPES = {
         name = "Ground Target",
         icon = ICON_GROUND_TARGET,
         description = "Place on ground"
+    },
+    TANK_RELATIONSHIP = {
+        name = "Tank Relationship",
+        icon = ICON_TANK,
+        description = "Establish beneficial relationship with tank"
     }
 }
 
@@ -519,6 +524,38 @@ function Engine:EvaluateRules()
             table.insert(suggestions, SPELLS.LIFEBLOOM)
             HealIQ:DebugLog("Rule triggered: Lifebloom (" .. suggestReason .. ")")
             HealIQ:LogRuleTrigger("Lifebloom")
+        end
+    end
+
+    -- Rule 2b: Symbiotic Tank Relationships - Suggest establishing beneficial relationships
+    if strategy.suggestTankRelationships ~= false then -- Default enabled, can be disabled
+        local inGroup = IsInGroup() or IsInRaid()
+        local inCombat = InCombatLockdown()
+        
+        if (inGroup or inCombat) and not UnitExists("target") then
+            -- When no target is selected in group/combat, suggest tank relationship
+            table.insert(suggestions, {
+                spellId = SPELLS.LIFEBLOOM.spellId,
+                name = SPELLS.LIFEBLOOM.name,
+                icon = SPELLS.LIFEBLOOM.icon,
+                priority = 8,
+                targetType = "TANK_RELATIONSHIP",
+                reason = "No target selected - consider targeting tank for beneficial relationship"
+            })
+            HealIQ:DebugLog("Rule triggered: Symbiotic Tank Relationship (no target in group)")
+            HealIQ:LogRuleTrigger("SymbioticTankRelationship")
+        elseif inGroup and UnitExists("target") and not UnitIsFriend("player", "target") then
+            -- When targeting enemy in group, suggest switching to tank for support
+            table.insert(suggestions, {
+                spellId = SPELLS.LIFEBLOOM.spellId,
+                name = SPELLS.LIFEBLOOM.name,
+                icon = SPELLS.LIFEBLOOM.icon,
+                priority = 6,
+                targetType = "TANK_RELATIONSHIP",
+                reason = "Consider targeting friendly tank for beneficial relationship"
+            })
+            HealIQ:DebugLog("Rule triggered: Symbiotic Tank Relationship (enemy target)")
+            HealIQ:LogRuleTrigger("SymbioticTankRelationship")
         end
     end
 
