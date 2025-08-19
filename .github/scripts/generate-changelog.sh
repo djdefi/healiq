@@ -38,6 +38,12 @@ categorize_commit() {
         return
     fi
     
+    # Skip Copilot agent "Initial plan" commits - these are PR process artifacts
+    if [[ "$lower_subject" =~ ^initial\ plan$ ]]; then
+        echo "skip"
+        return
+    fi
+    
     # Categorize based on commit message patterns
     if [[ "$lower_subject" =~ ^(feat|feature|add): ]] || [[ "$lower_subject" =~ ^add[[:space:]] ]] || [[ "$lower_subject" =~ added ]]; then
         echo "added"
