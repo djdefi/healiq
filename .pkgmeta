@@ -15,11 +15,14 @@ move-folders:
         - Tracker.lua
         - Config.lua
         - Logging.lua
+        - Performance.lua
+        - Validation.lua
         - HealIQ.toc
         - README.md
         - LICENSE
         - CHANGELOG.md
         - INSTALL.md
+        - rules/
 
 # Files to ignore (not include in the package)
 ignore:
