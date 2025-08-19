@@ -11,6 +11,7 @@ Always reference these instructions first and fallback to search or bash command
   - `luacheck *.lua` - Run linting (takes <1 second)
   - `lua5.1 test_runner.lua` - NEVER CANCEL: Run main test suite, takes <5 seconds. Set timeout to 30+ seconds.
   - `lua5.1 test_loading_order.lua` - Run loading order regression tests (takes <1 second)
+  - `lua5.1 test_packaging.lua` - Run packaging validation tests (takes <1 second)
   - `lua5.1 validate_runner.lua` - Run quick validation (takes <1 second)
 
 - Development workflow commands:
@@ -25,13 +26,29 @@ Always reference these instructions first and fallback to search or bash command
   1. Run `luacheck *.lua` to verify no linting errors
   2. Run `lua5.1 test_runner.lua` to verify all 150+ tests pass
   3. Run `lua5.1 test_loading_order.lua` to verify addon loading order
-  4. Run `lua5.1 validate_runner.lua` to verify quick validation passes
+  4. Run `lua5.1 test_packaging.lua` to verify packaging configuration
+  5. Run `lua5.1 validate_runner.lua` to verify quick validation passes
 - You cannot run the addon outside of World of Warcraft, but the test suite provides comprehensive mocked validation.
 - The addon requires extensive WoW API mocking (CreateFrame, GetTime, UnitHealth, etc.) - use the existing test infrastructure rather than trying to create minimal mocks.
 - For full functionality testing, ALWAYS use `lua5.1 test_runner.lua` which provides complete WoW API simulation.
 - Manual validation without the test runner is limited to syntax checking only.
 - Always run `luacheck *.lua` before you are done or the CI (.github/workflows/test.yml) will fail.
 - NEVER modify the test mocking infrastructure in test_runner.lua or WoWAPIMock.lua unless specifically working on test improvements.
+
+## Critical Packaging Guidelines
+
+- **CRITICAL**: After any file structure changes, ALWAYS run `lua5.1 test_packaging.lua` to prevent distribution issues
+- **TOC-Packaging Sync**: Every file listed in `HealIQ.toc` MUST be included in `.pkgmeta` move-folders section
+- **Missing Files Prevention**: The v0.1.12 critical issue was caused by missing `rules/` directory and `Performance.lua`/`Validation.lua` files in `.pkgmeta`
+- **When adding new files**:
+  1. Add the file to `HealIQ.toc` in the correct loading order position
+  2. Add the file to `.pkgmeta` move-folders → HealIQ section 
+  3. If adding a new directory, include the directory name in `.pkgmeta`
+  4. Run `lua5.1 test_packaging.lua` to verify packaging consistency
+- **When removing files**:
+  1. Remove from `HealIQ.toc` first
+  2. Remove from `.pkgmeta` move-folders section
+  3. Run `lua5.1 test_packaging.lua` to verify no broken references
 
 ## Critical Build and Test Information
 
@@ -65,6 +82,7 @@ Always reference these instructions first and fallback to search or bash command
 - `Tests.lua` - Main test cases (154 total tests)
 - `test_runner.lua` - Primary test execution with WoW API mocking
 - `test_loading_order.lua` - Regression tests for addon loading order  
+- `test_packaging.lua` - Packaging configuration validation tests
 - `validate_runner.lua` - Quick CI validation
 - `WoWAPIMock.lua` - Mock WoW API for testing outside the game
 
@@ -81,13 +99,22 @@ Always reference these instructions first and fallback to search or bash command
 3. Run `lua5.1 test_runner.lua` to verify tests still pass
 4. If adding new rules, ensure they extend from `rules/BaseRule.lua`
 5. If modifying loading order, run `lua5.1 test_loading_order.lua`
+6. **If modifying file structure, run `lua5.1 test_packaging.lua` to verify packaging consistency**
 
-### Adding New Rules
-1. Create new rule file in `rules/` directory extending `BaseRule.lua`
-2. Add the file to `HealIQ.toc` in the appropriate loading order section
-3. Register the rule in `Engine.lua` 
-4. Add tests for the new rule in `Tests.lua`
-5. Run full test suite to verify integration
+### Adding New Files or Directories
+1. Add the file to `HealIQ.toc` in the correct loading order position
+2. Add the file or directory to `.pkgmeta` move-folders → HealIQ section
+3. Run `lua5.1 test_packaging.lua` to verify packaging consistency
+4. If adding new rules, ensure they extend from `rules/BaseRule.lua`
+5. Add tests for new functionality in `Tests.lua`
+6. Run full test suite to verify integration
+
+### Removing Files or Directories  
+1. Remove from `HealIQ.toc` first
+2. Remove from `.pkgmeta` move-folders section
+3. Run `lua5.1 test_packaging.lua` to verify no broken references
+4. Remove related tests from `Tests.lua`
+5. Run full test suite to verify no broken dependencies
 
 ### Debugging Issues
 1. Enable debug mode: Set `HealIQ.debug = true` in Core.lua
@@ -112,24 +139,30 @@ lua5.1 test_loading_order.lua
 ```
 Expected: Output shows "✓ All loading order tests passed!" with 3/3 tests passed.
 
-### Scenario 3: Quick Health Check
+### Scenario 3: Packaging Configuration Validation
+```bash
+lua5.1 test_packaging.lua
+```
+Expected: Output shows "✅ All packaging validation tests passed!" with 8/8 tests passed.
+
+### Scenario 4: Quick Health Check
 ```bash
 lua5.1 validate_runner.lua
 ```
 Expected: Output shows "Quick validation completed successfully".
 
-### Scenario 4: Full CI Pipeline Simulation
+### Scenario 5: Full CI Pipeline Simulation
 ```bash
 # Syntax check
 for file in *.lua; do luac -p "$file" || exit 1; done
 # Linting  
 luacheck *.lua
 # All tests
-lua5.1 test_runner.lua && lua5.1 test_loading_order.lua && lua5.1 validate_runner.lua
+lua5.1 test_runner.lua && lua5.1 test_loading_order.lua && lua5.1 test_packaging.lua && lua5.1 validate_runner.lua
 ```
 Expected: All commands succeed with no errors.
 
-### Scenario 5: Simple Manual Validation (No WoW API Required)
+### Scenario 6: Simple Manual Validation (No WoW API Required)
 ```lua
 lua5.1 -e '
 local files = {"Core.lua", "Engine.lua", "UI.lua", "Tracker.lua", "Config.lua"}
@@ -181,8 +214,51 @@ The GitHub Actions workflow (`.github/workflows/test.yml`) requires:
 - Addon structure validation (HealIQ.toc format and file references)
 - Version consistency between HealIQ.toc and Core.lua
 - All loading order tests pass
+- **All packaging validation tests pass (prevents v0.1.12-style distribution issues)**
 - All logic tests pass (154/154 success rate required)
 - Coverage analysis completes successfully
+
+## Packaging Configuration Management
+
+**CRITICAL**: The v0.1.12 issue was caused by incomplete `.pkgmeta` configuration leading to missing files in distribution packages.
+
+### .pkgmeta File Structure
+The `.pkgmeta` file controls what gets packaged for CurseForge/WoWInterface distribution:
+- `move-folders` → `HealIQ` section: Lists all files/directories to include
+- `ignore` section: Lists files/directories to exclude from packaging
+
+### Packaging Validation Rules
+1. **Every file in `HealIQ.toc` MUST be listed in `.pkgmeta` move-folders section**
+2. **Critical directories like `rules/` must be explicitly included**
+3. **Test files MUST be excluded** via the ignore section
+4. **Version consistency** between TOC and Core.lua files must be maintained
+
+### Common Packaging Mistakes to Avoid
+- ❌ Adding files to TOC without updating .pkgmeta (causes v0.1.12-style errors)
+- ❌ Missing directory entries in .pkgmeta (causes entire directories to be missing from packages)
+- ❌ Including test files in packages (bloats addon size unnecessarily)
+- ❌ Missing ignore entries for development-only files
+- ❌ Hardcoded addon paths that break in different install locations
+- ❌ Including build artifacts, coverage files, or backup files in packages
+- ❌ Large files (>1MB) being included without justification
+- ❌ Version mismatches between different files referencing the addon version
+
+### Packaging Validation Test Coverage
+The `test_packaging.lua` validates:
+- TOC-pkgmeta consistency (prevents missing file errors)
+- File existence verification
+- Critical files inclusion check
+- Version consistency validation  
+- Proper ignore list configuration
+- Dependency resolution validation
+- Hardcoded path detection
+- File size sanity checks
+- TOC metadata completeness
+
+### Related Validation Tools
+- `./quick_packaging_check.sh` - Fast packaging sanity check for file changes
+- `lua5.1 test_loading_order.lua` - Validates addon loading sequence
+- CI pipeline automatically runs all packaging validation tests
 
 ## Common Command Reference
 
@@ -195,8 +271,11 @@ The GitHub Actions workflow (`.github/workflows/test.yml`) requires:
 luacheck *.lua
 lua5.1 test_runner.lua
 
+# Quick packaging check (run after file structure changes)
+./quick_packaging_check.sh
+
 # Full validation (run before commits)
-luacheck *.lua && lua5.1 test_runner.lua && lua5.1 test_loading_order.lua && lua5.1 validate_runner.lua
+luacheck *.lua && lua5.1 test_runner.lua && lua5.1 test_loading_order.lua && lua5.1 test_packaging.lua && lua5.1 validate_runner.lua
 ```
 
 ### File Structure at Repository Root
