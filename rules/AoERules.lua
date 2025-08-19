@@ -7,7 +7,7 @@ local HealIQ = _G.HealIQ
 
 -- Defensive initialization to ensure HealIQ exists
 if not HealIQ or type(HealIQ) ~= "table" then
-    print("HealIQ Error: AoERules.lua loaded before Core.lua - addon not properly initialized")
+    if print then print("HealIQ Error: AoERules.lua loaded before Core.lua - addon not properly initialized") end
     -- Create minimal fallback structure to prevent crashes
     _G.HealIQ = _G.HealIQ or {}
     HealIQ = _G.HealIQ
