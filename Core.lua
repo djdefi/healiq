@@ -97,6 +97,7 @@ local defaults = {
         flourishMinHots = 2,                     -- Minimum expiring HoTs to suggest Flourish
         recentDamageWindow = 3,                  -- Time window to consider "recent damage" (seconds)
         lowHealthThreshold = 0.3,                -- Health percentage to consider "emergency"
+        suggestTankRelationships = true,         -- Suggest establishing tank support relationships
     }
 }
 

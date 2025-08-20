@@ -147,13 +147,23 @@ local function setupMockEnvironment()
         local spells = {
             [774] = "Rejuvenation",
             [8936] = "Regrowth",
-            [5185] = "Healing Touch"
+            [5185] = "Healing Touch",
+            [740] = "Tranquility"
         }
         local name = spells[spellId] or "Unknown Spell"
         return name, nil, nil, nil, nil, nil, spellId
     end
     _G.IsSpellKnown = function(spellId) return true end
-    _G.GetSpellCooldown = function(spellId) return 0, 0, 0, 0 end
+    
+    -- Mock cooldown system that can be controlled by tests
+    local mockCooldowns = {}
+    _G.SetMockSpellCooldown = function(spellId, startTime, duration)
+        mockCooldowns[spellId] = {start = startTime, duration = duration}
+    end
+    _G.GetSpellCooldown = function(spellId)
+        local cd = mockCooldowns[spellId] or {start = 0, duration = 0}
+        return cd.start, cd.duration, 1, 0
+    end
 
     -- Mock saved variables
     _G.HealIQDB = {}

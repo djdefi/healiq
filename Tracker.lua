@@ -134,18 +134,36 @@ function Tracker:UpdateCooldowns()
                 startTime, duration, isEnabled = GetSpellCooldown(spellId)
             end
 
-            -- Defensive check: ensure we got valid values and spell is on cooldown
-            if startTime and duration and isEnabled and startTime > 0 and duration > 0 then
-                local remaining = (startTime + duration) - currentTime
-                trackedData.cooldowns[spellName] = {
-                    remaining = math.max(0, remaining),
-                    ready = remaining <= 0,
-                    start = startTime,
-                    duration = duration
-                }
+            -- Defensive check: ensure we got valid values
+            if startTime and duration and isEnabled then
+                -- Handle different cooldown states
+                if startTime > 0 and duration > 0 then
+                    -- Spell is on cooldown
+                    local remaining = math.max(0, (startTime + duration) - currentTime)
+                    trackedData.cooldowns[spellName] = {
+                        remaining = remaining,
+                        ready = remaining <= 0.1,  -- Add small tolerance for timing issues
+                        start = startTime,
+                        duration = duration
+                    }
+                else
+                    -- Spell is ready (not on cooldown)
+                    trackedData.cooldowns[spellName] = {
+                        remaining = 0,
+                        ready = true,
+                        start = 0,
+                        duration = 0
+                    }
+                end
             else
-                -- Clear any existing data when spell is not on cooldown
-                trackedData.cooldowns[spellName] = nil
+                -- API call failed, assume spell is ready but log the issue
+                HealIQ:DebugLog("Cooldown API call failed for " .. spellName)
+                trackedData.cooldowns[spellName] = {
+                    remaining = 0,
+                    ready = true,
+                    start = 0,
+                    duration = 0
+                }
             end
         end)
     end
@@ -422,9 +440,15 @@ end
 
 function Tracker:IsSpellReady(spellName)
     local cooldown = trackedData.cooldowns[spellName]
-    -- If no cooldown entry exists, the spell is ready (not on cooldown)
-    -- If cooldown entry exists, check if it's marked as ready
-    return not cooldown or cooldown.ready
+    -- If no cooldown entry exists, assume the spell is ready
+    -- If cooldown entry exists, check the ready flag
+    if cooldown then
+        return cooldown.ready
+    else
+        -- No cooldown data - assume ready, but this shouldn't happen after the fix
+        HealIQ:DebugLog("No cooldown data for " .. spellName .. ", assuming ready")
+        return true
+    end
 end
 
 function Tracker:CanSwiftmend()

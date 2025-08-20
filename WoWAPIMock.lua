@@ -163,6 +163,12 @@ function WoWAPIMock.GetSpellCooldown(spellID)
     return cooldown.start, cooldown.duration, 1
 end
 
+-- Mock C_Spell API for newer WoW versions
+WoWAPIMock.C_Spell = {}
+function WoWAPIMock.C_Spell.GetSpellCooldown(spellID)
+    return WoWAPIMock.GetSpellCooldown(spellID)
+end
+
 function WoWAPIMock.GetSpellInfo(spellID)
     local spellNames = {
         [774] = "Rejuvenation",
@@ -299,6 +305,7 @@ function WoWAPIMock.Install()
     -- Spell functions
     _G.GetSpellCooldown = WoWAPIMock.GetSpellCooldown
     _G.GetSpellInfo = WoWAPIMock.GetSpellInfo
+    _G.C_Spell = WoWAPIMock.C_Spell
 
     -- Combat log
     _G.CombatLogGetCurrentEventInfo = WoWAPIMock.CombatLogGetCurrentEventInfo

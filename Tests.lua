@@ -111,6 +111,7 @@ function Tests.RunAll()
     Tests.TestUI()
     Tests.TestConfig()
     Tests.TestTracker()
+    Tests.TestCooldownRegressions()  -- Test for Issue #119
     Tests.TestLogging()
     Tests.TestDataStructures()
     Tests.TestLoadingOrder()
@@ -965,6 +966,96 @@ function Tests.TestDataStructures()
                 Tests.AssertType("number", HealIQ.sessionStats[field],
                     "DataStructures: " .. field .. " is number")
             end
+        end
+    end
+end
+
+-- Test cooldown regression issues (Issue #119)
+function Tests.TestCooldownRegressions()
+    HealIQ:Print("Running cooldown regression tests...")
+
+    if not HealIQ.Tracker then
+        Tests.Assert(false, "Tracker: Module not loaded for cooldown tests")
+        return
+    end
+
+    -- Test Tranquility cooldown tracking
+    if HealIQ.Tracker.IsSpellReady then
+        Tests.AssertType("function", HealIQ.Tracker.IsSpellReady, "Tracker: IsSpellReady is function")
+
+        -- Test 1: Tranquility on cooldown should not be suggested
+        local tranquilityId = 740 -- Tranquility spell ID
+        local currentTime = GetTime()
+        
+        -- Set Tranquility on a 3-minute cooldown (started 60 seconds ago, 120 remaining)
+        SetMockSpellCooldown(tranquilityId, currentTime - 60, 180)
+        
+        -- Force cooldown update
+        if HealIQ.Tracker.UpdateCooldowns then
+            local success = pcall(function()
+                HealIQ.Tracker:UpdateCooldowns()
+            end)
+            Tests.Assert(success, "Tracker: UpdateCooldowns executes without error")
+        end
+
+        -- Test that Tranquility is correctly marked as not ready
+        local success, isReady = pcall(function()
+            return HealIQ.Tracker:IsSpellReady("tranquility")
+        end)
+        
+        if success then
+            local cd = HealIQ.Tracker:GetCooldownInfo("tranquility")
+            local cooldownInfo = cd and string.format("remaining=%.1f, ready=%s", cd.remaining or 0, tostring(cd.ready)) or "no cooldown data"
+            Tests.Assert(not isReady, "Cooldown Regression: Tranquility on cooldown should not be ready")
+        end
+
+        -- Test 2: Spell should be ready when cooldown expires
+        SetMockSpellCooldown(tranquilityId, currentTime - 181, 180) -- Expired 1 second ago
+        
+        if HealIQ.Tracker.UpdateCooldowns then
+            pcall(function()
+                HealIQ.Tracker:UpdateCooldowns()
+            end)
+        end
+
+        local success2, isReady2 = pcall(function()
+            return HealIQ.Tracker:IsSpellReady("tranquility")
+        end)
+        
+        if success2 then
+            Tests.Assert(isReady2, "Cooldown Regression: Tranquility should be ready when cooldown expires")
+        end
+
+        -- Test 3: Edge case - very short remaining cooldown (sub-second)
+        SetMockSpellCooldown(tranquilityId, currentTime - 0.5, 1.0) -- Started 0.5 seconds ago, 0.5 seconds remaining
+        
+        if HealIQ.Tracker.UpdateCooldowns then
+            pcall(function()
+                HealIQ.Tracker:UpdateCooldowns()
+            end)
+        end
+
+        local success3, isReady3 = pcall(function()
+            return HealIQ.Tracker:IsSpellReady("tranquility")
+        end)
+        
+        if success3 then
+            Tests.Assert(not isReady3, "Cooldown Regression: Short cooldowns should be handled correctly")
+        end
+    end
+
+    -- Test symbiotic relationship detection
+    if HealIQ.Engine and HealIQ.Engine.EvaluateRules then
+        -- Test scenario where no beneficial relationships exist
+        -- This should suggest establishing tank relationships
+        -- Note: Full testing requires more complex mock setup, so we'll just verify the function exists
+        local success, suggestions = pcall(function()
+            return HealIQ.Engine:EvaluateRules() or {}
+        end)
+
+        if success then
+            Tests.AssertType("table", suggestions, "Cooldown Regression: EvaluateRules returns suggestions table")
+            -- The actual symbiotic relationship logic will be added in the next fix
         end
     end
 end
