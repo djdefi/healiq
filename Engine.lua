@@ -444,20 +444,8 @@ function Engine:GetTalentRecommendations()
     return recommendations
 end
 
-function Engine:EvaluateRules()
-    local tracker = HealIQ.Tracker
-    if not tracker then
-        return nil
-    end
-
-    if not HealIQ.db or not HealIQ.db.rules then
-        return nil
-    end
-
-    local suggestions = {}
-    local strategy = HealIQ.db.strategy or {}
-    HealIQ:DebugLog("Starting rule evaluation with enhanced strategy")
-
+-- Helper method for emergency/major cooldown evaluation
+function Engine:EvaluateEmergencyCooldowns(suggestions, tracker, strategy)
     -- Rule 1: Emergency/Major Cooldowns (Highest Priority)
 
     -- Tranquility if off cooldown and enough allies recently damaged
@@ -480,7 +468,10 @@ function Engine:EvaluateRules()
         HealIQ:DebugLog("Rule triggered: Nature's Swiftness")
         HealIQ:LogRuleTrigger("Nature's Swiftness")
     end
+end
 
+-- Helper method for core maintenance rules
+function Engine:EvaluateCoreMaintenanceRules(suggestions, tracker, strategy)
     -- Rule 2: Core Maintenance (High Priority - keep these active)
 
     -- Efflorescence - "keep active as frequently as possible"
@@ -526,7 +517,10 @@ function Engine:EvaluateRules()
             HealIQ:LogRuleTrigger("Lifebloom")
         end
     end
+end
 
+-- Helper method for symbiotic tank relationship rules
+function Engine:EvaluateSymbioticTankRules(suggestions, tracker, strategy)
     -- Rule 2b: Symbiotic Tank Relationships - Suggest establishing beneficial relationships
     if strategy.suggestTankRelationships ~= false then -- Default enabled, can be disabled
         local inGroup = IsInGroup() or IsInRaid()
@@ -558,7 +552,10 @@ function Engine:EvaluateRules()
             HealIQ:LogRuleTrigger("SymbioticTankRelationship")
         end
     end
+end
 
+-- Helper method for proc-based spell evaluation
+function Engine:EvaluateProcBasedRules(suggestions, tracker, strategy)
     -- Rule 3: Proc-based spells (High Priority when available)
 
     -- Clearcasting active → Prioritize Regrowth
@@ -567,7 +564,10 @@ function Engine:EvaluateRules()
         HealIQ:DebugLog("Rule triggered: Regrowth (Clearcasting proc)")
         HealIQ:LogRuleTrigger("Regrowth")
     end
+end
 
+-- Helper method for AoE healing combo evaluation
+function Engine:EvaluateAoEHealingRules(suggestions, tracker, strategy)
     -- Rule 4: AoE Healing Combo (Swiftmend → Wild Growth)
 
     -- Swiftmend for immediate healing (enhanced logic)
@@ -603,7 +603,10 @@ function Engine:EvaluateRules()
             HealIQ:LogRuleTrigger("Wild Growth")
         end
     end
+end
 
+-- Helper method for cooldown management evaluation
+function Engine:EvaluateCooldownManagement(suggestions, tracker, strategy)
     -- Rule 5: Cooldown Management
 
     -- Grove Guardians - pool charges for big cooldowns
@@ -619,7 +622,10 @@ function Engine:EvaluateRules()
         HealIQ:DebugLog("Rule triggered: Flourish")
         HealIQ:LogRuleTrigger("Flourish")
     end
+end
 
+-- Helper method for defensive/utility rules
+function Engine:EvaluateDefensiveUtilityRules(suggestions, tracker, strategy)
     -- Rule 6: Defensive/Utility
 
     -- Ironbark for damage reduction on target
@@ -635,7 +641,10 @@ function Engine:EvaluateRules()
         HealIQ:DebugLog("Rule triggered: Barkskin")
         HealIQ:LogRuleTrigger("Barkskin")
     end
+end
 
+-- Helper method for ramping HoT evaluation
+function Engine:EvaluateRampingHotRules(suggestions, tracker, strategy)
     -- Rule 7: Ramping HoTs (Context-dependent priority)
 
     -- Rejuvenation logic - avoid random casts during downtime
@@ -673,7 +682,10 @@ function Engine:EvaluateRules()
         HealIQ:DebugLog("Rule triggered: Rejuvenation (" .. rejuvReason .. ")")
         HealIQ:LogRuleTrigger("Rejuvenation")
     end
+end
 
+-- Helper method for filler/mana management evaluation
+function Engine:EvaluateFillerManaRules(suggestions, tracker, strategy)
     -- Rule 8: Filler/Mana Management
 
     -- Wrath for mana restoration during downtime
@@ -682,6 +694,32 @@ function Engine:EvaluateRules()
         HealIQ:DebugLog("Rule triggered: Wrath (mana filler)")
         HealIQ:LogRuleTrigger("Wrath")
     end
+end
+
+function Engine:EvaluateRules()
+    local tracker = HealIQ.Tracker
+    if not tracker then
+        return nil
+    end
+
+    if not HealIQ.db or not HealIQ.db.rules then
+        return nil
+    end
+
+    local suggestions = {}
+    local strategy = HealIQ.db.strategy or {}
+    HealIQ:DebugLog("Starting rule evaluation with enhanced strategy")
+
+    -- Evaluate all rule categories using helper methods
+    self:EvaluateEmergencyCooldowns(suggestions, tracker, strategy)
+    self:EvaluateCoreMaintenanceRules(suggestions, tracker, strategy)
+    self:EvaluateSymbioticTankRules(suggestions, tracker, strategy)
+    self:EvaluateProcBasedRules(suggestions, tracker, strategy)
+    self:EvaluateAoEHealingRules(suggestions, tracker, strategy)
+    self:EvaluateCooldownManagement(suggestions, tracker, strategy)
+    self:EvaluateDefensiveUtilityRules(suggestions, tracker, strategy)
+    self:EvaluateRampingHotRules(suggestions, tracker, strategy)
+    self:EvaluateFillerManaRules(suggestions, tracker, strategy)
 
     HealIQ:DebugLog("Rule evaluation completed, " .. #suggestions .. " suggestions found")
 
