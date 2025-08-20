@@ -265,51 +265,6 @@ function HealIQ:Message(message, isError)
 end
 
 -- Main addon initialization
--- Initialize rule system after all files have been loaded
--- This ensures rules are properly initialized regardless of file loading order
-function HealIQ:InitializeRules()
-    self:SafeCall(function()
-        self:DebugLog("Initializing rule system...")
-        
-        -- Verify that rule files loaded successfully
-        local ruleFiles = {
-            "BaseRule",
-            "DefensiveCooldowns",
-            "HealingCooldowns",
-            "UtilityRules",
-            "AoERules",
-            "OffensiveRules"
-        }
-        
-        local loadedRules = 0
-        local failedRules = {}
-        
-        for _, ruleName in ipairs(ruleFiles) do
-            if self.Rules and self.Rules[ruleName] then
-                loadedRules = loadedRules + 1
-                self:DebugLog("✓ Rule loaded: " .. ruleName)
-            else
-                table.insert(failedRules, ruleName)
-                self:DebugLog("✗ Rule missing: " .. ruleName, "WARN")
-            end
-        end
-        
-        if #failedRules > 0 then
-            self:Print("Warning: Some rule files failed to load: " .. table.concat(failedRules, ", "))
-            self:DebugLog("Failed rules may cause reduced functionality", "WARN")
-        else
-            self:DebugLog("All " .. loadedRules .. " rule files loaded successfully")
-        end
-        
-        -- Verify BaseRule is available for other rules
-        if self.Rules.BaseRule then
-            self:DebugLog("BaseRule methods available for other rules")
-        else
-            self:Print("Error: BaseRule failed to load - rule functionality may be limited")
-        end
-    end)
-end
-
 function HealIQ:OnInitialize()
     self:SafeCall(function()
         self:InitializeDB()
@@ -320,9 +275,6 @@ function HealIQ:OnInitialize()
             self.Logging:InitializeVariables()
         end
         self:InitializeSessionStats()
-
-        -- Initialize rule system after all files are loaded
-        self:InitializeRules()
 
         -- Initialize new quality modules
         if self.Performance then

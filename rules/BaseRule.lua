@@ -16,8 +16,7 @@ if not HealIQ or type(HealIQ) ~= "table" then
     -- Enhanced error reporting for better debugging
     local errorMsg = string.format(
         "HealIQ Error: BaseRule.lua loaded before Core.lua - addon not properly initialized. " ..
-        "HealIQ type: %s, expected: table. " ..
-        "This may cause TOC loading errors but should not break addon functionality.",
+        "HealIQ type: %s, expected: table",
         type(HealIQ)
     )
     if print then print(errorMsg) end
