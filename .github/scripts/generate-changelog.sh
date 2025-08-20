@@ -179,18 +179,30 @@ update_changelog_file() {
     if grep -q "## \[$version\]" CHANGELOG.md; then
         echo "Updating existing changelog entry for version $version..."
         
+        # Escape dots in version for regex matching
+        local escaped_version=$(echo "$version" | sed 's/\./\\./g')
+        
+        # Find the next version section after the current one to avoid duplication
+        local current_line next_version_line
+        current_line=$(grep -n "^## \[$escaped_version\]" CHANGELOG.md | cut -d: -f1)
+        next_version_line=$(grep -n "^## \[" CHANGELOG.md | awk -F: -v current="$current_line" '$1 > current {print $1; exit}')
+        
         # Create temporary file with updated content
         {
             # Keep everything before this version
-            sed "/## \[$version\]/q" CHANGELOG.md | head -n -1
+            sed "/## \[$escaped_version\]/q" CHANGELOG.md | head -n -1
             
             # Add the new version entry
             echo "## [$version] - $current_date"
             echo ""
             echo -e "$changelog_entries"
             
-            # Add everything after this version (skip the old entry)
-            sed -n "/## \[$version\]/,/## \[/p" CHANGELOG.md | tail -n +1 | grep -A999999 "^## \[" | tail -n +2
+            # Add everything after this version (from the next version onwards)
+            if [ -n "$next_version_line" ]; then
+                # There is a next version, so include everything from that line onwards
+                tail -n +$next_version_line CHANGELOG.md
+            fi
+            # If there's no next version, we don't add anything (this is the last/only version)
         } > CHANGELOG.md.tmp
         
         mv CHANGELOG.md.tmp CHANGELOG.md
@@ -215,12 +227,28 @@ update_changelog_file() {
     echo "Changelog updated for version $version"
 }
 
-# Function to validate that changelog entry is not empty
+# Function to validate that changelog entry is not empty and has no duplicates
 validate_changelog_entry() {
     local version="$1"
     
+    # Escape dots in version for regex matching
+    local escaped_version=$(echo "$version" | sed 's/\./\\./g')
+    
     # Extract the changelog section for this version
-    local section=$(sed -n "/## \[$version\]/,/## \[/p" CHANGELOG.md | head -n -1)
+    local section=$(sed -n "/## \[$escaped_version\]/,/## \[/p" CHANGELOG.md | head -n -1)
+    
+    # Check for duplicate sections
+    local added_sections=$(echo "$section" | grep -c "^### Added" || true)
+    local changed_sections=$(echo "$section" | grep -c "^### Changed" || true)
+    local fixed_sections=$(echo "$section" | grep -c "^### Fixed" || true)
+    
+    if [ $added_sections -gt 1 ] || [ $changed_sections -gt 1 ] || [ $fixed_sections -gt 1 ]; then
+        echo "ERROR: Duplicate sections detected in changelog for version $version"
+        echo "  Added sections: $added_sections"
+        echo "  Changed sections: $changed_sections"
+        echo "  Fixed sections: $fixed_sections"
+        return 1
+    fi
     
     # Count non-empty entries in each section (if they exist)
     local added_content=0
