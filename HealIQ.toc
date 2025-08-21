@@ -2,7 +2,7 @@
 ## Title: HealIQ
 ## Notes: Smart healing spell suggestion addon for Restoration Druids
 ## Author: djdefi
-## Version: 0.1.14
+## Version: 0.2.0
 ## SavedVariables: HealIQDB
 ## DefaultState: enabled
 ## X-Category: Healing
