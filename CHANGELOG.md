@@ -11,3 +11,4 @@
 - Revert incorrect TOC error handling - fix fundamental misunderstanding
 
 ## [0.1.14] - 2025-08-20
+
