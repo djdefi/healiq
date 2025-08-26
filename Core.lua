@@ -277,6 +277,52 @@ local function initializeCore()
     end
     HealIQ:InitializeSessionStats()
 
+    -- Register other core components that depend on Core
+    if HealIQ.InitRegistry then
+        -- Register core modules
+        HealIQ.InitRegistry:RegisterComponent("Performance", function()
+            if HealIQ.Performance and HealIQ.Performance.Initialize then
+                HealIQ.Performance:Initialize()
+                HealIQ:DebugLog("Performance monitoring initialized")
+            end
+        end, {"Core"})
+
+        HealIQ.InitRegistry:RegisterComponent("Validation", function()
+            if HealIQ.Validation and HealIQ.Validation.Initialize then
+                HealIQ.Validation:Initialize()
+                HealIQ:DebugLog("Validation system initialized")
+            end
+        end, {"Core"})
+
+        HealIQ.InitRegistry:RegisterComponent("Tracker", function()
+            if HealIQ.Tracker and HealIQ.Tracker.Initialize then
+                HealIQ.Tracker:Initialize()
+                HealIQ:DebugLog("Tracker module initialized")
+            end
+        end, {"Core"})
+
+        HealIQ.InitRegistry:RegisterComponent("Engine", function()
+            if HealIQ.Engine and HealIQ.Engine.Initialize then
+                HealIQ.Engine:Initialize()
+                HealIQ:DebugLog("Engine module initialized")
+            end
+        end, {"Core"})
+
+        HealIQ.InitRegistry:RegisterComponent("UI", function()
+            if HealIQ.UI and HealIQ.UI.Initialize then
+                HealIQ.UI:Initialize()
+                HealIQ:DebugLog("UI module initialized")
+            end
+        end, {"Core"})
+
+        HealIQ.InitRegistry:RegisterComponent("Config", function()
+            if HealIQ.Config and HealIQ.Config.Initialize then
+                HealIQ.Config:Initialize()
+                HealIQ:DebugLog("Config module initialized")
+            end
+        end, {"Core"})
+    end
+
     HealIQ:Message("HealIQ Core " .. HealIQ.version .. " initialized successfully")
     HealIQ:DebugLog("HealIQ Core initialization completed successfully", "INFO")
 end

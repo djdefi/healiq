@@ -1,30 +1,22 @@
 -- HealIQ Rules/HealingCooldowns.lua
 -- Healing cooldown rules (Tranquility, Nature's Swiftness, Incarnation)
 
--- Access HealIQ from global namespace (established by Core.lua)
--- This is the correct pattern for WoW addon files loaded after the main file
+-- Use robust global access pattern that works with new Init system
 local HealIQ = _G.HealIQ
 
--- Defensive initialization to ensure HealIQ exists
-if not HealIQ or type(HealIQ) ~= "table" then
-    if print then print("HealIQ Error: HealingCooldowns.lua loaded before Core.lua - addon not properly initialized") end
-    -- Create minimal fallback structure to prevent crashes
-    _G.HealIQ = _G.HealIQ or {}
-    HealIQ = _G.HealIQ
+-- Ensure HealIQ is available (Init.lua should have created it)
+if not HealIQ then
+    -- Graceful exit if init system not ready
+    if print then print("|cFFFF0000HealIQ Error:|r HealingCooldowns.lua loaded before Init.lua") end
+    return
 end
 
 -- Initialize Rules namespace
 HealIQ.Rules = HealIQ.Rules or {}
 local Rules = HealIQ.Rules
 
--- Defensive check: ensure BaseRule is loaded before proceeding
-if not Rules.BaseRule then
-    if print then print("HealIQ Warning: HealingCooldowns loaded before BaseRule") end
-    -- Create a dummy BaseRule to prevent errors
-    Rules.BaseRule = {}
-end
-
-local BaseRule = Rules.BaseRule
+-- Access BaseRule safely (might not be loaded yet)
+local BaseRule = Rules.BaseRule or {}
 
 Rules.HealingCooldowns = {}
 local HealingCooldowns = Rules.HealingCooldowns
@@ -94,4 +86,19 @@ function HealingCooldowns:ShouldUseNaturesSwiftness(tracker)
     end
     
     return naturesSwiftnessReady and shouldSuggest
+end
+
+-- Register HealingCooldowns rules with the initialization system
+local function initializeHealingCooldowns()
+    -- Rule-specific initialization would go here
+    HealIQ:DebugLog("HealingCooldowns rules initialized successfully", "INFO")
+end
+
+-- Register with initialization system
+if HealIQ.InitRegistry then
+    HealIQ.InitRegistry:RegisterComponent("HealingCooldowns", initializeHealingCooldowns, {"BaseRule"})
+else
+    -- Fallback if Init.lua didn't load properly
+    HealIQ:DebugLog("Init system not available, using fallback initialization for HealingCooldowns", "WARN")
+    HealIQ:SafeCall(initializeHealingCooldowns)
 end

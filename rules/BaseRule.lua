@@ -45,7 +45,7 @@ function Rules:RegisterRule(ruleName, ruleImplementation)
         HealIQ:DebugLog("Invalid rule registration: " .. tostring(ruleName), "ERROR")
         return false
     end
-    
+
     ruleRegistry[ruleName] = ruleImplementation
     HealIQ:DebugLog("Rule registered: " .. ruleName, "INFO")
     return true
@@ -68,7 +68,7 @@ function BaseRule:GetRecentlyDamagedCount(seconds)
     seconds = seconds or 3
     local currentTime = GetTime and GetTime() or 0
     local count = 0
-    
+
     local tracker = HealIQ.Tracker
     if tracker and tracker.trackedData and tracker.trackedData.recentDamage then
         for timestamp, _ in pairs(tracker.trackedData.recentDamage) do
@@ -77,7 +77,7 @@ function BaseRule:GetRecentlyDamagedCount(seconds)
             end
         end
     end
-    
+
     return count
 end
 
@@ -99,11 +99,11 @@ function BaseRule:GetHealthPercent(unit)
     unit = unit or "player"
     local health = UnitHealth and UnitHealth(unit) or 100
     local maxHealth = UnitHealthMax and UnitHealthMax(unit) or 100
-    
+
     if maxHealth == 0 then
         return 100
     end
-    
+
     return (health / maxHealth) * 100
 end
 
@@ -124,7 +124,7 @@ function BaseRule:ShouldTrigger()
 end
 
 function BaseRule:GetPriority()
-    -- Override this in specific rule implementations  
+    -- Override this in specific rule implementations
     return 50 -- Default medium priority
 end
 
@@ -157,7 +157,7 @@ function BaseRule:GetRecentDamageCount(tracker, seconds)
     seconds = seconds or 5
     local currentTime = GetTime and GetTime() or 0
     local count = 0
-    
+
     if tracker and tracker.trackedData and tracker.trackedData.recentDamage then
         for timestamp, _ in pairs(tracker.trackedData.recentDamage) do
             if currentTime - timestamp <= seconds then
@@ -165,7 +165,7 @@ function BaseRule:GetRecentDamageCount(tracker, seconds)
             end
         end
     end
-    
+
     return count
 end
 
@@ -187,11 +187,11 @@ function BaseRule:GetHealthPercent(unit)
     unit = unit or "player"
     local health = UnitHealth and UnitHealth(unit) or 100
     local maxHealth = UnitHealthMax and UnitHealthMax(unit) or 100
-    
+
     if maxHealth == 0 then
         return 100
     end
-    
+
     return (health / maxHealth) * 100
 end
 
