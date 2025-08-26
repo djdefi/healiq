@@ -15,7 +15,7 @@ local HealIQ = _G.HealIQ
 if not HealIQ then
     -- Fallback error handling for extreme cases
     if print then
-        print("|cFFFF0000HealIQ Critical Error:|r BaseRule.lua loaded before Init.lua - check TOC loading order")
+        print("|cFFFF0000HealIQ Critical Error:|r BaseRule.lua loaded before Init.lua - addon not properly initialized")
     end
     return -- Exit gracefully
 end
@@ -140,7 +140,9 @@ end
 
 -- Register BaseRule module with the initialization system
 local function initializeBaseRule()
-    HealIQ:DebugLog("BaseRule initialized - rule registry ready", "INFO")
+    if HealIQ and HealIQ.DebugLog then
+        HealIQ:DebugLog("BaseRule initialized - rule registry ready", "INFO")
+    end
 end
 
 -- Register with initialization system
@@ -148,8 +150,18 @@ if HealIQ.InitRegistry then
     HealIQ.InitRegistry:RegisterComponent("BaseRule", initializeBaseRule, {})
 else
     -- Fallback if Init.lua didn't load properly
-    HealIQ:DebugLog("Init system not available, using fallback initialization for BaseRule", "WARN")
-    HealIQ:SafeCall(initializeBaseRule)
+    if HealIQ and HealIQ.DebugLog then
+        HealIQ:DebugLog("Init system not available, using fallback initialization for BaseRule", "WARN")
+    end
+    if HealIQ and HealIQ.SafeCall then
+        HealIQ:SafeCall(initializeBaseRule)
+    else
+        -- Last resort - call directly but handle errors
+        local success, err = pcall(initializeBaseRule)
+        if not success and print then
+            print("HealIQ Error: Failed to initialize BaseRule: " .. tostring(err))
+        end
+    end
 end
 
 -- Common rule utilities that can be used by all rule types

@@ -7,7 +7,7 @@ local HealIQ = _G.HealIQ
 -- Ensure HealIQ is available (Init.lua should have created it)
 if not HealIQ then
     -- Graceful exit if init system not ready
-    if print then print("|cFFFF0000HealIQ Error:|r HealingCooldowns.lua loaded before Init.lua") end
+    if print then print("|cFFFF0000HealIQ Error:|r HealingCooldowns.lua loaded before Init.lua - addon not properly initialized") end
     return
 end
 
@@ -91,7 +91,9 @@ end
 -- Register HealingCooldowns rules with the initialization system
 local function initializeHealingCooldowns()
     -- Rule-specific initialization would go here
-    HealIQ:DebugLog("HealingCooldowns rules initialized successfully", "INFO")
+    if HealIQ and HealIQ.DebugLog then
+        HealIQ:DebugLog("HealingCooldowns rules initialized successfully", "INFO")
+    end
 end
 
 -- Register with initialization system
@@ -99,6 +101,16 @@ if HealIQ.InitRegistry then
     HealIQ.InitRegistry:RegisterComponent("HealingCooldowns", initializeHealingCooldowns, {"BaseRule"})
 else
     -- Fallback if Init.lua didn't load properly
-    HealIQ:DebugLog("Init system not available, using fallback initialization for HealingCooldowns", "WARN")
-    HealIQ:SafeCall(initializeHealingCooldowns)
+    if HealIQ and HealIQ.DebugLog then
+        HealIQ:DebugLog("Init system not available, using fallback initialization for HealingCooldowns", "WARN")
+    end
+    if HealIQ and HealIQ.SafeCall then
+        HealIQ:SafeCall(initializeHealingCooldowns)
+    else
+        -- Last resort - call directly but handle errors
+        local success, err = pcall(initializeHealingCooldowns)
+        if not success and print then
+            print("HealIQ Error: Failed to initialize HealingCooldowns: " .. tostring(err))
+        end
+    end
 end

@@ -7,7 +7,7 @@ local HealIQ = _G.HealIQ
 -- Ensure HealIQ is available (Init.lua should have created it)
 if not HealIQ then
     -- Graceful exit if init system not ready
-    if print then print("|cFFFF0000HealIQ Error:|r DefensiveCooldowns.lua loaded before Init.lua") end
+    if print then print("|cFFFF0000HealIQ Error:|r DefensiveCooldowns.lua loaded before Init.lua - addon not properly initialized") end
     return
 end
 
@@ -72,9 +72,13 @@ local function initializeDefensiveCooldowns()
     if Rules.RegisterRule then
         Rules:RegisterRule("ironbark", Rules.DefensiveCooldowns.Ironbark)
         Rules:RegisterRule("barkskin", Rules.DefensiveCooldowns.Barkskin)
-        HealIQ:DebugLog("DefensiveCooldowns rules registered successfully", "INFO")
+        if HealIQ and HealIQ.DebugLog then
+            HealIQ:DebugLog("DefensiveCooldowns rules registered successfully", "INFO")
+        end
     else
-        HealIQ:DebugLog("Rule registration system not available yet", "WARN")
+        if HealIQ and HealIQ.DebugLog then
+            HealIQ:DebugLog("Rule registration system not available yet", "WARN")
+        end
     end
 end
 
@@ -83,6 +87,16 @@ if HealIQ.InitRegistry then
     HealIQ.InitRegistry:RegisterComponent("DefensiveCooldowns", initializeDefensiveCooldowns, {"BaseRule"})
 else
     -- Fallback if Init.lua didn't load properly
-    HealIQ:DebugLog("Init system not available, using fallback initialization for DefensiveCooldowns", "WARN")
-    HealIQ:SafeCall(initializeDefensiveCooldowns)
+    if HealIQ and HealIQ.DebugLog then
+        HealIQ:DebugLog("Init system not available, using fallback initialization for DefensiveCooldowns", "WARN")
+    end
+    if HealIQ and HealIQ.SafeCall then
+        HealIQ:SafeCall(initializeDefensiveCooldowns)
+    else
+        -- Last resort - call directly but handle errors
+        local success, err = pcall(initializeDefensiveCooldowns)
+        if not success and print then
+            print("HealIQ Error: Failed to initialize DefensiveCooldowns: " .. tostring(err))
+        end
+    end
 end
