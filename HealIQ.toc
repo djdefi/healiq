@@ -9,7 +9,10 @@
 ## X-License: MIT
 ## X-Website: https://github.com/djdefi/healiq
 
-## Core initialization files (must load first)
+## Robust initialization system (loads first)
+Init.lua
+
+## Core initialization files
 Core.lua
 Logging.lua
 Performance.lua

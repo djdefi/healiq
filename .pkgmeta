@@ -9,6 +9,7 @@ enable-nolib-creation: no
 # Move files to the root of the addon package
 move-folders:
     HealIQ:
+        - Init.lua
         - Core.lua
         - Engine.lua
         - UI.lua

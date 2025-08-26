@@ -8,36 +8,12 @@
 -- * Automatic performance adjustment
 -- * Debug profiling tools
 
--- Robust parameter handling for WoW addon loading
-local addonName, HealIQ = ...
+-- Use robust global access pattern that works with new Init system
+local HealIQ = _G.HealIQ
 
--- Enhanced defensive initialization to prevent loading failures
-local function initializeHealIQ()
-    -- Check if parameters were passed correctly
-    if type(HealIQ) ~= "table" then
-        -- Fallback to global namespace
-        HealIQ = _G.HealIQ
-        if type(HealIQ) ~= "table" then
-            print("HealIQ Error: Performance.lua loaded before Core.lua - addon not initialized")
-            return nil
-        end
-    end
-    
-    -- Ensure global reference is set
-    _G.HealIQ = HealIQ
-    
-    return HealIQ
-end
-
--- Initialize with error handling
-local initSuccess, initResult = pcall(initializeHealIQ)
-if initSuccess and initResult then
-    HealIQ = initResult
-else
-    print("HealIQ Error: Failed to initialize Performance.lua - " .. tostring(initResult or "unknown error"))
-    -- Minimal fallback
-    _G.HealIQ = _G.HealIQ or {}
-    HealIQ = _G.HealIQ
+-- Ensure HealIQ is available (Init.lua should have created it)
+if not HealIQ then
+    error("HealIQ Performance.lua: Init system not loaded - check TOC loading order")
 end
 
 HealIQ.Performance = HealIQ.Performance or {}
@@ -308,4 +284,19 @@ function Performance:ExportData()
         current_memory = collectgarbage("count"),
         export_time = GetTime()
     }
+end
+
+-- Register Performance module with the initialization system
+local function initializePerformance()
+    Performance:Initialize()
+    HealIQ:DebugLog("Performance module initialized successfully", "INFO")
+end
+
+-- Register with initialization system
+if HealIQ.InitRegistry then
+    HealIQ.InitRegistry:RegisterComponent("Performance", initializePerformance, {"Core"})
+else
+    -- Fallback if Init.lua didn't load properly
+    HealIQ:DebugLog("Init system not available, using fallback initialization for Performance", "WARN")
+    HealIQ:SafeCall(initializePerformance)
 end

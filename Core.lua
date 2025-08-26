@@ -9,21 +9,22 @@
 -- * Version upgrade management
 -- * Player class/spec validation
 
-local addonName, HealIQ = ...
+-- Use robust global access pattern that works with new Init system
+local HealIQ = _G.HealIQ
 
--- Create the main addon object
-HealIQ = HealIQ or {}
+-- Ensure HealIQ is available (Init.lua should have created it)
+if not HealIQ then
+    error("HealIQ Core.lua: Init system not loaded - check TOC loading order")
+end
+
+-- Ensure version is set for packaging validation
 HealIQ.version = "0.2.0"
-HealIQ.debug = false
-
--- Initialize namespace for rule modules
-HealIQ.Rules = HealIQ.Rules or {}
 
 -- Best Practice: Prepare for LibStub integration (optional library support)
 HealIQ.LibStub = _G.LibStub -- Will be nil if LibStub not available, won't break anything
 
 -- Best Practice: Enhanced addon metadata for better debugging
-HealIQ.addonName = addonName
+HealIQ.addonName = HealIQ.addonName or "HealIQ"
 HealIQ.buildInfo = {
     tocVersion = "110107",
     author = "djdefi",
@@ -265,55 +266,31 @@ function HealIQ:Message(message, isError)
 end
 
 -- Main addon initialization
-function HealIQ:OnInitialize()
-    self:SafeCall(function()
-        self:InitializeDB()
-        self:Print("HealIQ " .. self.version .. " loaded")
+-- Register Core module with the initialization system
+local function initializeCore()
+    HealIQ:InitializeDB()
+    HealIQ:Message("HealIQ " .. HealIQ.version .. " loaded")
 
-        -- Initialize session statistics
-        if self.Logging then
-            self.Logging:InitializeVariables()
-        end
-        self:InitializeSessionStats()
+    -- Initialize session statistics
+    if HealIQ.Logging then
+        HealIQ.Logging:InitializeVariables()
+    end
+    HealIQ:InitializeSessionStats()
 
-        -- Initialize new quality modules
-        if self.Performance then
-            self.Performance:Initialize()
-            self:DebugLog("Performance monitoring initialized")
-        end
-
-        if self.Validation then
-            self.Validation:Initialize()
-            self:DebugLog("Validation system initialized")
-        end
-
-        -- Initialize modules
-        if self.Tracker then
-            self.Tracker:Initialize()
-            self:DebugLog("Tracker module initialized")
-        end
-
-        if self.Engine then
-            self.Engine:Initialize()
-            self:DebugLog("Engine module initialized")
-        end
-
-        if self.UI then
-            self.UI:Initialize()
-            self:DebugLog("UI module initialized")
-        end
-
-        if self.Config then
-            self.Config:Initialize()
-            self:DebugLog("Config module initialized")
-        end
-
-        self:Message("HealIQ " .. self.version .. " initialized successfully")
-        self:DebugLog("HealIQ initialization completed successfully", "INFO")
-    end)
+    HealIQ:Message("HealIQ Core " .. HealIQ.version .. " initialized successfully")
+    HealIQ:DebugLog("HealIQ Core initialization completed successfully", "INFO")
 end
 
--- Event handling
+-- Register with initialization system
+if HealIQ.InitRegistry then
+    HealIQ.InitRegistry:RegisterComponent("Core", initializeCore, {})
+else
+    -- Fallback if Init.lua didn't load properly
+    HealIQ:DebugLog("Init system not available, using fallback initialization", "WARN")
+    HealIQ:SafeCall(initializeCore)
+end
+
+-- Event handling for game events (not initialization events)
 function HealIQ:OnEvent(event, ...)
     local args = {...}  -- Capture varargs for use in SafeCall
     self:SafeCall(function()
@@ -322,12 +299,7 @@ function HealIQ:OnEvent(event, ...)
         end
         self:DebugLog("Event received: " .. event)
 
-        if event == "ADDON_LOADED" then
-            local loadedAddon = args[1]
-            if loadedAddon == addonName then
-                self:OnInitialize()
-            end
-        elseif event == "PLAYER_LOGIN" then
+        if event == "PLAYER_LOGIN" then
             self:OnPlayerLogin()
         elseif event == "PLAYER_ENTERING_WORLD" then
             self:OnPlayerEnteringWorld()
@@ -379,17 +351,31 @@ function HealIQ:OnPlayerEnteringWorld()
     end)
 end
 
--- Create event frame
-local eventFrame = CreateFrame("Frame")
-eventFrame:RegisterEvent("ADDON_LOADED")
-eventFrame:RegisterEvent("PLAYER_LOGIN")
-eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-eventFrame:SetScript("OnEvent", function(self, event, ...)
-    HealIQ:OnEvent(event, ...)
-end)
+-- Create event frame for game events (not initialization events)
+local function setupEventHandling()
+    if not CreateFrame then
+        HealIQ:DebugLog("CreateFrame not available, deferring event setup", "WARN")
+        return
+    end
+    
+    local eventFrame = CreateFrame("Frame")
+    eventFrame:RegisterEvent("PLAYER_LOGIN")
+    eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    eventFrame:SetScript("OnEvent", function(self, event, ...)
+        HealIQ:OnEvent(event, ...)
+    end)
+    
+    HealIQ:DebugLog("Event handling setup complete", "INFO")
+end
 
--- Make HealIQ globally accessible
-_G[addonName] = HealIQ
+-- Register event setup as a component
+if HealIQ.InitRegistry then
+    HealIQ.InitRegistry:RegisterComponent("EventHandling", setupEventHandling, {"Core"})
+else
+    HealIQ:SafeCall(setupEventHandling)
+end
+
+-- HealIQ is already globally accessible via Init.lua
 
 -- Cleanup function for addon disable/reload
 function HealIQ:Cleanup()
