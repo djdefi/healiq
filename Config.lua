@@ -6,6 +6,16 @@ local addonName, HealIQ = ...
 HealIQ.Config = {}
 local Config = HealIQ.Config
 
+-- Helper function for table contains check
+local function tContains(table, item)
+    for _, v in ipairs(table) do
+        if v == item then
+            return true
+        end
+    end
+    return false
+end
+
 
 
 -- Command handlers
@@ -53,6 +63,9 @@ commands.help = function()
     print("|cFFFFFF00/healiq toggle|r - Toggle addon on/off")
     print("|cFFFFFF00/healiq enable|r - Enable addon")
     print("|cFFFFFF00/healiq disable|r - Disable addon")
+    print("|cFFFFFF00/healiq profile|r - Show profile commands")
+    print("|cFFFFFF00/healiq plugins|r - Show plugin commands")
+    print("|cFFFFFF00/healiq spec|r - Show specialization commands")
     print("|cFFFFFF00/healiq ui|r - Show UI commands")
     print("|cFFFFFF00/healiq rules|r - Show rule commands")
     print("|cFFFFFF00/healiq strategy|r - Show strategy commands")
@@ -79,17 +92,17 @@ commands.version = function()
 end
 
 commands.toggle = function()
-    if not HealIQ.db then
+    if not HealIQ.db or not HealIQ.db.profile then
         print("|cFFFF0000HealIQ|r Database not yet initialized")
         return
     end
 
-    HealIQ.db.enabled = not HealIQ.db.enabled
-    local status = HealIQ.db.enabled and "enabled" or "disabled"
+    HealIQ.db.profile.enabled = not HealIQ.db.profile.enabled
+    local status = HealIQ.db.profile.enabled and "enabled" or "disabled"
     print("|cFF00FF00HealIQ|r " .. status)
 
     if HealIQ.UI then
-        HealIQ.UI:SetEnabled(HealIQ.db.enabled)
+        HealIQ.UI:SetEnabled(HealIQ.db.profile.enabled)
     end
 end
 
@@ -100,12 +113,12 @@ commands.config = function()
 end
 
 commands.enable = function()
-    if not HealIQ.db then
+    if not HealIQ.db or not HealIQ.db.profile then
         print("|cFFFF0000HealIQ|r Database not yet initialized")
         return
     end
 
-    HealIQ.db.enabled = true
+    HealIQ.db.profile.enabled = true
     print("|cFF00FF00HealIQ|r enabled")
 
     if HealIQ.UI then
@@ -114,12 +127,12 @@ commands.enable = function()
 end
 
 commands.disable = function()
-    if not HealIQ.db then
+    if not HealIQ.db or not HealIQ.db.profile then
         print("|cFFFF0000HealIQ|r Database not yet initialized")
         return
     end
 
-    HealIQ.db.enabled = false
+    HealIQ.db.profile.enabled = false
     print("|cFF00FF00HealIQ|r disabled")
 
     if HealIQ.UI then
@@ -128,16 +141,17 @@ commands.disable = function()
 end
 
 commands.ui = function(subcommand, ...)
-    if not HealIQ.db or not HealIQ.db.ui then
+    local profileData = HealIQ:GetCurrentProfile()
+    if not profileData or not profileData.ui then
         print("|cFFFF0000HealIQ|r Database not yet initialized")
         return
     end
 
     if subcommand == "lock" then
-        HealIQ.db.ui.locked = true
+        profileData.ui.locked = true
         print("|cFF00FF00HealIQ|r UI locked")
     elseif subcommand == "unlock" then
-        HealIQ.db.ui.locked = false
+        profileData.ui.locked = false
         print("|cFF00FF00HealIQ|r UI unlocked")
     elseif subcommand == "scale" then
         local scale = tonumber((...))
@@ -164,7 +178,7 @@ commands.ui = function(subcommand, ...)
         print("|cFF00FF00HealIQ|r Cooldown display " .. (show and "enabled" or "disabled"))
     elseif subcommand == "queue" then
         local show = ... == "show"
-        HealIQ.db.ui.showQueue = show
+        profileData.ui.showQueue = show
         if HealIQ.UI then
             HealIQ.UI:RecreateFrames()
         end
@@ -172,7 +186,7 @@ commands.ui = function(subcommand, ...)
     elseif subcommand == "queuesize" then
         local size = tonumber((...))
         if size and size >= 2 and size <= 5 then
-            HealIQ.db.ui.queueSize = size
+            profileData.ui.queueSize = size
             if HealIQ.UI then
                 HealIQ.UI:RecreateFrames()
             end
@@ -183,7 +197,7 @@ commands.ui = function(subcommand, ...)
     elseif subcommand == "layout" then
         local layout = ... or "horizontal"
         if layout == "horizontal" or layout == "vertical" then
-            HealIQ.db.ui.queueLayout = layout
+            profileData.ui.queueLayout = layout
             if HealIQ.UI then
                 HealIQ.UI:RecreateFrames()
             end
@@ -193,7 +207,7 @@ commands.ui = function(subcommand, ...)
         end
     elseif subcommand == "targeting" then
         local show = ... == "show"
-        HealIQ.db.ui.showTargeting = show
+        profileData.ui.showTargeting = show
         if HealIQ.Engine then
             HealIQ.Engine:ForceUpdate()
         end
@@ -655,6 +669,147 @@ commands.health = function()
     end
 end
 
+-- Profile management commands
+commands.profile = function(subcommand, ...)
+    if subcommand == "list" then
+        local profiles = HealIQ:GetProfiles()
+        local currentProfile = HealIQ.db.global and HealIQ.db.global.currentProfile or "Default"
+        
+        print("|cFF00FF00HealIQ Profiles:|r")
+        for _, name in ipairs(profiles) do
+            local marker = (name == currentProfile) and " |cFF00FF00(current)|r" or ""
+            print("  " .. name .. marker)
+        end
+    elseif subcommand == "switch" then
+        local profileName = select(1, ...)
+        if not profileName then
+            print("|cFF00FF00Usage:|r /healiq profile switch <name>")
+            return
+        end
+        
+        HealIQ:SetProfile(profileName)
+    elseif subcommand == "create" then
+        local profileName = select(1, ...)
+        if not profileName then
+            print("|cFF00FF00Usage:|r /healiq profile create <name>")
+            return
+        end
+        
+        HealIQ:SetProfile(profileName) -- This creates it if it doesn't exist
+    elseif subcommand == "delete" then
+        local profileName = select(1, ...)
+        if not profileName then
+            print("|cFF00FF00Usage:|r /healiq profile delete <name>")
+            return
+        end
+        
+        HealIQ:DeleteProfile(profileName)
+    elseif subcommand == "export" then
+        local profileName = select(1, ...)
+        local exportString = HealIQ:ExportProfile(profileName)
+        if exportString then
+            print("|cFF00FF00Profile Export Data:|r")
+            print(exportString)
+        end
+    else
+        print("|cFF00FF00HealIQ Profile Commands:|r")
+        print("|cFFFFFF00/healiq profile list|r - List all profiles")
+        print("|cFFFFFF00/healiq profile switch <name>|r - Switch to profile")
+        print("|cFFFFFF00/healiq profile create <name>|r - Create new profile")
+        print("|cFFFFFF00/healiq profile delete <name>|r - Delete profile")
+        print("|cFFFFFF00/healiq profile export [name]|r - Export profile")
+    end
+end
+
+-- Plugin management commands
+commands.plugins = function(subcommand, ...)
+    if subcommand == "list" then
+        print("|cFF00FF00HealIQ Registered Plugins:|r")
+        local hasPlugins = false
+        for name, plugin in pairs(HealIQ.Plugins.registered) do
+            hasPlugins = true
+            local status = HealIQ.Plugins.enabled[name] and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"
+            print("  " .. name .. " v" .. plugin.version .. " (" .. status .. ")")
+            if plugin.description and plugin.description ~= "" then
+                print("    " .. plugin.description)
+            end
+        end
+        
+        if not hasPlugins then
+            print("  No plugins registered")
+        end
+    elseif subcommand == "enable" then
+        local pluginName = select(1, ...)
+        if not pluginName then
+            print("|cFF00FF00Usage:|r /healiq plugins enable <name>")
+            return
+        end
+        
+        HealIQ:EnablePlugin(pluginName)
+    elseif subcommand == "disable" then
+        local pluginName = select(1, ...)
+        if not pluginName then
+            print("|cFF00FF00Usage:|r /healiq plugins disable <name>")
+            return
+        end
+        
+        HealIQ:DisablePlugin(pluginName)
+    else
+        print("|cFF00FF00HealIQ Plugin Commands:|r")
+        print("|cFFFFFF00/healiq plugins list|r - List all plugins")
+        print("|cFFFFFF00/healiq plugins enable <name>|r - Enable plugin")
+        print("|cFFFFFF00/healiq plugins disable <name>|r - Disable plugin")
+    end
+end
+
+-- Specialization management commands
+commands.spec = function(subcommand, ...)
+    if subcommand == "detect" then
+        local detected = HealIQ:DetectSpecialization()
+        local active = HealIQ:GetActiveSpecialization()
+        
+        print("|cFF00FF00HealIQ Specialization:|r")
+        print("  Detected: " .. detected)
+        print("  Active: " .. active)
+        
+        local profileData = HealIQ:GetCurrentProfile()
+        if profileData then
+            print("  Mode: " .. (profileData.specialization or "auto"))
+        end
+    elseif subcommand == "set" then
+        local spec = select(1, ...)
+        local validSpecs = {"auto", "restoration", "guardian", "feral", "balance"}
+        
+        if not spec or not tContains(validSpecs, spec) then
+            print("|cFF00FF00Usage:|r /healiq spec set <auto|restoration|guardian|feral|balance>")
+            return
+        end
+        
+        local profileData = HealIQ:GetCurrentProfile()
+        if profileData then
+            profileData.specialization = spec
+            print("|cFF00FF00HealIQ|r Specialization set to: " .. spec)
+            
+            if spec ~= "auto" then
+                -- Update rules immediately for manual setting
+                if HealIQ.Engine then
+                    HealIQ.Engine:UpdateRulesForSpecialization(spec)
+                end
+            else
+                -- Trigger detection and update
+                HealIQ:OnSpecializationChanged()
+            end
+        else
+            print("|cFFFF0000HealIQ|r Profile not available")
+        end
+    else
+        print("|cFF00FF00HealIQ Specialization Commands:|r")
+        print("|cFFFFFF00/healiq spec detect|r - Show current specialization")
+        print("|cFFFFFF00/healiq spec set <spec>|r - Set specialization override")
+        print("  Valid specs: auto, restoration, guardian, feral, balance")
+    end
+end
+
 -- Performance diagnostics command
 commands.performance = function()
     print("|cFF00FF00HealIQ Performance Report:|r")
@@ -696,7 +851,8 @@ end
 -- @param value New value to set
 -- @return boolean, string Success status and error message
 function Config:SetOption(category, option, value)
-    if not HealIQ.db then
+    local profileData = HealIQ:GetCurrentProfile()
+    if not profileData then
         return false, "Database not initialized"
     end
 
@@ -710,9 +866,9 @@ function Config:SetOption(category, option, value)
     end
 
     -- Apply the validated value
-    if category == "ui" and HealIQ.db.ui and HealIQ.db.ui[option] ~= nil then
-        local oldValue = HealIQ.db.ui[option]
-        HealIQ.db.ui[option] = value
+    if category == "ui" and profileData.ui and profileData.ui[option] ~= nil then
+        local oldValue = profileData.ui[option]
+        profileData.ui[option] = value
 
         -- Trigger UI updates if necessary
         if HealIQ.UI then
@@ -727,14 +883,14 @@ function Config:SetOption(category, option, value)
 
         HealIQ:DebugLog(string.format("UI setting changed: %s = %s (was %s)", option, tostring(value), tostring(oldValue)), "INFO")
         return true, "Setting updated"
-    elseif category == "rules" and HealIQ.db.rules and HealIQ.db.rules[option] ~= nil then
-        local oldValue = HealIQ.db.rules[option]
-        HealIQ.db.rules[option] = value
+    elseif category == "rules" and profileData.rules and profileData.rules[option] ~= nil then
+        local oldValue = profileData.rules[option]
+        profileData.rules[option] = value
         HealIQ:DebugLog(string.format("Rule setting changed: %s = %s (was %s)", option, tostring(value), tostring(oldValue)), "INFO")
         return true, "Rule updated"
-    elseif category == "general" and HealIQ.db[option] ~= nil then
-        local oldValue = HealIQ.db[option]
-        HealIQ.db[option] = value
+    elseif category == "general" and profileData[option] ~= nil then
+        local oldValue = profileData[option]
+        profileData[option] = value
 
         -- Special handling for general settings
         if option == "debug" then
@@ -754,16 +910,17 @@ end
 -- @param option Configuration option name
 -- @return any The configuration value or nil if not found
 function Config:GetOption(category, option)
-    if not HealIQ.db then
+    local profileData = HealIQ:GetCurrentProfile()
+    if not profileData then
         return nil
     end
 
-    if category == "ui" and HealIQ.db.ui then
-        return HealIQ.db.ui[option]
-    elseif category == "rules" and HealIQ.db.rules then
-        return HealIQ.db.rules[option]
+    if category == "ui" and profileData.ui then
+        return profileData.ui[option]
+    elseif category == "rules" and profileData.rules then
+        return profileData.rules[option]
     elseif category == "general" then
-        return HealIQ.db[option]
+        return profileData[option]
     end
     return nil
 end
