@@ -9,6 +9,7 @@ enable-nolib-creation: no
 # Move files to the root of the addon package
 move-folders:
     HealIQ:
+        - Init.lua
         - Core.lua
         - Engine.lua
         - UI.lua
@@ -46,6 +47,7 @@ ignore:
     - WoWAPIMock.lua
     - setup-dev.sh
     - quick_packaging_check.sh
+    - example_plugin.lua
 
 # Manual changelog - use the CHANGELOG.md file
 manual-changelog: CHANGELOG.md

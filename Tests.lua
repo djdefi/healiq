@@ -240,9 +240,17 @@ function Tests.TestCore()
         -- Test database structure after initialization
         if _G.HealIQDB then
             Tests.AssertType("table", _G.HealIQDB, "Core: Initialized database is table")
-            Tests.AssertNotNil(_G.HealIQDB.enabled, "Core: Database has enabled field")
-            Tests.AssertNotNil(_G.HealIQDB.ui, "Core: Database has ui section")
-            Tests.AssertNotNil(_G.HealIQDB.rules, "Core: Database has rules section")
+            -- New profile structure
+            Tests.AssertNotNil(_G.HealIQDB.global, "Core: Database has global section")
+            Tests.AssertNotNil(_G.HealIQDB.global.profiles, "Core: Database has profiles section")
+            
+            -- Check that current profile has the required fields
+            local profileData = HealIQ:GetCurrentProfile()
+            if profileData then
+                Tests.AssertNotNil(profileData.enabled, "Core: Database has enabled field")
+                Tests.AssertNotNil(profileData.ui, "Core: Database has ui section")
+                Tests.AssertNotNil(profileData.rules, "Core: Database has rules section")
+            end
         end
 
         -- Restore original
@@ -561,29 +569,38 @@ function Tests.TestConfig()
     if HealIQ.db and HealIQ.Config.commands then
         -- Test enable command
         if HealIQ.Config.commands.enable then
-            local originalEnabled = HealIQ.db.enabled
-            HealIQ.db.enabled = false
-            HealIQ.Config.commands.enable()
-            Tests.Assert(HealIQ.db.enabled == true, "Config: Enable command sets enabled to true")
-            HealIQ.db.enabled = originalEnabled -- Restore
+            local profileData = HealIQ:GetCurrentProfile()
+            if profileData then
+                local originalEnabled = profileData.enabled
+                profileData.enabled = false
+                HealIQ.Config.commands.enable()
+                Tests.Assert(profileData.enabled == true, "Config: Enable command sets enabled to true")
+                profileData.enabled = originalEnabled -- Restore
+            end
         end
 
         -- Test disable command
         if HealIQ.Config.commands.disable then
-            local originalEnabled = HealIQ.db.enabled
-            HealIQ.db.enabled = true
-            HealIQ.Config.commands.disable()
-            Tests.Assert(HealIQ.db.enabled == false, "Config: Disable command sets enabled to false")
-            HealIQ.db.enabled = originalEnabled -- Restore
+            local profileData = HealIQ:GetCurrentProfile()
+            if profileData then
+                local originalEnabled = profileData.enabled
+                profileData.enabled = true
+                HealIQ.Config.commands.disable()
+                Tests.Assert(profileData.enabled == false, "Config: Disable command sets enabled to false")
+                profileData.enabled = originalEnabled -- Restore
+            end
         end
 
         -- Test toggle command
         if HealIQ.Config.commands.toggle then
-            local originalEnabled = HealIQ.db.enabled
-            local initialState = HealIQ.db.enabled
-            HealIQ.Config.commands.toggle()
-            Tests.Assert(HealIQ.db.enabled == (not initialState), "Config: Toggle command changes enabled state")
-            HealIQ.db.enabled = originalEnabled -- Restore
+            local profileData = HealIQ:GetCurrentProfile()
+            if profileData then
+                local originalEnabled = profileData.enabled
+                local initialState = profileData.enabled
+                HealIQ.Config.commands.toggle()
+                Tests.Assert(profileData.enabled == (not initialState), "Config: Toggle command changes enabled state")
+                profileData.enabled = originalEnabled -- Restore
+            end
         end
     end
 
@@ -594,15 +611,18 @@ function Tests.TestConfig()
     end
 
     -- Test option validation with different types
-    if HealIQ.Config.SetOption and HealIQ.db then
-        -- Test setting valid options
-        local originalScale = HealIQ.db.ui and HealIQ.db.ui.scale
-        if originalScale then
-            HealIQ.Config:SetOption("ui", "scale", 1.5)
-            local newScale = HealIQ.Config:GetOption("ui", "scale")
-            Tests.AssertEqual(1.5, newScale, "Config: Can set numeric option")
-            -- Restore
-            HealIQ.Config:SetOption("ui", "scale", originalScale)
+    if HealIQ.Config.SetOption then
+        local profileData = HealIQ:GetCurrentProfile()
+        if profileData and profileData.ui then
+            -- Test setting valid options
+            local originalScale = profileData.ui.scale
+            if originalScale then
+                HealIQ.Config:SetOption("ui", "scale", 1.5)
+                local newScale = HealIQ.Config:GetOption("ui", "scale")
+                Tests.AssertEqual(1.5, newScale, "Config: Can set numeric option")
+                -- Restore
+                HealIQ.Config:SetOption("ui", "scale", originalScale)
+            end
         end
     end
 

@@ -237,7 +237,8 @@ function Engine:OnUpdate(elapsed)
         lastUpdate = currentTime
 
         -- Only suggest spells if addon is enabled and database is initialized
-        if not HealIQ.db or not HealIQ.db.enabled then
+        local profileData = HealIQ:GetCurrentProfile()
+        if not profileData or not profileData.enabled then
             self:SetSuggestion(nil)
             self:SetQueue({})
             return
@@ -260,15 +261,25 @@ function Engine:OnUpdate(elapsed)
 end
 
 function Engine:ShouldSuggest()
-    -- Only suggest if player is a Restoration Druid
-    local _, class = UnitClass("player")
-    if class ~= "DRUID" then
-        return false
-    end
+    -- Check if auto-detect is enabled
+    local profileData = HealIQ:GetCurrentProfile()
+    if profileData and profileData.specialization ~= "auto" then
+        -- Manual specialization override
+        local manualSpec = profileData.specialization
+        if manualSpec ~= "restoration" then
+            return false -- Only suggest for restoration spec
+        end
+    else
+        -- Auto-detection mode
+        local _, class = UnitClass("player")
+        if class ~= "DRUID" then
+            return false
+        end
 
-    local specIndex = GetSpecialization()
-    if specIndex ~= 4 then -- Not Restoration
-        return false
+        local specIndex = GetSpecialization()
+        if specIndex ~= 4 then -- Not Restoration
+            return false
+        end
     end
 
     -- Suggest in combat, when having a friendly target, or when in a group
@@ -280,6 +291,53 @@ function Engine:ShouldSuggest()
     local inGroup = IsInGroup() or IsInRaid()
 
     return inCombat or (hasTarget and targetIsFriendly) or inGroup
+end
+
+-- Update rules based on specialization
+function Engine:UpdateRulesForSpecialization(spec)
+    local profileData = HealIQ:GetCurrentProfile()
+    if not profileData or not profileData.rules then
+        return
+    end
+    
+    HealIQ:Print("Updating rules for specialization: " .. spec)
+    
+    if spec == "restoration" then
+        -- Enable all healing rules for restoration
+        for ruleName in pairs(profileData.rules) do
+            profileData.rules[ruleName] = true
+        end
+    elseif spec == "guardian" then
+        -- For guardian, focus on defensive rules
+        for ruleName in pairs(profileData.rules) do
+            if ruleName:match("defensive") or ruleName:match("bark") or ruleName:match("iron") then
+                profileData.rules[ruleName] = true
+            else
+                profileData.rules[ruleName] = false
+            end
+        end
+    elseif spec == "feral" then
+        -- For feral, minimal healing suggestions
+        for ruleName in pairs(profileData.rules) do
+            if ruleName == "rejuvenation" or ruleName == "swiftmend" then
+                profileData.rules[ruleName] = true
+            else
+                profileData.rules[ruleName] = false
+            end
+        end
+    elseif spec == "balance" then
+        -- For balance, basic healing only
+        for ruleName in pairs(profileData.rules) do
+            if ruleName == "rejuvenation" or ruleName == "regrowth" then
+                profileData.rules[ruleName] = true
+            else
+                profileData.rules[ruleName] = false
+            end
+        end
+    end
+    
+    -- Trigger plugin hook for specialization change
+    HealIQ:TriggerPluginHook("SPECIALIZATION_CHANGED", spec)
 end
 
 -- Talent validation and detection system
