@@ -12,7 +12,6 @@
 - Fix changelog generation to prevent duplicate sections
 - Complete robust initialization system - TOC loading errors fixed
 - Fix rule file error handling for TOC loading order tests
-
 ## [0.2.0] - 2025-08-20
 
 ### Changed
