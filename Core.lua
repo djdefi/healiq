@@ -756,12 +756,8 @@ local function initializeCore()
             end
         end, {"Core"})
 
-        HealIQ.InitRegistry:RegisterComponent("Config", function()
-            if HealIQ.Config and HealIQ.Config.Initialize then
-                HealIQ.Config:Initialize()
-                HealIQ:DebugLog("Config module initialized")
-            end
-        end, {"Core"})
+        -- Config module initialization moved to ADDON_LOADED event
+        -- This ensures slash commands are registered when WoW's system is ready
     end
 
     HealIQ:Message("HealIQ Core " .. HealIQ.version .. " initialized successfully")
@@ -786,10 +782,29 @@ function HealIQ:OnEvent(event, ...)
         end
         self:DebugLog("Event received: " .. event)
 
-        if event == "PLAYER_LOGIN" then
+        if event == "ADDON_LOADED" then
+            self:OnAddonLoaded(args[1])  -- args[1] is addonName
+        elseif event == "PLAYER_LOGIN" then
             self:OnPlayerLogin()
         elseif event == "PLAYER_ENTERING_WORLD" then
             self:OnPlayerEnteringWorld()
+        end
+    end)
+end
+
+function HealIQ:OnAddonLoaded(addonName)
+    self:SafeCall(function()
+        -- Only handle our own addon loaded event
+        if addonName ~= "HealIQ" then
+            return
+        end
+        
+        self:DebugLog("HealIQ addon loaded, initializing slash commands", "INFO")
+        
+        -- Now it's safe to initialize Config module (slash commands)
+        if self.Config and self.Config.Initialize then
+            self.Config:Initialize()
+            self:DebugLog("Config module initialized on ADDON_LOADED", "INFO")
         end
     end)
 end
@@ -846,6 +861,7 @@ local function setupEventHandling()
     end
     
     local eventFrame = CreateFrame("Frame")
+    eventFrame:RegisterEvent("ADDON_LOADED")
     eventFrame:RegisterEvent("PLAYER_LOGIN")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     eventFrame:SetScript("OnEvent", function(self, event, ...)
