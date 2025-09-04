@@ -1,16 +1,14 @@
 -- HealIQ Rules/UtilityRules.lua
 -- Utility and buff rules (Flourish, Grove Guardians)
 
--- Access HealIQ from global namespace (established by Core.lua)
--- This is the correct pattern for WoW addon files loaded after the main file
+-- Use robust global access pattern that works with new Init system
 local HealIQ = _G.HealIQ
 
--- Defensive initialization to ensure HealIQ exists
-if not HealIQ or type(HealIQ) ~= "table" then
-    if print then print("HealIQ Error: UtilityRules.lua loaded before Core.lua - addon not properly initialized") end
-    -- Create minimal fallback structure to prevent crashes
-    _G.HealIQ = _G.HealIQ or {}
-    HealIQ = _G.HealIQ
+-- Ensure HealIQ is available (Init.lua should have created it)
+if not HealIQ then
+    -- Graceful exit if init system not ready
+    if print then print("|cFFFF0000HealIQ Error:|r UtilityRules.lua loaded before Init.lua - addon not properly initialized") end
+    return
 end
 
 -- Initialize Rules namespace
