@@ -8,7 +8,6 @@
 ### Fixed
 - Fix /healiq command by moving Config initialization to ADDON_LOADED event
 - Fix TOC loading errors by standardizing rule file initialization
-
 ## [0.2.1] - 2025-08-27
 
 ### Changed
