@@ -38,6 +38,12 @@ local BORDER_COLORS = {
 
 function UI:Initialize()
     HealIQ:SafeCall(function()
+        -- Check if database is ready before initializing UI components
+        if not HealIQ.db or not HealIQ.db.ui then
+            HealIQ:DebugLog("Database not ready during UI initialization, deferring UI creation", "WARN")
+            return
+        end
+        
         self:CreateMainFrame()
         self:CreateMinimapButton()
         self:CreateOptionsFrame()
@@ -54,22 +60,22 @@ function UI:EnsureInitialized()
         return
     end
     
-    if not HealIQ.db or not HealIQ.db.ui then
-        HealIQ:DebugLog("Database not ready, skipping UI initialization", "WARN")
-        return
-    end
-    
+    -- Call Initialize() if components haven't been created yet
+    -- Initialize() now has proper database checking
     if not mainFrame then
-        HealIQ:DebugLog("Main frame not found, creating it", "INFO")
-        self:CreateMainFrame()
+        HealIQ:DebugLog("Main frame not found, calling Initialize", "INFO")
+        self:Initialize()
+        return -- Initialize() will handle creating all components
     end
     
-    if not minimapButton then
+    -- Individual component checks for edge cases where Initialize() was called
+    -- but some components failed to create
+    if not minimapButton and HealIQ.db and HealIQ.db.ui then
         HealIQ:DebugLog("Minimap button not found, creating it", "INFO")
         self:CreateMinimapButton()
     end
     
-    if not optionsFrame then
+    if not optionsFrame and HealIQ.db and HealIQ.db.ui then
         HealIQ:DebugLog("Options frame not found, creating it", "INFO")
         self:CreateOptionsFrame()
     end
@@ -77,12 +83,12 @@ end
 
 function UI:CreateMainFrame()
     HealIQ:SafeCall(function()
-        -- Check if database is initialized before accessing UI settings
+        -- Ensure database is available
         if not HealIQ.db or not HealIQ.db.ui then
-            HealIQ:LogError("UI:CreateMainFrame called before database initialization")
+            HealIQ:DebugLog("CreateMainFrame: Database not ready, skipping frame creation", "WARN")
             return
         end
-
+        
         -- Determine total frame size based on queue settings
         local queueSize = HealIQ.db.ui.queueSize or 3
         local queueLayout = HealIQ.db.ui.queueLayout or "horizontal"
@@ -302,11 +308,12 @@ function UI:CalculateMinimapButtonRadius()
 end
 
 function UI:CreateMinimapButton()
+    -- Ensure database is available
     if not HealIQ.db or not HealIQ.db.ui then
-        HealIQ:LogError("UI:CreateMinimapButton called before database initialization")
+        HealIQ:DebugLog("CreateMinimapButton: Database not ready, skipping button creation", "WARN")
         return
     end
-
+    
     -- Create minimap button
     minimapButton = CreateFrame("Button", "HealIQMinimapButton", Minimap)
     minimapButton:SetSize(32, 32)
@@ -431,11 +438,12 @@ function UI:UpdateMinimapButtonVisibility()
 end
 
 function UI:CreateQueueFrame()
+    -- Ensure database is available
     if not HealIQ.db or not HealIQ.db.ui then
-        HealIQ:LogError("UI:CreateQueueFrame called before database initialization")
+        HealIQ:DebugLog("CreateQueueFrame: Database not ready, skipping queue creation", "WARN")
         return
     end
-
+    
     local queueSize = HealIQ.db.ui.queueSize or 3
     local queueLayout = HealIQ.db.ui.queueLayout or "horizontal"
     local queueSpacing = HealIQ.db.ui.queueSpacing or 8
@@ -524,6 +532,12 @@ function UI:CreateQueueFrame()
 end
 
 function UI:CreateOptionsFrame()
+    -- Ensure database is available
+    if not HealIQ.db then
+        HealIQ:DebugLog("CreateOptionsFrame: Database not ready, skipping options creation", "WARN")
+        return
+    end
+    
     -- Create main options frame
     optionsFrame = CreateFrame("Frame", "HealIQOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
     optionsFrame:SetSize(400, OPTIONS_FRAME_HEIGHT) -- Increased height to accommodate all content without overflow
