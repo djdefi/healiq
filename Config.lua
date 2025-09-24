@@ -115,6 +115,7 @@ commands.config = function()
         end)
         if not success then
             HealIQ:DebugLog("Config command failed: " .. tostring(err), "WARN")
+            print("|cFFFF0000HealIQ|r Configuration window not available - try again after logging in")
         end
     end
 end

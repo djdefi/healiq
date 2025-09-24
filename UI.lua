@@ -36,9 +36,6 @@ local BORDER_COLORS = {
     targeting = {0, 0, 0, 0.8}        -- Dark border for targeting indicators
 }
 
--- Texture paths - using standard white texture for masks as it's more reliable across WoW versions
-local MINIMAP_BACKGROUND_TEXTURE = "Interface\\Buttons\\WHITE8X8"
-
 function UI:Initialize()
     HealIQ:SafeCall(function()
         self:CreateMainFrame()
@@ -1948,7 +1945,8 @@ function UI:ToggleOptionsFrame()
             optionsFrame:Show()
         end
     else
-        HealIQ:LogError("Failed to create options frame")
+        HealIQ:LogError("Failed to create options frame - WoW UI system may not be ready")
+        print("|cFFFF0000HealIQ|r Failed to open configuration window - try again after logging in")
     end
 end
 
