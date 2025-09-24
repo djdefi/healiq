@@ -36,8 +36,8 @@ local BORDER_COLORS = {
     targeting = {0, 0, 0, 0.8}        -- Dark border for targeting indicators
 }
 
--- Texture paths
-local MINIMAP_BACKGROUND_TEXTURE = "Interface\\MINIMAP\\UI-Minimap-Background"
+-- Texture paths - using standard white texture for masks as it's more reliable across WoW versions
+local MINIMAP_BACKGROUND_TEXTURE = "Interface\\Buttons\\WHITE8X8"
 
 function UI:Initialize()
     HealIQ:SafeCall(function()
@@ -47,6 +47,35 @@ function UI:Initialize()
         self:SetupEventHandlers()
         HealIQ:Print("UI initialized")
     end)
+end
+
+function UI:EnsureInitialized()
+    -- Defensive function to ensure UI components are created
+    -- Only attempt creation if WoW API is available
+    if not CreateFrame then
+        HealIQ:DebugLog("CreateFrame not available, skipping UI initialization", "WARN")
+        return
+    end
+    
+    if not HealIQ.db or not HealIQ.db.ui then
+        HealIQ:DebugLog("Database not ready, skipping UI initialization", "WARN")
+        return
+    end
+    
+    if not mainFrame then
+        HealIQ:DebugLog("Main frame not found, creating it", "INFO")
+        self:CreateMainFrame()
+    end
+    
+    if not minimapButton then
+        HealIQ:DebugLog("Minimap button not found, creating it", "INFO")
+        self:CreateMinimapButton()
+    end
+    
+    if not optionsFrame then
+        HealIQ:DebugLog("Options frame not found, creating it", "INFO")
+        self:CreateOptionsFrame()
+    end
 end
 
 function UI:CreateMainFrame()
@@ -287,42 +316,25 @@ function UI:CreateMinimapButton()
     minimapButton:SetFrameStrata("MEDIUM")
     minimapButton:SetFrameLevel(8)
 
-    -- Create button border first (visible border around the icon)
-    local border = minimapButton:CreateTexture(nil, "BORDER")
-    border:SetSize(22, 22)
-    border:SetPoint("CENTER")
-    border:SetColorTexture(0.8, 0.8, 0.8, 0.9)  -- Light gray border
-
-    -- Create circular mask for the border
-    local borderMask = minimapButton:CreateMaskTexture()
-    borderMask:SetAllPoints(border)
-    borderMask:SetTexture(MINIMAP_BACKGROUND_TEXTURE, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-    border:AddMaskTexture(borderMask)
-
-    -- Create button background with circular masking
+    -- Create simple button background
     local bg = minimapButton:CreateTexture(nil, "BACKGROUND")
-    bg:SetSize(18, 18)  -- Slightly smaller than border
+    bg:SetSize(28, 28)
     bg:SetPoint("CENTER")
-    bg:SetColorTexture(0, 0, 0, 0.7)
+    bg:SetColorTexture(0.2, 0.2, 0.2, 0.8)  -- Dark background
 
-    -- Create circular mask for the background
-    local mask = minimapButton:CreateMaskTexture()
-    mask:SetAllPoints(bg)
-    mask:SetTexture(MINIMAP_BACKGROUND_TEXTURE, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-    bg:AddMaskTexture(mask)
-
-    -- Create button icon with circular masking
+    -- Create button icon
     local icon = minimapButton:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(14, 14)  -- Adjusted to fit within border
+    icon:SetSize(20, 20)
     icon:SetPoint("CENTER")
     icon:SetTexture("Interface\\Icons\\Spell_Nature_Rejuvenation")
-    icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)  -- Standard icon crop
 
-    -- Apply circular mask to the icon as well
-    local iconMask = minimapButton:CreateMaskTexture()
-    iconMask:SetAllPoints(icon)
-    iconMask:SetTexture(MINIMAP_BACKGROUND_TEXTURE, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-    icon:AddMaskTexture(iconMask)
+    -- Create simple border
+    local border = minimapButton:CreateTexture(nil, "OVERLAY")
+    border:SetSize(30, 30)
+    border:SetPoint("CENTER")
+    border:SetColorTexture(0.8, 0.8, 0.8, 1.0)  -- Light border
+    border:SetDrawLayer("OVERLAY", 1)
 
     minimapButton.icon = icon
     minimapButton.border = border  -- Store reference for potential updates
@@ -406,6 +418,12 @@ function UI:CreateMinimapButton()
 end
 
 function UI:UpdateMinimapButtonVisibility()
+    if not minimapButton and HealIQ.db and HealIQ.db.ui then
+        -- If minimap button doesn't exist yet, create it
+        HealIQ:DebugLog("Minimap button not created yet, creating it now", "INFO")
+        self:CreateMinimapButton()
+    end
+    
     if minimapButton and HealIQ.db and HealIQ.db.ui then
         if HealIQ.db.ui.showIcon then
             minimapButton:Show()
@@ -1916,6 +1934,12 @@ function UI:GetFrameInfo()
 end
 
 function UI:ToggleOptionsFrame()
+    if not optionsFrame then
+        -- If options frame doesn't exist yet, create it
+        HealIQ:DebugLog("Options frame not created yet, creating it now", "INFO")
+        self:CreateOptionsFrame()
+    end
+    
     if optionsFrame then
         if optionsFrame:IsShown() then
             optionsFrame:Hide()
@@ -1923,6 +1947,8 @@ function UI:ToggleOptionsFrame()
             self:UpdateOptionsFrame()
             optionsFrame:Show()
         end
+    else
+        HealIQ:LogError("Failed to create options frame")
     end
 end
 

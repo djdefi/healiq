@@ -108,7 +108,14 @@ end
 
 commands.config = function()
     if HealIQ.UI then
-        HealIQ.UI:ToggleOptionsFrame()
+        -- Ensure UI components are created before toggling (only if in WoW environment)
+        local success, err = pcall(function()
+            HealIQ.UI:EnsureInitialized()
+            HealIQ.UI:ToggleOptionsFrame()
+        end)
+        if not success then
+            HealIQ:DebugLog("Config command failed: " .. tostring(err), "WARN")
+        end
     end
 end
 
@@ -415,7 +422,12 @@ commands.test = function(subcommand)
         end
     elseif subcommand == "ui" then
         if HealIQ.UI then
+            print("|cFF00FF00HealIQ|r Testing UI initialization and display...")
+            -- Ensure UI components are initialized
+            HealIQ.UI:EnsureInitialized()
+            -- Test the queue display
             HealIQ.UI:TestQueue()
+            print("|cFF00FF00HealIQ|r UI test completed - check for minimap button and try '/healiq config'")
         else
             print("|cFFFF0000HealIQ|r UI not yet initialized")
         end
