@@ -7,7 +7,6 @@
 
 ### Fixed
 - Fix missing rules directory in release packages and add comprehensive validation
-
 ## [0.2.2] - 2025-09-09
 
 ### Changed
