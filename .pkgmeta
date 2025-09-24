@@ -43,6 +43,7 @@ ignore:
     - test_runner.lua
     - test_packaging.lua
     - test_loading_order.lua
+    - test_release_packaging.lua
     - validate_runner.lua
     - WoWAPIMock.lua
     - setup-dev.sh

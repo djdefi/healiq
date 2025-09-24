@@ -89,6 +89,78 @@ jobs:
         
         echo "All addon structure validations passed!"
         
+    - name: Validate release package integrity (prevent missing files)
+      run: |
+        echo "Validating that a release package would include all required files..."
+        
+        # Simulate the release package creation process
+        mkdir -p test_package/HealIQ
+        
+        # Copy files exactly like the release workflow
+        cp *.lua test_package/HealIQ/
+        cp HealIQ.toc test_package/HealIQ/
+        cp README.md test_package/HealIQ/ 2>/dev/null || echo "README.md not required for validation"
+        cp LICENSE test_package/HealIQ/ 2>/dev/null || echo "LICENSE not required for validation"
+        cp CHANGELOG.md test_package/HealIQ/ 2>/dev/null || echo "CHANGELOG.md not required for validation"
+        cp INSTALL.md test_package/HealIQ/ 2>/dev/null || echo "INSTALL.md not required for validation"
+        
+        # Copy rules directory
+        if [ -d "rules" ]; then
+          cp -r rules/ test_package/HealIQ/
+          echo "✅ Copied rules/ directory"
+        else
+          echo "❌ ERROR: rules/ directory not found!"
+          exit 1
+        fi
+        
+        # Validate all TOC-referenced files are included
+        echo "Checking that all .toc files are in the test package..."
+        missing_files=()
+        while IFS= read -r line; do
+          # Skip comments and empty lines
+          if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "${line// }" ]]; then
+            continue
+          fi
+          # Trim whitespace
+          file=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          if [[ -n "$file" && "$file" == *.lua ]]; then
+            if [ ! -f "test_package/HealIQ/$file" ]; then
+              missing_files+=("$file")
+            fi
+          fi
+        done < HealIQ.toc
+        
+        if [ ${#missing_files[@]} -eq 0 ]; then
+          echo "✅ All TOC-referenced files would be included in release package!"
+          echo "📁 Test package contents:"
+          find test_package/HealIQ -type f | sort
+          echo "📊 Files: $(find test_package/HealIQ -type f | wc -l), Rules files: $(find test_package/HealIQ/rules -name "*.lua" 2>/dev/null | wc -l)"
+        else
+          echo "❌ ERROR: These files from .toc would be MISSING from release package:"
+          for file in "${missing_files[@]}"; do
+            echo "  - $file"
+          done
+          echo ""
+          echo "This indicates the release workflow needs to be updated!"
+          exit 1
+        fi
+        
+        # Clean up test files
+        rm -rf test_package
+        
+        echo "Release package validation passed!"
+        
+    - name: Run HealIQ release packaging regression test
+      run: |
+        echo "Running HealIQ release packaging regression test..."
+        if [ -f "test_release_packaging.lua" ]; then
+          echo "Executing release packaging validation..."
+          lua5.1 test_release_packaging.lua
+          echo "Release packaging regression test completed successfully!"
+        else
+          echo "Release packaging regression test file not found, skipping"
+        fi
+        
     - name: Check addon version consistency
       run: |
         echo "Checking version consistency..."
