@@ -12,6 +12,11 @@ local function print_result(passed, message)
     end
 end
 
+local function get_command_output_number(command)
+    local output = io.popen(command):read("*a"):match("%d+")
+    return tonumber(output) or 0
+end
+
 local function test_release_package_creation()
     print("\n=== Testing Release Package Creation Process ===")
     
@@ -133,27 +138,19 @@ end
 local function test_package_statistics()
     print("\n=== Testing Package Statistics ===")
     
-    -- Get file counts
-    local total_files_cmd = "find test_release_package/HealIQ -type f | wc -l"
-    local total_files_output = io.popen(total_files_cmd):read("*a"):match("%d+")
-    local total_files = tonumber(total_files_output)
-    
-    local lua_files_cmd = "find test_release_package/HealIQ -name '*.lua' | wc -l"
-    local lua_files_output = io.popen(lua_files_cmd):read("*a"):match("%d+")
-    local lua_files = tonumber(lua_files_output)
-    
-    local rules_files_cmd = "find test_release_package/HealIQ/rules -name '*.lua' 2>/dev/null | wc -l"
-    local rules_files_output = io.popen(rules_files_cmd):read("*a"):match("%d+")
-    local rules_files = tonumber(rules_files_output)
+    -- Get file counts using helper function
+    local total_files = get_command_output_number("find test_release_package/HealIQ -type f | wc -l")
+    local lua_files = get_command_output_number("find test_release_package/HealIQ -name '*.lua' | wc -l")
+    local rules_files = get_command_output_number("find test_release_package/HealIQ/rules -name '*.lua' 2>/dev/null | wc -l")
     
     print("Package statistics:")
-    print("  - Total files: " .. (total_files or 0))
-    print("  - Lua files: " .. (lua_files or 0))
-    print("  - Rules files: " .. (rules_files or 0))
+    print("  - Total files: " .. total_files)
+    print("  - Lua files: " .. lua_files)
+    print("  - Rules files: " .. rules_files)
     
-    print_result((total_files or 0) > 10, "Package contains reasonable number of files")
-    print_result((lua_files or 0) > 5, "Package contains Lua files")
-    print_result((rules_files or 0) == 6, "Package contains exactly 6 rule files (prevents regression)")
+    print_result(total_files > 10, "Package contains reasonable number of files")
+    print_result(lua_files > 5, "Package contains Lua files")
+    print_result(rules_files == 6, "Package contains exactly 6 rule files (prevents regression)")
     
     return true
 end
