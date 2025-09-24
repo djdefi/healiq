@@ -162,6 +162,62 @@ jobs:
         cp CHANGELOG.md dist/HealIQ/
         cp INSTALL.md dist/HealIQ/
         
+        # Copy rules directory and all its contents (CRITICAL: prevents v0.1.12-style missing files issue)
+        if [ -d "rules" ]; then
+          cp -r rules/ dist/HealIQ/
+          echo "✅ Copied rules/ directory with $(find rules/ -name "*.lua" | wc -l) rule files"
+        else
+          echo "❌ ERROR: rules/ directory not found!"
+          exit 1
+        fi
+        
+        # Validate all expected files are present in the package
+        echo "🔍 Validating package contents..."
+        
+        # Check all TOC-referenced files are included
+        missing_files=()
+        while IFS= read -r line; do
+          # Skip comments and empty lines
+          if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "${line// }" ]]; then
+            continue
+          fi
+          # Trim whitespace
+          file=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          if [[ -n "$file" && "$file" == *.lua ]]; then
+            if [ ! -f "dist/HealIQ/$file" ]; then
+              missing_files+=("$file")
+            fi
+          fi
+        done < HealIQ.toc
+        
+        # Check critical non-Lua files
+        critical_files=("HealIQ.toc" "README.md" "LICENSE" "CHANGELOG.md" "INSTALL.md")
+        for file in "${critical_files[@]}"; do
+          if [ ! -f "dist/HealIQ/$file" ]; then
+            missing_files+=("$file")
+          fi
+        done
+        
+        # Report validation results
+        if [ ${#missing_files[@]} -eq 0 ]; then
+          echo "✅ All expected files are present in the package!"
+          echo "📁 Package contents:"
+          find dist/HealIQ -type f | sort
+          echo ""
+          echo "📊 Package statistics:"
+          echo "  - Total files: $(find dist/HealIQ -type f | wc -l)"
+          echo "  - Lua files: $(find dist/HealIQ -name "*.lua" | wc -l)"
+          echo "  - Rules files: $(find dist/HealIQ/rules -name "*.lua" 2>/dev/null | wc -l)"
+        else
+          echo "❌ ERROR: Missing files in package:"
+          for file in "${missing_files[@]}"; do
+            echo "  - $file"
+          done
+          echo ""
+          echo "This would cause a broken addon release. Aborting."
+          exit 1
+        fi
+        
         # Create zip file
         cd dist
         zip -r "../HealIQ-${{ steps.version.outputs.version }}.zip" HealIQ/
