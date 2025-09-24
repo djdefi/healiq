@@ -749,12 +749,8 @@ local function initializeCore()
             end
         end, {"Core"})
 
-        HealIQ.InitRegistry:RegisterComponent("UI", function()
-            if HealIQ.UI and HealIQ.UI.Initialize then
-                HealIQ.UI:Initialize()
-                HealIQ:DebugLog("UI module initialized")
-            end
-        end, {"Core"})
+        -- UI module initialization moved to ADDON_LOADED event
+        -- This ensures minimap button and options frame are created after WoW UI is ready
 
         -- Config module initialization moved to ADDON_LOADED event
         -- This ensures slash commands are registered when WoW's system is ready
@@ -799,12 +795,18 @@ function HealIQ:OnAddonLoaded(addonName)
             return
         end
         
-        self:DebugLog("HealIQ addon loaded, initializing slash commands", "INFO")
+        self:DebugLog("HealIQ addon loaded, initializing slash commands and UI", "INFO")
         
         -- Now it's safe to initialize Config module (slash commands)
         if self.Config and self.Config.Initialize then
             self.Config:Initialize()
             self:DebugLog("Config module initialized on ADDON_LOADED", "INFO")
+        end
+        
+        -- Initialize UI after WoW UI system is ready
+        if self.UI and self.UI.Initialize then
+            self.UI:Initialize()
+            self:DebugLog("UI module initialized on ADDON_LOADED", "INFO")
         end
     end)
 end
