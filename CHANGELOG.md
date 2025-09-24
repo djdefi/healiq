@@ -7,7 +7,6 @@
 
 ### Fixed
 - Fix minimap icon missing and config UI not opening issues
-
 ## [0.2.3] - 2025-09-24
 
 ### Changed
