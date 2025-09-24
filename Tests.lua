@@ -314,6 +314,23 @@ end
 function Tests.TestUI()
     Tests.AssertNotNil(HealIQ.UI, "UI: UI module exists")
 
+    -- Test UI database initialization handling
+    if HealIQ.UI.Initialize then
+        Tests.AssertType("function", HealIQ.UI.Initialize, "UI: Initialize function exists")
+        
+        -- Test Initialize handles missing database gracefully
+        local originalDb = HealIQ.db
+        HealIQ.db = nil
+        
+        local success = pcall(function()
+            HealIQ.UI:Initialize()
+        end)
+        Tests.Assert(success, "UI: Initialize handles missing database without errors")
+        
+        -- Restore database
+        HealIQ.db = originalDb
+    end
+
     -- Test UI initialization without errors
     if HealIQ.db and HealIQ.db.ui then
         local initialScale = HealIQ.db.ui.scale

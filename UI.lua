@@ -1775,7 +1775,7 @@ end
 
 function UI:ToggleLock()
     if not HealIQ.db or not HealIQ.db.ui then
-        HealIQ:Print("UI database not yet initialized")
+        HealIQ:Print("UI not ready yet - please try again in a moment")
         return
     end
 
