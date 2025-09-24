@@ -36,11 +36,39 @@ local BORDER_COLORS = {
     targeting = {0, 0, 0, 0.8}        -- Dark border for targeting indicators
 }
 
+-- Helper function to validate database availability for UI operations
+-- Consolidates repeated database validation logic across UI functions
+local function validateDatabase(functionName, requireUISection)
+    if not HealIQ.db then
+        HealIQ:DebugLog(functionName .. ": Database not ready, skipping operation", "WARN")
+        return false
+    end
+    
+    if requireUISection ~= false and not HealIQ.db.ui then
+        HealIQ:DebugLog(functionName .. ": UI database section not ready, skipping operation", "WARN")
+        return false
+    end
+    
+    return true
+end
+
+-- Helper function to safely update UI settings with database validation
+-- Consolidates the common pattern of checking database before updating settings
+local function updateUISetting(settingName, value, callback)
+    if HealIQ.db and HealIQ.db.ui then
+        HealIQ.db.ui[settingName] = value
+        if callback and type(callback) == "function" then
+            callback()
+        end
+        return true
+    end
+    return false
+end
+
 function UI:Initialize()
     HealIQ:SafeCall(function()
         -- Check if database is ready before initializing UI components
-        if not HealIQ.db or not HealIQ.db.ui then
-            HealIQ:DebugLog("Database not ready during UI initialization, deferring UI creation", "WARN")
+        if not validateDatabase("Initialize") then
             return
         end
         
@@ -70,12 +98,12 @@ function UI:EnsureInitialized()
     
     -- Individual component checks for edge cases where Initialize() was called
     -- but some components failed to create
-    if not minimapButton and HealIQ.db and HealIQ.db.ui then
+    if not minimapButton and validateDatabase("EnsureInitialized-MinimapButton") then
         HealIQ:DebugLog("Minimap button not found, creating it", "INFO")
         self:CreateMinimapButton()
     end
     
-    if not optionsFrame and HealIQ.db and HealIQ.db.ui then
+    if not optionsFrame and validateDatabase("EnsureInitialized-OptionsFrame", false) then
         HealIQ:DebugLog("Options frame not found, creating it", "INFO")
         self:CreateOptionsFrame()
     end
@@ -84,8 +112,7 @@ end
 function UI:CreateMainFrame()
     HealIQ:SafeCall(function()
         -- Ensure database is available
-        if not HealIQ.db or not HealIQ.db.ui then
-            HealIQ:DebugLog("CreateMainFrame: Database not ready, skipping frame creation", "WARN")
+        if not validateDatabase("CreateMainFrame") then
             return
         end
         
@@ -309,8 +336,7 @@ end
 
 function UI:CreateMinimapButton()
     -- Ensure database is available
-    if not HealIQ.db or not HealIQ.db.ui then
-        HealIQ:DebugLog("CreateMinimapButton: Database not ready, skipping button creation", "WARN")
+    if not validateDatabase("CreateMinimapButton") then
         return
     end
     
@@ -439,8 +465,7 @@ end
 
 function UI:CreateQueueFrame()
     -- Ensure database is available
-    if not HealIQ.db or not HealIQ.db.ui then
-        HealIQ:DebugLog("CreateQueueFrame: Database not ready, skipping queue creation", "WARN")
+    if not validateDatabase("CreateQueueFrame") then
         return
     end
     
@@ -533,8 +558,7 @@ end
 
 function UI:CreateOptionsFrame()
     -- Ensure database is available
-    if not HealIQ.db then
-        HealIQ:DebugLog("CreateOptionsFrame: Database not ready, skipping options creation", "WARN")
+    if not validateDatabase("CreateOptionsFrame", false) then
         return
     end
     
@@ -886,12 +910,11 @@ function UI:CreateDisplayTab(panel)
     showNameCheck.text:SetPoint("LEFT", showNameCheck, "RIGHT", 5, 0)
     showNameCheck.text:SetText("Show spell names")
     showNameCheck:SetScript("OnClick", function(self)
-        if HealIQ.db and HealIQ.db.ui then
-            HealIQ.db.ui.showSpellName = self:GetChecked()
+        updateUISetting("showSpellName", self:GetChecked(), function()
             if HealIQ.UI then
                 HealIQ.UI:SetShowSpellName(self:GetChecked())
             end
-        end
+        end)
     end)
     self:AddTooltip(showNameCheck, "Show Spell Names", "Display the name of the suggested spell below the icon.")
     optionsFrame.showNameCheck = showNameCheck
@@ -1029,12 +1052,11 @@ function UI:CreateQueueTab(panel)
     _G[queueSizeSlider:GetName() .. "High"]:SetText("5")
     _G[queueSizeSlider:GetName() .. "Text"]:SetText("Queue Size")
     queueSizeSlider:SetScript("OnValueChanged", function(self, value)
-        if HealIQ.db and HealIQ.db.ui then
-            HealIQ.db.ui.queueSize = math.floor(value)
+        updateUISetting("queueSize", math.floor(value), function()
             if HealIQ.UI then
                 HealIQ.UI:RecreateFrames()
             end
-        end
+        end)
     end)
     self:AddTooltip(queueSizeSlider, "Queue Size", "Number of spell suggestions to show in the queue (2-5).")
     optionsFrame.queueSizeSlider = queueSizeSlider
