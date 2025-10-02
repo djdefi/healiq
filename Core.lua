@@ -18,7 +18,7 @@ if not HealIQ then
 end
 
 -- Ensure version is set for packaging validation
-HealIQ.version = "0.2.4"
+HealIQ.version = "0.3.0"
 
 -- Best Practice: Prepare for LibStub integration (optional library support)
 HealIQ.LibStub = _G.LibStub -- Will be nil if LibStub not available, won't break anything

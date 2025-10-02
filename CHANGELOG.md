@@ -1,5 +1,17 @@
 # HealIQ Changelog
 
+## [0.3.0] - 2025-10-02
+
+### Added
+- Add enhanced UI database initialization test coverage and improve user messages
+
+### Changed
+- Consolidate database validation patterns and reduce code duplication in UI functions
+- Further consolidate UI patterns - add checkbox/slider helpers and reduce duplication
+
+### Fixed
+- Fix UI database initialization timing issues and reduce defensive coding
+
 ## [0.2.4] - 2025-09-24
 
 ### Changed
