@@ -687,8 +687,22 @@ end
 
 -- User message function
 function HealIQ:Message(message, isError)
+    -- Ensure message is converted to string, handle any type safely
+    local msgStr
+    if type(message) == "table" then
+        -- If it's a table, try to get a meaningful representation
+        msgStr = "(table error: " .. tostring(message) .. ")"
+        if self.debug and message.message then
+            msgStr = msgStr .. " - " .. tostring(message.message)
+        end
+    elseif message == nil then
+        msgStr = "(nil message)"
+    else
+        msgStr = tostring(message)
+    end
+    
     local prefix = isError and "|cFFFF0000HealIQ Error:|r " or "|cFF00FF00HealIQ:|r "
-    print(prefix .. tostring(message))
+    print(prefix .. msgStr)
 end
 
 -- Main addon initialization
