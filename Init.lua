@@ -18,6 +18,8 @@ if type(addonName) ~= "string" then
 end
 
 -- Create addon object if it doesn't exist, using the passed table or creating new one
+-- We use a local variable first, then publish to global namespace after initialization
+-- This prevents other code from accessing a half-initialized HealIQ object
 local HealIQ = addonTable or {}
 
 -- Global initialization registry
@@ -63,8 +65,9 @@ local function initializeCore()
         if type(message) == "table" then
             -- If it's a table, try to get a meaningful representation
             msgStr = "(table error: " .. tostring(message) .. ")"
-            if HealIQ.debug and message.message then
-                msgStr = msgStr .. " - " .. tostring(message.message)
+            -- Try to extract error details if available
+            if HealIQ.debug and type(message.message) == "string" then
+                msgStr = msgStr .. " - " .. message.message
             end
         elseif message == nil then
             msgStr = "(nil message)"
