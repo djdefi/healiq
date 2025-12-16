@@ -11,9 +11,10 @@
 -- Robust parameter handling - works regardless of loading order
 local addonName, addonTable = ...
 
--- Validate addon parameters
+-- Validate addon parameters - WoW passes addon name and table, but be defensive
+-- addonName is used later to set HealIQ.addonName (line 34)
 if type(addonName) ~= "string" then
-    addonName = "HealIQ" -- Fallback to hardcoded name
+    addonName = "HealIQ" -- Fallback to hardcoded name if invalid
 end
 
 -- Create addon object if it doesn't exist, using the passed table or creating new one

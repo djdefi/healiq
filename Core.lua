@@ -732,9 +732,25 @@ local function initializeCore()
         end)
     end
 
-    -- Note: Performance, Validation, Tracker, and Engine modules register themselves
+    -- Note: Performance and Validation modules register themselves
     -- via the Init system in their respective files with Core as a dependency.
-    -- We don't need to register them here to avoid duplicate registration.
+    
+    -- Register Tracker and Engine modules (they don't self-register)
+    if HealIQ.InitRegistry then
+        HealIQ.InitRegistry:RegisterComponent("Tracker", function()
+            if HealIQ.Tracker and HealIQ.Tracker.Initialize then
+                HealIQ.Tracker:Initialize()
+                HealIQ:DebugLog("Tracker module initialized")
+            end
+        end, {"Core"})
+
+        HealIQ.InitRegistry:RegisterComponent("Engine", function()
+            if HealIQ.Engine and HealIQ.Engine.Initialize then
+                HealIQ.Engine:Initialize()
+                HealIQ:DebugLog("Engine module initialized")
+            end
+        end, {"Core"})
+    end
     
     -- UI and Config modules are initialized via ADDON_LOADED event
     -- to ensure WoW UI system is fully ready
