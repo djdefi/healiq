@@ -693,7 +693,7 @@ function HealIQ:Message(message, isError)
         -- If it's a table, try to get a meaningful representation
         msgStr = "(table error: " .. tostring(message) .. ")"
         -- Try to extract error details if available
-        if self.debug and type(message.message) == "string" then
+        if self.debug and message.message and type(message.message) == "string" then
             msgStr = msgStr .. " - " .. message.message
         end
     elseif message == nil then

@@ -12,7 +12,7 @@
 local addonName, addonTable = ...
 
 -- Validate addon parameters - WoW passes addon name and table, but be defensive
--- addonName is used later to set HealIQ.addonName (line 34)
+-- addonName is used later to set HealIQ.addonName (see line 37 in initializeCore)
 if type(addonName) ~= "string" then
     addonName = "HealIQ" -- Fallback to hardcoded name if invalid
 end
@@ -66,7 +66,7 @@ local function initializeCore()
             -- If it's a table, try to get a meaningful representation
             msgStr = "(table error: " .. tostring(message) .. ")"
             -- Try to extract error details if available
-            if HealIQ.debug and type(message.message) == "string" then
+            if HealIQ.debug and message.message and type(message.message) == "string" then
                 msgStr = msgStr .. " - " .. message.message
             end
         elseif message == nil then
