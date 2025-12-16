@@ -412,16 +412,10 @@ end
 -- Initialize validation system
 function Validation:Initialize()
     HealIQ:SafeCall(function()
-        -- Run initial health check
-        local healthCheck = self:HealthCheck()
-
-        if healthCheck.overall_status == "CRITICAL" then
-            HealIQ:Message("Addon health check failed. Some features may not work correctly.", true)
-        elseif healthCheck.overall_status == "WARNING" then
-            HealIQ:DebugLog("Addon health check passed with warnings", "WARN")
-        end
-
-        HealIQ:Print("Validation system initialized")
+        -- Defer health check until after all modules have loaded
+        -- This prevents false failures during initial addon loading
+        -- The health check will be available via /healiq health command
+        HealIQ:DebugLog("Validation system initialized - health check available via /healiq health", "INFO")
     end)
 end
 

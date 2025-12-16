@@ -718,43 +718,12 @@ local function initializeCore()
         end)
     end
 
-    -- Register other core components that depend on Core
-    if HealIQ.InitRegistry then
-        -- Register core modules
-        HealIQ.InitRegistry:RegisterComponent("Performance", function()
-            if HealIQ.Performance and HealIQ.Performance.Initialize then
-                HealIQ.Performance:Initialize()
-                HealIQ:DebugLog("Performance monitoring initialized")
-            end
-        end, {"Core"})
-
-        HealIQ.InitRegistry:RegisterComponent("Validation", function()
-            if HealIQ.Validation and HealIQ.Validation.Initialize then
-                HealIQ.Validation:Initialize()
-                HealIQ:DebugLog("Validation system initialized")
-            end
-        end, {"Core"})
-
-        HealIQ.InitRegistry:RegisterComponent("Tracker", function()
-            if HealIQ.Tracker and HealIQ.Tracker.Initialize then
-                HealIQ.Tracker:Initialize()
-                HealIQ:DebugLog("Tracker module initialized")
-            end
-        end, {"Core"})
-
-        HealIQ.InitRegistry:RegisterComponent("Engine", function()
-            if HealIQ.Engine and HealIQ.Engine.Initialize then
-                HealIQ.Engine:Initialize()
-                HealIQ:DebugLog("Engine module initialized")
-            end
-        end, {"Core"})
-
-        -- UI module initialization moved to ADDON_LOADED event
-        -- This ensures minimap button and options frame are created after WoW UI is ready
-
-        -- Config module initialization moved to ADDON_LOADED event
-        -- This ensures slash commands are registered when WoW's system is ready
-    end
+    -- Note: Performance, Validation, Tracker, and Engine modules register themselves
+    -- via the Init system in their respective files with Core as a dependency.
+    -- We don't need to register them here to avoid duplicate registration.
+    
+    -- UI and Config modules are initialized via ADDON_LOADED event
+    -- to ensure WoW UI system is fully ready
 
     HealIQ:Message("HealIQ Core " .. HealIQ.version .. " initialized successfully")
     HealIQ:DebugLog("HealIQ Core initialization completed successfully", "INFO")
