@@ -687,8 +687,23 @@ end
 
 -- User message function
 function HealIQ:Message(message, isError)
+    -- Ensure message is converted to string, handle any type safely
+    local msgStr
+    if type(message) == "table" then
+        -- If it's a table, try to get a meaningful representation
+        msgStr = "(table error: " .. tostring(message) .. ")"
+        -- Try to extract error details if available
+        if self.debug and message.message and type(message.message) == "string" then
+            msgStr = msgStr .. " - " .. message.message
+        end
+    elseif message == nil then
+        msgStr = "(nil message)"
+    else
+        msgStr = tostring(message)
+    end
+    
     local prefix = isError and "|cFFFF0000HealIQ Error:|r " or "|cFF00FF00HealIQ:|r "
-    print(prefix .. tostring(message))
+    print(prefix .. msgStr)
 end
 
 -- Main addon initialization
@@ -718,23 +733,11 @@ local function initializeCore()
         end)
     end
 
-    -- Register other core components that depend on Core
+    -- Note: Performance and Validation modules register themselves
+    -- via the Init system in their respective files with Core as a dependency.
+    
+    -- Register Tracker and Engine modules (they don't self-register)
     if HealIQ.InitRegistry then
-        -- Register core modules
-        HealIQ.InitRegistry:RegisterComponent("Performance", function()
-            if HealIQ.Performance and HealIQ.Performance.Initialize then
-                HealIQ.Performance:Initialize()
-                HealIQ:DebugLog("Performance monitoring initialized")
-            end
-        end, {"Core"})
-
-        HealIQ.InitRegistry:RegisterComponent("Validation", function()
-            if HealIQ.Validation and HealIQ.Validation.Initialize then
-                HealIQ.Validation:Initialize()
-                HealIQ:DebugLog("Validation system initialized")
-            end
-        end, {"Core"})
-
         HealIQ.InitRegistry:RegisterComponent("Tracker", function()
             if HealIQ.Tracker and HealIQ.Tracker.Initialize then
                 HealIQ.Tracker:Initialize()
@@ -748,13 +751,10 @@ local function initializeCore()
                 HealIQ:DebugLog("Engine module initialized")
             end
         end, {"Core"})
-
-        -- UI module initialization moved to ADDON_LOADED event
-        -- This ensures minimap button and options frame are created after WoW UI is ready
-
-        -- Config module initialization moved to ADDON_LOADED event
-        -- This ensures slash commands are registered when WoW's system is ready
     end
+    
+    -- UI and Config modules are initialized via ADDON_LOADED event
+    -- to ensure WoW UI system is fully ready
 
     HealIQ:Message("HealIQ Core " .. HealIQ.version .. " initialized successfully")
     HealIQ:DebugLog("HealIQ Core initialization completed successfully", "INFO")

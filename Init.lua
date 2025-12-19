@@ -9,10 +9,18 @@
 -- * Comprehensive logging of initialization process
 
 -- Robust parameter handling - works regardless of loading order
-local addonName, HealIQ = ...
+local addonName, addonTable = ...
 
--- Create addon object if it doesn't exist
-HealIQ = HealIQ or {}
+-- Validate addon parameters - WoW passes addon name and table, but be defensive
+-- addonName is used later to set HealIQ.addonName (see line 37 in initializeCore)
+if type(addonName) ~= "string" then
+    addonName = "HealIQ" -- Fallback to hardcoded name if invalid
+end
+
+-- Create addon object if it doesn't exist, using the passed table or creating new one
+-- We use a local variable first, then publish to global namespace after initialization
+-- This prevents other code from accessing a half-initialized HealIQ object
+local HealIQ = addonTable or {}
 
 -- Global initialization registry
 local InitRegistry = {
@@ -52,9 +60,24 @@ local function initializeCore()
 
     -- Message function
     HealIQ.Message = HealIQ.Message or function(message, isError)
+        -- Ensure message is converted to string, handle any type safely
+        local msgStr
+        if type(message) == "table" then
+            -- If it's a table, try to get a meaningful representation
+            msgStr = "(table error: " .. tostring(message) .. ")"
+            -- Try to extract error details if available
+            if HealIQ.debug and message.message and type(message.message) == "string" then
+                msgStr = msgStr .. " - " .. message.message
+            end
+        elseif message == nil then
+            msgStr = "(nil message)"
+        else
+            msgStr = tostring(message)
+        end
+        
         local prefix = isError and "|cFFFF0000HealIQ Error:|r " or "|cFF00FF00HealIQ:|r "
         if print then
-            print(prefix .. tostring(message))
+            print(prefix .. msgStr)
         end
     end
 
