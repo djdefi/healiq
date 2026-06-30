@@ -1,4 +1,4 @@
-## Interface: 110107
+## Interface: 120007
 ## Title: HealIQ
 ## Notes: Smart healing spell suggestion addon for Restoration Druids
 ## Author: djdefi

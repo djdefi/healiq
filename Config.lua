@@ -85,7 +85,7 @@ end
 
 commands.version = function()
     print("|cFF00FF00HealIQ|r Version " .. HealIQ.version)
-    print("  Interface: 110107 (The War Within)")
+    print("  Interface: 120007 (Midnight)")
     print("  Author: djdefi")
     print("  Description: Smart healing spell suggestion addon for Restoration Druids")
     print("  GitHub: https://github.com/djdefi/healiq")

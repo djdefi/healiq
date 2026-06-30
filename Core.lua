@@ -45,7 +45,7 @@ end
 -- Best Practice: Enhanced addon metadata for better debugging
 HealIQ.addonName = HealIQ.addonName or "HealIQ"
 HealIQ.buildInfo = {
-    tocVersion = "110107",
+    tocVersion = "120007",
     author = "djdefi",
     category = "Healing",
     license = "MIT",
