@@ -243,9 +243,12 @@ function Engine:OnUpdate(elapsed)
             return
         end
 
-        -- Evaluate priority rules
-        local suggestion = self:EvaluateRules()
+        -- Evaluate priority rules once; the top of the queue is the primary suggestion
         local queue = self:EvaluateRulesQueue()
+        local suggestion = queue[1]
+        if suggestion then
+            HealIQ:LogSuggestionMade()
+        end
 
         self:SetSuggestion(suggestion)
         self:SetQueue(queue)
@@ -729,21 +732,23 @@ function Engine:EvaluateFillerManaRules(suggestions, tracker, strategy)
     end
 end
 
-function Engine:EvaluateRules()
+-- Build the full ordered suggestion list from every rule category.
+-- Single source of truth: both the primary suggestion and the queue derive
+-- from this, so they can never drift out of sync.
+function Engine:BuildSuggestions()
     local tracker = HealIQ.Tracker
     if not tracker then
-        return nil
+        return {}
     end
 
     if not HealIQ.db or not HealIQ.db.rules then
-        return nil
+        return {}
     end
 
     local suggestions = {}
     local strategy = HealIQ.db.strategy or {}
     HealIQ:DebugLog("Starting rule evaluation with enhanced strategy")
 
-    -- Evaluate all rule categories using helper methods
     self:EvaluateEmergencyCooldowns(suggestions, tracker, strategy)
     self:EvaluateCoreMaintenanceRules(suggestions, tracker, strategy)
     self:EvaluateSymbioticTankRules(suggestions, tracker, strategy)
@@ -755,166 +760,28 @@ function Engine:EvaluateRules()
     self:EvaluateFillerManaRules(suggestions, tracker, strategy)
 
     HealIQ:DebugLog("Rule evaluation completed, " .. #suggestions .. " suggestions found")
+    return suggestions
+end
 
-    -- Return the top suggestion for backward compatibility, log if suggestion made
-    local topSuggestion = suggestions[1] or nil
+-- Top-priority suggestion (backward-compatible single-suggestion API).
+function Engine:EvaluateRules()
+    local suggestions = self:BuildSuggestions()
+    local topSuggestion = suggestions[1]
     if topSuggestion then
         HealIQ:LogSuggestionMade()
     end
     return topSuggestion
 end
 
--- New function to get multiple suggestions for queue display
+-- Suggestion queue, capped to the configured queue size.
 function Engine:EvaluateRulesQueue()
-    local tracker = HealIQ.Tracker
-    if not tracker then
-        return {}
+    local suggestions = self:BuildSuggestions()
+    local queueSize = (HealIQ.db and HealIQ.db.ui and HealIQ.db.ui.queueSize) or 3
+    local queue = {}
+    for i = 1, math.min(queueSize, #suggestions) do
+        queue[i] = suggestions[i]
     end
-
-    if not HealIQ.db or not HealIQ.db.rules then
-        return {}
-    end
-
-    local suggestions = {}
-    local strategy = HealIQ.db.strategy or {}
-
-    -- Use the same rule evaluation logic as the main function for consistency
-    -- This ensures the queue shows the same priority order as the main suggestion
-
-    -- Rule 1: Emergency/Major Cooldowns
-    if HealIQ.db.rules.tranquility and tracker:ShouldUseTranquility() then
-        table.insert(suggestions, SPELLS.TRANQUILITY)
-    end
-
-    if HealIQ.db.rules.incarnationTree and tracker:ShouldUseIncarnation() then
-        table.insert(suggestions, SPELLS.INCARNATION_TREE)
-    end
-
-    if HealIQ.db.rules.naturesSwiftness and tracker:ShouldUseNaturesSwiftness() then
-        table.insert(suggestions, SPELLS.NATURES_SWIFTNESS)
-    end
-
-    -- Rule 2: Core Maintenance
-    if HealIQ.db.rules.efflorescence and strategy.prioritizeEfflorescence and tracker:ShouldUseEfflorescence() then
-        table.insert(suggestions, SPELLS.EFFLORESCENCE)
-    end
-
-    -- Lifebloom maintenance logic
-    if HealIQ.db.rules.lifebloom and strategy.maintainLifebloomOnTank then
-        local shouldSuggestLifebloom = false
-
-        if UnitExists("target") and UnitIsFriend("player", "target") then
-            local lifeboomInfo = tracker:GetTargetHotInfo("lifebloom")
-            local hasLifebloom = lifeboomInfo and lifeboomInfo.active
-            local refreshWindow = strategy.lifebloomRefreshWindow or 4.5
-            local isTank = UnitGroupRolesAssigned("target") == "TANK"
-            local isFocus = UnitIsUnit("target", "focus")
-
-            if (isTank or isFocus) and (not hasLifebloom or (hasLifebloom and lifeboomInfo.remaining < refreshWindow)) then
-                shouldSuggestLifebloom = true
-            end
-        elseif InCombatLockdown() or (IsInGroup() or IsInRaid()) then
-            shouldSuggestLifebloom = true
-        end
-
-        if shouldSuggestLifebloom then
-            table.insert(suggestions, SPELLS.LIFEBLOOM)
-        end
-    end
-
-    -- Rule 3: Proc-based spells
-    if HealIQ.db.rules.clearcasting and strategy.preferClearcastingRegrowth and tracker:HasClearcasting() then
-        table.insert(suggestions, SPELLS.REGROWTH)
-    end
-
-    -- Rule 4: AoE Healing Combo
-    if HealIQ.db.rules.swiftmend and tracker:CanSwiftmend() then
-        local recentDamageCount = tracker:GetRecentDamageCount()
-        local wildGrowthReady = tracker:IsSpellReady("wildGrowth")
-        local minTargets = strategy.wildGrowthMinTargets or 1
-
-        local comboCondition = strategy.swiftmendWildGrowthCombo and wildGrowthReady and recentDamageCount >= minTargets
-        local healingCondition = UnitExists("target") and UnitIsFriend("player", "target")
-        local emergencyCondition = recentDamageCount >= 1
-        local reminderCondition = not UnitExists("target") and (InCombatLockdown() or (IsInGroup() or IsInRaid()))
-
-        if comboCondition or healingCondition or emergencyCondition or reminderCondition then
-            table.insert(suggestions, SPELLS.SWIFTMEND)
-        end
-    end
-
-    if HealIQ.db.rules.wildGrowth and tracker:IsSpellReady("wildGrowth") then
-        local recentDamageCount = tracker:GetRecentDamageCount()
-        local minTargets = strategy.wildGrowthMinTargets or 1
-        if recentDamageCount >= minTargets then
-            table.insert(suggestions, SPELLS.WILD_GROWTH)
-        end
-    end
-
-    -- Rule 5: Cooldown Management
-    if HealIQ.db.rules.flourish and tracker:ShouldUseFlourish() then
-        table.insert(suggestions, SPELLS.FLOURISH)
-    end
-
-    -- Rule 6: Defensive/Utility
-    if HealIQ.db.rules.ironbark and tracker:ShouldUseIronbark() then
-        table.insert(suggestions, SPELLS.IRONBARK)
-    end
-
-    if HealIQ.db.rules.barkskin and tracker:ShouldUseBarkskin() then
-        table.insert(suggestions, SPELLS.BARKSKIN)
-    end
-
-    -- Rule 7: Ramping HoTs
-    local shouldSuggestRejuvenation = false
-
-    if UnitExists("target") and UnitIsFriend("player", "target") then
-        local rejuvInfo = tracker:GetTargetHotInfo("rejuvenation")
-        local hasRejuv = rejuvInfo and rejuvInfo.active
-
-        if HealIQ.db.rules.rejuvenation and not hasRejuv then
-            local inCombat = InCombatLockdown()
-            local recentDamageCount = tracker:GetRecentDamageCount()
-
-            if inCombat or recentDamageCount > 0 or not strategy.avoidRandomRejuvenationDowntime then
-                shouldSuggestRejuvenation = true
-            end
-        end
-    elseif HealIQ.db.rules.rejuvenation then
-        local inCombat = InCombatLockdown()
-        local recentDamageCount = tracker:GetRecentDamageCount()
-        local inGroup = IsInGroup() or IsInRaid()
-
-        if (inCombat and inGroup) or recentDamageCount > 0 then
-            shouldSuggestRejuvenation = true
-        end
-    end
-
-    if shouldSuggestRejuvenation then
-        table.insert(suggestions, SPELLS.REJUVENATION)
-    end
-
-    -- Rule 8: Filler/Mana Management
-    if HealIQ.db.rules.wrath and strategy.useWrathForMana and tracker:ShouldUseWrath() then
-        table.insert(suggestions, SPELLS.WRATH)
-    end
-
-    -- Return up to the configured queue size suggestions
-    if HealIQ.db and HealIQ.db.ui then
-        local queueSize = HealIQ.db.ui.queueSize or 3
-        local queue = {}
-        for i = 1, math.min(queueSize, #suggestions) do
-            table.insert(queue, suggestions[i])
-        end
-        return queue
-    else
-        -- Fallback if UI config not available
-        local queue = {}
-        for i = 1, math.min(3, #suggestions) do
-            table.insert(queue, suggestions[i])
-        end
-        return queue
-    end
+    return queue
 end
 
 -- Targeting evaluation functions
