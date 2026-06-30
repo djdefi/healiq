@@ -64,7 +64,6 @@ commands.help = function()
     print("|cFFFFFF00/healiq enable|r - Enable addon")
     print("|cFFFFFF00/healiq disable|r - Disable addon")
     print("|cFFFFFF00/healiq profile|r - Show profile commands")
-    print("|cFFFFFF00/healiq plugins|r - Show plugin commands")
     print("|cFFFFFF00/healiq spec|r - Show specialization commands")
     print("|cFFFFFF00/healiq ui|r - Show UI commands")
     print("|cFFFFFF00/healiq rules|r - Show rule commands")
@@ -733,46 +732,6 @@ commands.profile = function(subcommand, ...)
     end
 end
 
--- Plugin management commands
-commands.plugins = function(subcommand, ...)
-    if subcommand == "list" then
-        print("|cFF00FF00HealIQ Registered Plugins:|r")
-        local hasPlugins = false
-        for name, plugin in pairs(HealIQ.Plugins.registered) do
-            hasPlugins = true
-            local status = HealIQ.Plugins.enabled[name] and "|cFF00FF00enabled|r" or "|cFFFF0000disabled|r"
-            print("  " .. name .. " v" .. plugin.version .. " (" .. status .. ")")
-            if plugin.description and plugin.description ~= "" then
-                print("    " .. plugin.description)
-            end
-        end
-        
-        if not hasPlugins then
-            print("  No plugins registered")
-        end
-    elseif subcommand == "enable" then
-        local pluginName = select(1, ...)
-        if not pluginName then
-            print("|cFF00FF00Usage:|r /healiq plugins enable <name>")
-            return
-        end
-        
-        HealIQ:EnablePlugin(pluginName)
-    elseif subcommand == "disable" then
-        local pluginName = select(1, ...)
-        if not pluginName then
-            print("|cFF00FF00Usage:|r /healiq plugins disable <name>")
-            return
-        end
-        
-        HealIQ:DisablePlugin(pluginName)
-    else
-        print("|cFF00FF00HealIQ Plugin Commands:|r")
-        print("|cFFFFFF00/healiq plugins list|r - List all plugins")
-        print("|cFFFFFF00/healiq plugins enable <name>|r - Enable plugin")
-        print("|cFFFFFF00/healiq plugins disable <name>|r - Disable plugin")
-    end
-end
 
 -- Specialization management commands
 commands.spec = function(subcommand, ...)

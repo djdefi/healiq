@@ -327,9 +327,6 @@ function Engine:UpdateRulesForSpecialization(spec)
             end
         end
     end
-    
-    -- Trigger plugin hook for specialization change
-    HealIQ:TriggerPluginHook("SPECIALIZATION_CHANGED", spec)
 end
 
 -- Talent validation and detection system
