@@ -11,6 +11,7 @@ move-folders:
     HealIQ:
         - Init.lua
         - Core.lua
+        - SpellData.lua
         - Engine.lua
         - UI.lua
         - Tracker.lua

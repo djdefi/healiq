@@ -70,7 +70,7 @@ local TARGET_TYPES = {
 local SPELLS = {
     -- Emergency/Major Cooldowns (Highest Priority)
     TRANQUILITY = {
-        id = 740,
+        id = HealIQ.SpellData.TRANQUILITY,
         name = "Tranquility",
         icon = "Interface\\Icons\\Spell_Nature_Tranquility",
         priority = 1,
@@ -78,7 +78,7 @@ local SPELLS = {
         targetingDescription = "Channel while positioned near injured allies"
     },
     INCARNATION_TREE = {
-        id = 33891,
+        id = HealIQ.SpellData.INCARNATION_TREE,
         name = "Incarnation",
         icon = "Interface\\Icons\\Spell_Druid_Incarnation",
         priority = 2,
@@ -86,7 +86,7 @@ local SPELLS = {
         targetingDescription = "Activate when group healing is needed"
     },
     NATURES_SWIFTNESS = {
-        id = 132158,
+        id = HealIQ.SpellData.NATURES_SWIFTNESS,
         name = "Nature's Swiftness",
         icon = "Interface\\Icons\\Spell_Nature_RavenForm",
         priority = 3,
@@ -96,7 +96,7 @@ local SPELLS = {
 
     -- Core Maintenance (High Priority - keep these active)
     EFFLORESCENCE = {
-        id = 145205,
+        id = HealIQ.SpellData.EFFLORESCENCE,
         name = "Efflorescence",
         icon = "Interface\\Icons\\Ability_Druid_Efflorescence",
         priority = 4, -- Higher priority per guide: "keep active as frequently as possible"
@@ -104,7 +104,7 @@ local SPELLS = {
         targetingDescription = "Place where group will be standing"
     },
     LIFEBLOOM = {
-        id = 33763,
+        id = HealIQ.SpellData.LIFEBLOOM,
         name = "Lifebloom",
         icon = "Interface\\Icons\\INV_Misc_Herb_Felblossom",
         priority = 5, -- Higher priority per guide: "keep active on tank"
@@ -114,7 +114,7 @@ local SPELLS = {
 
     -- Proc-based spells (High Priority when available)
     REGROWTH = {
-        id = 8936,
+        id = HealIQ.SpellData.REGROWTH,
         name = "Regrowth",
         icon = "Interface\\Icons\\Spell_Nature_ResistNature",
         priority = 6, -- Higher priority when used with Clearcasting
@@ -124,7 +124,7 @@ local SPELLS = {
 
     -- AoE Healing Combo
     SWIFTMEND = {
-        id = 18562,
+        id = HealIQ.SpellData.SWIFTMEND,
         name = "Swiftmend",
         icon = "Interface\\Icons\\INV_Relics_IdolofRejuvenation",
         priority = 7, -- Higher priority as setup for Wild Growth
@@ -132,7 +132,7 @@ local SPELLS = {
         targetingDescription = "Target must have Rejuvenation or Regrowth"
     },
     WILD_GROWTH = {
-        id = 48438,
+        id = HealIQ.SpellData.WILD_GROWTH,
         name = "Wild Growth",
         icon = "Interface\\Icons\\Ability_Druid_WildGrowth",
         priority = 8, -- Often paired with Swiftmend
@@ -142,7 +142,7 @@ local SPELLS = {
 
     -- Cooldown Management
     FLOURISH = {
-        id = 197721,
+        id = HealIQ.SpellData.FLOURISH,
         name = "Flourish",
         icon = "Interface\\Icons\\Spell_Druid_WildGrowth",
         priority = 10,
@@ -152,7 +152,7 @@ local SPELLS = {
 
     -- Defensive/Utility
     IRONBARK = {
-        id = 102342,
+        id = HealIQ.SpellData.IRONBARK,
         name = "Ironbark",
         icon = "Interface\\Icons\\Spell_Druid_IronBark",
         priority = 11,
@@ -160,7 +160,7 @@ local SPELLS = {
         targetingDescription = "Prioritize tanks or targets taking heavy damage"
     },
     BARKSKIN = {
-        id = 22812,
+        id = HealIQ.SpellData.BARKSKIN,
         name = "Barkskin",
         icon = "Interface\\Icons\\Spell_Nature_StoneSkinTotem",
         priority = 12,
@@ -170,7 +170,7 @@ local SPELLS = {
 
     -- Ramping HoTs (Lower priority during maintenance, higher during damage phases)
     REJUVENATION = {
-        id = 774,
+        id = HealIQ.SpellData.REJUVENATION,
         name = "Rejuvenation",
         icon = "Interface\\Icons\\Spell_Nature_Rejuvenation",
         priority = 13,
@@ -180,7 +180,7 @@ local SPELLS = {
 
     -- Filler/Mana Management
     WRATH = {
-        id = 5176,
+        id = HealIQ.SpellData.WRATH,
         name = "Wrath",
         icon = "Interface\\Icons\\Spell_Nature_AbolishMagic",
         priority = 14,

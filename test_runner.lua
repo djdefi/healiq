@@ -267,7 +267,7 @@ local function loadAddon()
     }
 
     -- Try to load actual addon files for coverage tracking
-    local addonFiles = {"Core.lua", "Engine.lua", "UI.lua", "Tracker.lua", "Config.lua", "Logging.lua"}
+    local addonFiles = {"Core.lua", "SpellData.lua", "Engine.lua", "UI.lua", "Tracker.lua", "Config.lua", "Logging.lua"}
 
     for _, filename in ipairs(addonFiles) do
         local file = io.open(filename, "r")

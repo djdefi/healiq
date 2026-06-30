@@ -39,35 +39,8 @@ local function GetAuraDataCompat(unit, spellName, filter)
     end
 end
 
--- Spell IDs for tracking
-local SPELL_IDS = {
-    -- Restoration Druid spells
-    LIFEBLOOM = 33763,
-    REJUVENATION = 774,
-    REGROWTH = 8936,
-    WILD_GROWTH = 48438,
-    SWIFTMEND = 18562,
-    CLEARCASTING = 16870,
-
-    -- Major cooldowns
-    IRONBARK = 102342,
-    EFFLORESCENCE = 145205,
-    TRANQUILITY = 740,
-    INCARNATION_TREE = 33891,
-    NATURES_SWIFTNESS = 132158,
-    BARKSKIN = 22812,
-    FLOURISH = 197721,
-
-    -- New spells from strategy review
-    WRATH = 5176,
-
-    -- Buffs
-    CLEARCASTING_BUFF = 16870,
-    IRONBARK_BUFF = 102342,
-    BARKSKIN_BUFF = 22812,
-    NATURES_SWIFTNESS_BUFF = 132158,
-    INCARNATION_TREE_BUFF = 33891,
-}
+-- Canonical spell IDs live in SpellData.lua (single source of truth).
+local SPELL_IDS = HealIQ.SpellData
 
 -- Track state
 local trackedData = {
@@ -285,13 +258,13 @@ function Tracker:UpdatePlayerBuffs()
     end
 
     -- Check for existing buffs
-    checkBuff(SPELL_IDS.CLEARCASTING_BUFF, "clearcasting")
+    checkBuff(SPELL_IDS.CLEARCASTING, "clearcasting")
 
     -- Check for new buffs
-    checkBuff(SPELL_IDS.IRONBARK_BUFF, "ironbark")
-    checkBuff(SPELL_IDS.BARKSKIN_BUFF, "barkskin")
-    checkBuff(SPELL_IDS.NATURES_SWIFTNESS_BUFF, "naturesSwiftness")
-    checkBuff(SPELL_IDS.INCARNATION_TREE_BUFF, "incarnationTree")
+    checkBuff(SPELL_IDS.IRONBARK, "ironbark")
+    checkBuff(SPELL_IDS.BARKSKIN, "barkskin")
+    checkBuff(SPELL_IDS.NATURES_SWIFTNESS, "naturesSwiftness")
+    checkBuff(SPELL_IDS.INCARNATION_TREE, "incarnationTree")
 
     -- Maintain backward compatibility
     trackedData.buffs.clearcasting = trackedData.playerBuffs.clearcasting
@@ -498,7 +471,7 @@ function Tracker:ShouldUseIronbark()
 
     local hasIronbark = false
     if targetExists then
-        local spellName = GetSpellNameCompat(SPELL_IDS.IRONBARK_BUFF)
+        local spellName = GetSpellNameCompat(SPELL_IDS.IRONBARK)
         local auraData = spellName and GetAuraDataCompat("target", spellName, "HELPFUL")
         hasIronbark = auraData ~= nil
     end

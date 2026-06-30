@@ -175,7 +175,7 @@ end
 -- Main execution
 local function main()
     -- Filter to only analyze main addon files
-    local files = {"Core.lua", "Engine.lua", "UI.lua", "Tracker.lua", "Config.lua", "Logging.lua"}
+    local files = {"Core.lua", "SpellData.lua", "Engine.lua", "UI.lua", "Tracker.lua", "Config.lua", "Logging.lua"}
 
     print("Analyzing coverage for HealIQ addon files only...")
     local success = generateReport(files)

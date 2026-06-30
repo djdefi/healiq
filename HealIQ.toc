@@ -14,6 +14,7 @@ Init.lua
 
 ## Core initialization files
 Core.lua
+SpellData.lua
 Logging.lua
 Performance.lua
 Validation.lua
