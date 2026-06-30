@@ -33,91 +33,6 @@ local performanceData = {
     }
 }
 
--- Performance profiler for function execution timing
--- @param functionName String identifier for the function
--- @param func Function to profile
--- @param ... Arguments to pass to the function
--- @return success (boolean), result (any), executionTime (number)
-function Performance:ProfileFunction(functionName, func, ...)
-    local startTime = debugprofilestop and debugprofilestop() or GetTime() * 1000
-    local startMemory = collectgarbage("count")
-
-    local success, result = HealIQ:SafeCall(func, ...)
-
-    local endTime = debugprofilestop and debugprofilestop() or GetTime() * 1000
-    local endMemory = collectgarbage("count")
-
-    local executionTime = endTime - startTime
-    local memoryDelta = endMemory - startMemory
-
-    -- Track performance data
-    if not performanceData.functionTimes[functionName] then
-        performanceData.functionTimes[functionName] = {
-            totalTime = 0,
-            calls = 0,
-            maxTime = 0,
-            minTime = math.huge,
-            avgTime = 0
-        }
-    end
-
-    local stats = performanceData.functionTimes[functionName]
-    stats.totalTime = stats.totalTime + executionTime
-    stats.calls = stats.calls + 1
-    stats.maxTime = math.max(stats.maxTime, executionTime)
-    stats.minTime = math.min(stats.minTime, executionTime)
-    stats.avgTime = stats.totalTime / stats.calls
-
-    -- Track memory usage
-    if memoryDelta > 0 then
-        performanceData.memoryUsage[functionName] = (performanceData.memoryUsage[functionName] or 0) + memoryDelta
-    end
-
-    -- Check for performance warnings
-    if executionTime > performanceData.frameTimeTargets.critical then
-        local warningLevel = "WARNING"
-        if executionTime > performanceData.frameTimeTargets.error then
-            warningLevel = "ERROR"
-        end
-
-        table.insert(performanceData.performanceWarnings, {
-            timestamp = GetTime(),
-            function_name = functionName,
-            execution_time = executionTime,
-            level = warningLevel,
-            memory_delta = memoryDelta
-        })
-
-        if HealIQ.debug then
-            HealIQ:DebugLog(string.format("Performance %s: %s took %.2fms (threshold: %.2fms)",
-                warningLevel, functionName, executionTime, performanceData.frameTimeTargets.critical), warningLevel)
-        end
-    end
-
-    -- Automatic garbage collection when threshold exceeded
-    if endMemory > performanceData.gcThreshold and (GetTime() - performanceData.lastGC) > 5 then
-        collectgarbage("collect")
-        performanceData.lastGC = GetTime()
-        if HealIQ.debug then
-            HealIQ:DebugLog(string.format("Automatic GC triggered. Memory before: %.1fKB, after: %.1fKB",
-                endMemory, collectgarbage("count")), "INFO")
-        end
-    end
-
-    return success, result, executionTime
-end
-
--- Wrap a function with automatic performance profiling
--- @param functionName String identifier for the function
--- @param originalFunc The original function to wrap
--- @return function The wrapped function with profiling
-function Performance:WrapFunction(functionName, originalFunc)
-    return function(...)
-        local success, result, executionTime = self:ProfileFunction(functionName, originalFunc, ...)
-        return result
-    end
-end
-
 -- Generate comprehensive performance report
 -- @return string Formatted performance report
 function Performance:GeneratePerformanceReport()
@@ -212,13 +127,6 @@ function Performance:Reset()
     if HealIQ.debug then
         HealIQ:DebugLog("Performance tracking data reset", "INFO")
     end
-end
-
--- Get performance statistics for a specific function
--- @param functionName String identifier for the function
--- @return table Performance statistics or nil if not tracked
-function Performance:GetFunctionStats(functionName)
-    return performanceData.functionTimes[functionName]
 end
 
 -- Check if addon is experiencing performance issues
