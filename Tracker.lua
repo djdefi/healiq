@@ -59,7 +59,6 @@ local SPELL_IDS = {
     FLOURISH = 197721,
 
     -- New spells from strategy review
-    GROVE_GUARDIANS = 102693,
     WRATH = 5176,
 
     -- Buffs
@@ -182,7 +181,6 @@ function Tracker:UpdateCooldowns()
     updateCooldown(SPELL_IDS.FLOURISH, "flourish")
 
     -- Track new spells from strategy review
-    updateCooldown(SPELL_IDS.GROVE_GUARDIANS, "groveGuardians")
     updateCooldown(SPELL_IDS.WRATH, "wrath")
 
     -- Track trinket cooldowns (slot 13 and 14)
@@ -572,14 +570,6 @@ end
 function Tracker:ShouldUseNaturesSwiftness()
     if HealIQ.Rules and HealIQ.Rules.HealingCooldowns then
         return HealIQ.Rules.HealingCooldowns:ShouldUseNaturesSwiftness(self)
-    end
-    -- Fallback logic would be complex, return false
-    return false
-end
-
-function Tracker:ShouldUseGroveGuardians()
-    if HealIQ.Rules and HealIQ.Rules.UtilityRules then
-        return HealIQ.Rules.UtilityRules:ShouldUseGroveGuardians(self)
     end
     -- Fallback logic would be complex, return false
     return false

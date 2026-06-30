@@ -278,7 +278,7 @@ commands.rules = function(subcommand, ...)
         print("|cFFFFFF00/healiq rules disable <rule>|r - Disable a specific rule")
         print("|cFFFFFF00Rules:|r wildGrowth, clearcasting, lifebloom, swiftmend, rejuvenation,")
         print("  ironbark, efflorescence, tranquility, incarnationTree, naturesSwiftness,")
-        print("  barkskin, flourish, groveGuardians, wrath")
+        print("  barkskin, flourish, wrath")
         print("|cFFFFFF00/healiq strategy|r - Show strategy commands")
     end
 end
@@ -351,7 +351,6 @@ commands.strategy = function(subcommand, ...)
                 rejuvenationRampThreshold = 15,
                 avoidRandomRejuvenationDowntime = true,
                 useWrathForMana = true,
-                poolGroveGuardians = true,
                 emergencyNaturesSwiftness = true,
                 wildGrowthMinTargets = 3,
                 tranquilityMinTargets = 4,
@@ -378,7 +377,7 @@ commands.strategy = function(subcommand, ...)
         print("|cFFFFFF00/healiq strategy reset|r - Reset all strategy settings to defaults")
         print("|cFFFFFF00Settings:|r prioritizeEfflorescence, maintainLifebloomOnTank,")
         print("  preferClearcastingRegrowth, swiftmendWildGrowthCombo, useWrathForMana,")
-        print("  poolGroveGuardians, emergencyNaturesSwiftness, wildGrowthMinTargets,")
+        print("  emergencyNaturesSwiftness, wildGrowthMinTargets,")
         print("  tranquilityMinTargets, efflorescenceMinTargets, flourishMinHots,")
         print("  recentDamageWindow, lowHealthThreshold, lifebloomRefreshWindow")
     end

@@ -141,14 +141,6 @@ local SPELLS = {
     },
 
     -- Cooldown Management
-    GROVE_GUARDIANS = {
-        id = 102693,
-        name = "Grove Guardians",
-        icon = "Interface\\Icons\\Spell_Druid_Treant",
-        priority = 9,
-        targets = {TARGET_TYPES.SELF}, -- Self-activated with charges
-        targetingDescription = "Pool charges for big cooldowns"
-    },
     FLOURISH = {
         id = 197721,
         name = "Flourish",
@@ -388,13 +380,6 @@ function Engine:GetOptimalTalents()
             spellId = 197721,
             description = "Extends multiple HoTs - part of priority system",
             category = "HoT Management",
-            required = false
-        },
-        {
-            name = "Grove Guardians",
-            spellId = 102693,
-            description = "Charge pooling for cooldown coordination",
-            category = "Cooldown Management",
             required = false
         },
         {
@@ -667,13 +652,6 @@ end
 function Engine:EvaluateCooldownManagement(suggestions, tracker, strategy)
     -- Rule 5: Cooldown Management
 
-    -- Grove Guardians - pool charges for big cooldowns
-    if HealIQ.db.rules.groveGuardians and tracker:ShouldUseGroveGuardians() then
-        table.insert(suggestions, SPELLS.GROVE_GUARDIANS)
-        HealIQ:DebugLog("Rule triggered: Grove Guardians")
-        HealIQ:LogRuleTrigger("Grove Guardians")
-    end
-
     -- Flourish if available and multiple HoTs are expiring
     if HealIQ.db.rules.flourish and tracker:ShouldUseFlourish() then
         table.insert(suggestions, SPELLS.FLOURISH)
@@ -877,10 +855,6 @@ function Engine:EvaluateRulesQueue()
     end
 
     -- Rule 5: Cooldown Management
-    if HealIQ.db.rules.groveGuardians and tracker:ShouldUseGroveGuardians() then
-        table.insert(suggestions, SPELLS.GROVE_GUARDIANS)
-    end
-
     if HealIQ.db.rules.flourish and tracker:ShouldUseFlourish() then
         table.insert(suggestions, SPELLS.FLOURISH)
     end
@@ -1238,8 +1212,6 @@ function Engine:TestRule(ruleName, ...)
         return tracker:ShouldUseNaturesSwiftness()
     elseif ruleName == "barkskin" then
         return tracker:ShouldUseBarkskin()
-    elseif ruleName == "groveGuardians" then
-        return tracker:ShouldUseGroveGuardians()
     elseif ruleName == "wrath" then
         return tracker:ShouldUseWrath()
     end

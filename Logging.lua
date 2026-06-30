@@ -214,7 +214,6 @@ function HealIQ:GenerateDiagnosticDump()
             {"preferClearcastingRegrowth", "Prefer Clearcasting Regrowth"},
             {"swiftmendWildGrowthCombo", "Swiftmend + Wild Growth Combo"},
             {"useWrathForMana", "Use Wrath for Mana"},
-            {"poolGroveGuardians", "Pool Grove Guardians"},
             {"emergencyNaturesSwiftness", "Emergency Nature's Swiftness"}
         }
 

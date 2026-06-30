@@ -103,7 +103,6 @@ local defaults = {
             flourish = true,
 
             -- New spells from strategy review
-            groveGuardians = true,
             wrath = true,
         },
         strategy = {
@@ -116,7 +115,6 @@ local defaults = {
             rejuvenationRampThreshold = 15,          -- Start ramping Rejuv when damage expected in 15s
             avoidRandomRejuvenationDowntime = true,  -- Don't cast random Rejuvs during downtime
             useWrathForMana = true,                  -- Fill downtime with Wrath for mana
-            poolGroveGuardians = true,               -- Pool Grove Guardian charges for cooldowns
             emergencyNaturesSwiftness = true,       -- Use Nature's Swiftness for emergency heals
 
             -- Tunable thresholds
