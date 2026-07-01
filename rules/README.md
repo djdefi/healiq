@@ -7,7 +7,7 @@ This directory contains modular rule files for HealIQ spell suggestions.
 - `BaseRule.lua` - Base rule interface and common functionality
 - `DefensiveCooldowns.lua` - Defensive cooldown rules (Ironbark, Barkskin)
 - `HealingCooldowns.lua` - Healing cooldown rules (Tranquility, Nature's Swiftness, Incarnation)
-- `UtilityRules.lua` - Utility and buff rules (Flourish, Grove Guardians)
+- `UtilityRules.lua` - Utility and buff rules (Flourish)
 - `AoERules.lua` - Area of effect healing rules (Efflorescence)
 - `OffensiveRules.lua` - Offensive/DPS rules (Wrath)
 
