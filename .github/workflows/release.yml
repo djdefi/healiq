@@ -281,7 +281,7 @@ jobs:
           # MM/M = major, NN = minor, PP = patch
           if [[ $interface =~ ^([0-9]+)$ ]] && [ ${#interface} -ge 5 ] && [ ${#interface} -le 6 ]; then
             if [ ${#interface} -eq 6 ]; then
-              # 6 digits: MMNNPP (e.g., 110107 -> 11.0.7)
+              # 6 digits: MMNNPP (e.g., 120007 -> 12.0.7)
               local major="${interface:0:2}"
               local minor_raw="${interface:2:2}"
               local patch_raw="${interface:4:2}"
