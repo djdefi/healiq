@@ -763,16 +763,6 @@ function Engine:BuildSuggestions()
     return suggestions
 end
 
--- Top-priority suggestion (backward-compatible single-suggestion API).
-function Engine:EvaluateRules()
-    local suggestions = self:BuildSuggestions()
-    local topSuggestion = suggestions[1]
-    if topSuggestion then
-        HealIQ:LogSuggestionMade()
-    end
-    return topSuggestion
-end
-
 -- Suggestion queue, capped to the configured queue size.
 function Engine:EvaluateRulesQueue()
     local suggestions = self:BuildSuggestions()

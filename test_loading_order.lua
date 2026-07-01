@@ -60,6 +60,15 @@ local function test_toc_loading_order()
         print_result(loggingPos < firstRulePos, "Logging.lua loads before rule files")
     end
 
+    -- Test that SpellData.lua comes before rules/ and the Tracker/Engine.
+    -- rules/DefensiveCooldowns captures HealIQ.SpellData at file-load time, so
+    -- SpellData must load first or spell-ID lookups are nil (issue #98 class).
+    local spellDataPos = fileOrder["SpellData.lua"]
+    print_result(spellDataPos ~= nil, "SpellData.lua found in .toc file")
+    if spellDataPos then
+        print_result(spellDataPos < firstRulePos, "SpellData.lua loads before rule files")
+    end
+
     -- Test that specific rule files are present
     local expectedRuleFiles = {
         "rules/BaseRule.lua",
