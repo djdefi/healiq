@@ -1267,7 +1267,6 @@ function UI:CreateStrategyTab(panel)
         {key = "swiftmendWildGrowthCombo", name = "Swiftmend + Wild Growth Combo", desc = "Link Swiftmend and Wild Growth usage"},
         {key = "avoidRandomRejuvenationDowntime", name = "Avoid Random Rejuvenation in Downtime", desc = "Don't cast random Rejuvenations during downtime periods"},
         {key = "useWrathForMana", name = "Use Wrath for Mana", desc = "Fill downtime with Wrath for mana restoration"},
-        {key = "poolGroveGuardians", name = "Pool Grove Guardians", desc = "Pool Grove Guardian charges for major cooldowns"},
         {key = "emergencyNaturesSwiftness", name = "Emergency Nature's Swiftness", desc = "Use Nature's Swiftness for emergency healing"},
     }
 
@@ -1425,7 +1424,6 @@ function UI:CreateStrategyTab(panel)
                 rejuvenationRampThreshold = 15,
                 avoidRandomRejuvenationDowntime = true,
                 useWrathForMana = true,
-                poolGroveGuardians = true,
                 emergencyNaturesSwiftness = true,
                 wildGrowthMinTargets = 1,
                 tranquilityMinTargets = 4,

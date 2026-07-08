@@ -1,5 +1,5 @@
 -- HealIQ Rules/UtilityRules.lua
--- Utility and buff rules (Flourish, Grove Guardians)
+-- Utility and buff rules (Flourish)
 
 -- Use robust global access pattern that works with new Init system
 local HealIQ = _G.HealIQ
@@ -56,32 +56,4 @@ function UtilityRules:ShouldUseFlourish(tracker)
     end
     
     return flourishReady and expiringHots >= minHots
-end
-
-function UtilityRules:ShouldUseGroveGuardians(tracker)
-    -- Suggest Grove Guardians based on strategy - pool charges for big cooldowns
-    local groveGuardiansReady = tracker:IsSpellReady("groveGuardians")
-    local strategy = HealIQ.db and HealIQ.db.strategy or {}
-    local poolCharges = strategy.poolGroveGuardians ~= false -- default true
-    
-    if not groveGuardiansReady then
-        return false
-    end
-    
-    -- If pooling is disabled, suggest whenever ready
-    if not poolCharges then
-        return true
-    end
-    
-    -- Enhanced pooling logic: suggest more frequently
-    local recentDamageCount = tracker:GetRecentDamageCount()
-    local minTargets = strategy.wildGrowthMinTargets or 1
-    local hasOtherCooldowns = tracker:HasPlayerBuff("incarnationTree") or tracker:HasPlayerBuff("naturesSwiftness")
-    local inCombat = HealIQ.Rules.safeCallBaseRule("IsInCombat", false)
-    
-    -- Suggest if:
-    -- 1. High damage to group, OR
-    -- 2. Other major cooldowns are active, OR
-    -- 3. In combat with any group damage
-    return (recentDamageCount >= minTargets) or hasOtherCooldowns or (inCombat and recentDamageCount >= 1)
 end

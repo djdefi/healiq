@@ -54,7 +54,7 @@ HealIQ.LibStub = _G.LibStub -- Optional library support
 ```lua
 -- Added comprehensive build information:
 HealIQ.buildInfo = {
-    tocVersion = "110107",
+    tocVersion = "120007",
     author = "djdefi", 
     category = "Healing",
     license = "MIT",
