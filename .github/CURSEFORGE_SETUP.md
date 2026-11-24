@@ -46,7 +46,7 @@ When you create a new release (either manually or via the automated release work
 The workflow automatically detects the supported WoW version from your addon's `HealIQ.toc` file:
 
 1. Reads the `## Interface:` version from the .toc file
-2. Converts it to the corresponding game version (e.g., Interface 110107 → Game Version 11.0.7)
+2. Converts it to the corresponding game version (e.g., Interface 120007 → Game Version 12.0.7)
 3. Uses this version for CurseForge uploads
 
 This ensures your CurseForge releases always target the correct WoW version without manual configuration.

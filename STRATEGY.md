@@ -16,19 +16,13 @@ The spell priorities have been reordered to match optimal Restoration Druid game
 6. **Regrowth** - Prioritize with Clearcasting procs
 7. **Swiftmend** - Setup for Wild Growth combos
 8. **Wild Growth** - AoE healing when 3+ targets damaged
-9. **Grove Guardians** - Pool charges for big cooldowns
-10. **Flourish** - Extend multiple HoTs when expiring
-11. **Ironbark** - Damage reduction on tank/focus
-12. **Barkskin** - Self-defense when taking damage
-13. **Rejuvenation** - Basic HoT with smart ramping logic
-14. **Wrath** - Mana restoration filler during downtime
+9. **Flourish** - Extend multiple HoTs when expiring
+10. **Ironbark** - Damage reduction on tank/focus
+11. **Barkskin** - Self-defense when taking damage
+12. **Rejuvenation** - Basic HoT with smart ramping logic
+13. **Wrath** - Mana restoration filler during downtime
 
 ## New Spells Added
-
-### Grove Guardians
-- **Purpose**: Pool charges for major cooldown windows
-- **Strategy**: Only suggests when pooling disabled or during high damage phases
-- **Configuration**: Controlled by `poolGroveGuardians` setting
 
 ### Wrath
 - **Purpose**: Mana restoration during downtime
@@ -47,7 +41,6 @@ Access strategy settings with `/healiq strategy list` and modify with `/healiq s
 - `swiftmendWildGrowthCombo` (default: true) - Link Swiftmend and Wild Growth usage
 - `avoidRandomRejuvenationDowntime` (default: true) - Don't cast random Rejuvs during downtime
 - `useWrathForMana` (default: true) - Fill downtime with Wrath for mana
-- `poolGroveGuardians` (default: true) - Pool Grove Guardian charges for cooldowns
 - `emergencyNaturesSwiftness` (default: true) - Use Nature's Swiftness for emergency heals
 
 ### Tunable Thresholds
@@ -76,17 +69,14 @@ Access strategy settings with `/healiq strategy list` and modify with `/healiq s
 # Solo/Small Group settings (more permissive)
 /healiq strategy set wildGrowthMinTargets 0
 /healiq strategy set tranquilityMinTargets 2
-/healiq strategy set poolGroveGuardians false
 
 # Raid settings (more conservative)
 /healiq strategy set wildGrowthMinTargets 4
 /healiq strategy set tranquilityMinTargets 5
-/healiq strategy set poolGroveGuardians true
 
 # Mythic+ settings (balanced)
 /healiq strategy set wildGrowthMinTargets 2
 /healiq strategy set tranquilityMinTargets 3
-/healiq strategy set poolGroveGuardians false
 ```
 
 ### Reset to Defaults
@@ -103,7 +93,7 @@ This implementation closely follows the Wowhead Restoration Druid guide recommen
 3. **Clearcasting Utilization** - Regrowth prioritized when proc is active
 4. **AoE Healing Flow** - Swiftmend → Wild Growth combo logic
 5. **Ramping Strategy** - Rejuvenation timing based on damage phases vs downtime
-6. **Cooldown Management** - Grove Guardians pooling and emergency responses
+6. **Cooldown Management** - Flourish HoT extension and emergency responses
 7. **Mana Efficiency** - Wrath filler to maintain mana levels
 
 ## Advanced Configuration

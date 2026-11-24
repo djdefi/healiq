@@ -18,7 +18,6 @@
 - Smart Lifebloom tank management with bloom timing
 - Clearcasting proc optimization
 - Swiftmend + Wild Growth combo suggestions
-- Grove Guardians charge pooling
 - Wrath filler for mana restoration
 - Configurable thresholds for all healing decisions
 

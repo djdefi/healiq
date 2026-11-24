@@ -76,22 +76,6 @@ function Validation:ValidateParameter(value, expectedType, constraints)
                     constraints.max or constraints.maxLength, constraints.requiredKeys)
 end
 
--- Validate multiple parameters at once
--- @param parameters Table of {value, type, constraints} entries
--- @return boolean, string Success status and error message
-function Validation:ValidateParameters(parameters)
-    for i, param in ipairs(parameters) do
-        local value, expectedType, constraints = param[1], param[2], param[3]
-        local success, error = self:ValidateParameter(value, expectedType, constraints)
-        if not success then
-            return false, "Parameter " .. i .. ": " .. error
-        end
-    end
-    return true
-end
-
--- Validate database structure integrity
--- @param db The database table to validate
 -- @return boolean, string Success status and error message
 function Validation:ValidateDatabase(db)
     if not db then
@@ -148,116 +132,11 @@ function Validation:ValidateDatabase(db)
     return true
 end
 
--- Validate spell suggestion structure
--- @param suggestion The suggestion table to validate
--- @return boolean, string Success status and error message
-function Validation:ValidateSuggestion(suggestion)
-    if not suggestion then
-        return false, "Suggestion is nil"
-    end
-
-    local success, error = self:ValidateParameter(suggestion, "table", {
-        requiredKeys = {"spellId", "name", "icon", "priority"}
-    })
-
-    if not success then
-        return false, error
-    end
-
-    -- Validate individual fields
-    local validations = {
-        {suggestion.spellId, "number", {min = 1}},
-        {suggestion.name, "string", {minLength = 1, maxLength = 100}},
-        {suggestion.icon, "string", {minLength = 1}},
-        {suggestion.priority, "number", {min = 0, max = 100}}
-    }
-
-    for _, validation in ipairs(validations) do
-        local value, expectedType, constraints = validation[1], validation[2], validation[3]
-        local fieldSuccess, fieldError = self:ValidateParameter(value, expectedType, constraints)
-        if not fieldSuccess then
-            return false, "Suggestion field validation error: " .. fieldError
-        end
-    end
-
-    return true
-end
-
--- Safe type conversion utilities
-local safeConverters = {
-    toNumber = function(value, default)
-        local num = tonumber(value)
-        return num or (default or 0)
-    end,
-
-    toString = function(value, default)
-        if value == nil then return default or "" end
-        return tostring(value)
-    end,
-
-    toBoolean = function(value, default)
-        if value == nil then return default or false end
-        if type(value) == "boolean" then return value end
-        if type(value) == "string" then
-            return value:lower() == "true" or value:lower() == "yes" or value == "1"
-        end
-        if type(value) == "number" then
-            return value ~= 0
-        end
-        return default or false
-    end
-}
-
--- Safely convert value to specified type
--- @param value The value to convert
--- @param targetType The target type ("number", "string", "boolean")
--- @param default Default value if conversion fails
--- @return any Converted value or default
-function Validation:SafeConvert(value, targetType, default)
-    local converter = safeConverters["to" .. targetType:sub(1,1):upper() .. targetType:sub(2)]
-    if converter then
-        return converter(value, default)
-    end
-    return default
-end
-
 -- Check if WoW API function is available
 -- @param apiName The name of the API function
 -- @return boolean True if API is available
 function Validation:IsAPIAvailable(apiName)
     return _G[apiName] ~= nil and type(_G[apiName]) == "function"
-end
-
--- Check if addon is in a valid state for operation
--- @return boolean, string Success status and error message
-function Validation:ValidateAddonState()
-    -- Check if HealIQ object exists
-    if not HealIQ then
-        return false, "HealIQ addon object not initialized"
-    end
-
-    -- Check if database is initialized
-    if not HealIQ.db then
-        return false, "HealIQ database not initialized"
-    end
-
-    -- Validate database structure
-    local dbSuccess, dbError = self:ValidateDatabase(HealIQ.db)
-    if not dbSuccess then
-        return false, "Database validation failed: " .. dbError
-    end
-
-    -- Check if player is in game
-    if not self:IsAPIAvailable("UnitExists") or not UnitExists("player") then
-        return false, "Player not in game or API not available"
-    end
-
-    -- Check if addon is enabled
-    if not HealIQ.db.enabled then
-        return false, "Addon is disabled"
-    end
-
-    return true
 end
 
 -- Validate configuration values before applying them

@@ -45,7 +45,7 @@ end
 -- Best Practice: Enhanced addon metadata for better debugging
 HealIQ.addonName = HealIQ.addonName or "HealIQ"
 HealIQ.buildInfo = {
-    tocVersion = "110107",
+    tocVersion = "120007",
     author = "djdefi",
     category = "Healing",
     license = "MIT",
@@ -103,7 +103,6 @@ local defaults = {
             flourish = true,
 
             -- New spells from strategy review
-            groveGuardians = true,
             wrath = true,
         },
         strategy = {
@@ -116,7 +115,6 @@ local defaults = {
             rejuvenationRampThreshold = 15,          -- Start ramping Rejuv when damage expected in 15s
             avoidRandomRejuvenationDowntime = true,  -- Don't cast random Rejuvs during downtime
             useWrathForMana = true,                  -- Fill downtime with Wrath for mana
-            poolGroveGuardians = true,               -- Pool Grove Guardian charges for cooldowns
             emergencyNaturesSwiftness = true,       -- Use Nature's Swiftness for emergency heals
 
             -- Tunable thresholds
@@ -405,133 +403,6 @@ function HealIQ:OnSpecializationChanged()
             end
         end
     end
-end
-
--- Plugin API System
-HealIQ.Plugins = {
-    registered = {},
-    hooks = {},
-    enabled = {}
-}
-
-function HealIQ:RegisterPlugin(pluginName, pluginData)
-    if not pluginName or not pluginData then
-        self:Print("Invalid plugin registration")
-        return false
-    end
-    
-    if self.Plugins.registered[pluginName] then
-        self:Print("Plugin already registered: " .. pluginName)
-        return false
-    end
-    
-    -- Validate plugin structure
-    if type(pluginData.Initialize) ~= "function" then
-        self:Print("Plugin missing Initialize function: " .. pluginName)
-        return false
-    end
-    
-    self.Plugins.registered[pluginName] = {
-        name = pluginName,
-        version = pluginData.version or "1.0.0",
-        author = pluginData.author or "Unknown",
-        description = pluginData.description or "",
-        Initialize = pluginData.Initialize,
-        OnEnable = pluginData.OnEnable,
-        OnDisable = pluginData.OnDisable,
-        GetSuggestions = pluginData.GetSuggestions, -- For rule plugins
-        OnEvent = pluginData.OnEvent -- For event handling plugins
-    }
-    
-    self:Print("Plugin registered: " .. pluginName .. " v" .. (pluginData.version or "1.0.0"))
-    return true
-end
-
-function HealIQ:EnablePlugin(pluginName)
-    local plugin = self.Plugins.registered[pluginName]
-    if not plugin then
-        self:Print("Plugin not found: " .. pluginName)
-        return false
-    end
-    
-    if self.Plugins.enabled[pluginName] then
-        return true -- Already enabled
-    end
-    
-    local success, err = self:SafeCall(plugin.Initialize, plugin)
-    if not success then
-        self:Print("Failed to initialize plugin " .. pluginName .. ": " .. (err or "unknown error"))
-        return false
-    end
-    
-    if plugin.OnEnable then
-        success, err = self:SafeCall(plugin.OnEnable, plugin)
-        if not success then
-            self:Print("Failed to enable plugin " .. pluginName .. ": " .. (err or "unknown error"))
-            return false
-        end
-    end
-    
-    self.Plugins.enabled[pluginName] = true
-    self:Print("Plugin enabled: " .. pluginName)
-    return true
-end
-
-function HealIQ:DisablePlugin(pluginName)
-    local plugin = self.Plugins.registered[pluginName]
-    if not plugin then
-        return false
-    end
-    
-    if not self.Plugins.enabled[pluginName] then
-        return true -- Already disabled
-    end
-    
-    if plugin.OnDisable then
-        self:SafeCall(plugin.OnDisable, plugin)
-    end
-    
-    self.Plugins.enabled[pluginName] = false
-    self:Print("Plugin disabled: " .. pluginName)
-    return true
-end
-
-function HealIQ:GetPluginSuggestions()
-    local suggestions = {}
-    
-    for pluginName, enabled in pairs(self.Plugins.enabled) do
-        if enabled then
-            local plugin = self.Plugins.registered[pluginName]
-            if plugin and plugin.GetSuggestions then
-                local success, pluginSuggestions = self:SafeCall(plugin.GetSuggestions, plugin)
-                if success and pluginSuggestions then
-                    for _, suggestion in ipairs(pluginSuggestions) do
-                        table.insert(suggestions, suggestion)
-                    end
-                end
-            end
-        end
-    end
-    
-    return suggestions
-end
-
-function HealIQ:TriggerPluginHook(hookName, ...)
-    if not self.Plugins.hooks[hookName] then
-        return
-    end
-    
-    for _, callback in ipairs(self.Plugins.hooks[hookName]) do
-        self:SafeCall(callback, ...)
-    end
-end
-
-function HealIQ:RegisterHook(hookName, callback, pluginName)
-    if not self.Plugins.hooks[hookName] then
-        self.Plugins.hooks[hookName] = {}
-    end
-    
-    table.insert(self.Plugins.hooks[hookName], callback)
 end
 
 -- Serialization helpers for profile import/export
