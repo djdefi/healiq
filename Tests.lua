@@ -1082,16 +1082,16 @@ function Tests.TestCooldownRegressions()
     end
 
     -- Test symbiotic relationship detection
-    if HealIQ.Engine and HealIQ.Engine.EvaluateRules then
+    if HealIQ.Engine and HealIQ.Engine.BuildSuggestions then
         -- Test scenario where no beneficial relationships exist
         -- This should suggest establishing tank relationships
         -- Note: Full testing requires more complex mock setup, so we'll just verify the function exists
         local success, suggestions = pcall(function()
-            return HealIQ.Engine:EvaluateRules() or {}
+            return HealIQ.Engine:BuildSuggestions() or {}
         end)
 
         if success then
-            Tests.AssertType("table", suggestions, "Cooldown Regression: EvaluateRules returns suggestions table")
+            Tests.AssertType("table", suggestions, "Cooldown Regression: BuildSuggestions returns suggestions table")
             -- The actual symbiotic relationship logic will be added in the next fix
         end
     end

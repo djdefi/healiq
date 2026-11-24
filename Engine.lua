@@ -70,7 +70,7 @@ local TARGET_TYPES = {
 local SPELLS = {
     -- Emergency/Major Cooldowns (Highest Priority)
     TRANQUILITY = {
-        id = 740,
+        id = HealIQ.SpellData.TRANQUILITY,
         name = "Tranquility",
         icon = "Interface\\Icons\\Spell_Nature_Tranquility",
         priority = 1,
@@ -78,7 +78,7 @@ local SPELLS = {
         targetingDescription = "Channel while positioned near injured allies"
     },
     INCARNATION_TREE = {
-        id = 33891,
+        id = HealIQ.SpellData.INCARNATION_TREE,
         name = "Incarnation",
         icon = "Interface\\Icons\\Spell_Druid_Incarnation",
         priority = 2,
@@ -86,7 +86,7 @@ local SPELLS = {
         targetingDescription = "Activate when group healing is needed"
     },
     NATURES_SWIFTNESS = {
-        id = 132158,
+        id = HealIQ.SpellData.NATURES_SWIFTNESS,
         name = "Nature's Swiftness",
         icon = "Interface\\Icons\\Spell_Nature_RavenForm",
         priority = 3,
@@ -96,7 +96,7 @@ local SPELLS = {
 
     -- Core Maintenance (High Priority - keep these active)
     EFFLORESCENCE = {
-        id = 145205,
+        id = HealIQ.SpellData.EFFLORESCENCE,
         name = "Efflorescence",
         icon = "Interface\\Icons\\Ability_Druid_Efflorescence",
         priority = 4, -- Higher priority per guide: "keep active as frequently as possible"
@@ -104,7 +104,7 @@ local SPELLS = {
         targetingDescription = "Place where group will be standing"
     },
     LIFEBLOOM = {
-        id = 33763,
+        id = HealIQ.SpellData.LIFEBLOOM,
         name = "Lifebloom",
         icon = "Interface\\Icons\\INV_Misc_Herb_Felblossom",
         priority = 5, -- Higher priority per guide: "keep active on tank"
@@ -114,7 +114,7 @@ local SPELLS = {
 
     -- Proc-based spells (High Priority when available)
     REGROWTH = {
-        id = 8936,
+        id = HealIQ.SpellData.REGROWTH,
         name = "Regrowth",
         icon = "Interface\\Icons\\Spell_Nature_ResistNature",
         priority = 6, -- Higher priority when used with Clearcasting
@@ -124,7 +124,7 @@ local SPELLS = {
 
     -- AoE Healing Combo
     SWIFTMEND = {
-        id = 18562,
+        id = HealIQ.SpellData.SWIFTMEND,
         name = "Swiftmend",
         icon = "Interface\\Icons\\INV_Relics_IdolofRejuvenation",
         priority = 7, -- Higher priority as setup for Wild Growth
@@ -132,7 +132,7 @@ local SPELLS = {
         targetingDescription = "Target must have Rejuvenation or Regrowth"
     },
     WILD_GROWTH = {
-        id = 48438,
+        id = HealIQ.SpellData.WILD_GROWTH,
         name = "Wild Growth",
         icon = "Interface\\Icons\\Ability_Druid_WildGrowth",
         priority = 8, -- Often paired with Swiftmend
@@ -141,16 +141,8 @@ local SPELLS = {
     },
 
     -- Cooldown Management
-    GROVE_GUARDIANS = {
-        id = 102693,
-        name = "Grove Guardians",
-        icon = "Interface\\Icons\\Spell_Druid_Treant",
-        priority = 9,
-        targets = {TARGET_TYPES.SELF}, -- Self-activated with charges
-        targetingDescription = "Pool charges for big cooldowns"
-    },
     FLOURISH = {
-        id = 197721,
+        id = HealIQ.SpellData.FLOURISH,
         name = "Flourish",
         icon = "Interface\\Icons\\Spell_Druid_WildGrowth",
         priority = 10,
@@ -160,7 +152,7 @@ local SPELLS = {
 
     -- Defensive/Utility
     IRONBARK = {
-        id = 102342,
+        id = HealIQ.SpellData.IRONBARK,
         name = "Ironbark",
         icon = "Interface\\Icons\\Spell_Druid_IronBark",
         priority = 11,
@@ -168,7 +160,7 @@ local SPELLS = {
         targetingDescription = "Prioritize tanks or targets taking heavy damage"
     },
     BARKSKIN = {
-        id = 22812,
+        id = HealIQ.SpellData.BARKSKIN,
         name = "Barkskin",
         icon = "Interface\\Icons\\Spell_Nature_StoneSkinTotem",
         priority = 12,
@@ -178,7 +170,7 @@ local SPELLS = {
 
     -- Ramping HoTs (Lower priority during maintenance, higher during damage phases)
     REJUVENATION = {
-        id = 774,
+        id = HealIQ.SpellData.REJUVENATION,
         name = "Rejuvenation",
         icon = "Interface\\Icons\\Spell_Nature_Rejuvenation",
         priority = 13,
@@ -188,7 +180,7 @@ local SPELLS = {
 
     -- Filler/Mana Management
     WRATH = {
-        id = 5176,
+        id = HealIQ.SpellData.WRATH,
         name = "Wrath",
         icon = "Interface\\Icons\\Spell_Nature_AbolishMagic",
         priority = 14,
@@ -251,9 +243,12 @@ function Engine:OnUpdate(elapsed)
             return
         end
 
-        -- Evaluate priority rules
-        local suggestion = self:EvaluateRules()
+        -- Evaluate priority rules once; the top of the queue is the primary suggestion
         local queue = self:EvaluateRulesQueue()
+        local suggestion = queue[1]
+        if suggestion then
+            HealIQ:LogSuggestionMade()
+        end
 
         self:SetSuggestion(suggestion)
         self:SetQueue(queue)
@@ -335,9 +330,6 @@ function Engine:UpdateRulesForSpecialization(spec)
             end
         end
     end
-    
-    -- Trigger plugin hook for specialization change
-    HealIQ:TriggerPluginHook("SPECIALIZATION_CHANGED", spec)
 end
 
 -- Talent validation and detection system
@@ -388,13 +380,6 @@ function Engine:GetOptimalTalents()
             spellId = 197721,
             description = "Extends multiple HoTs - part of priority system",
             category = "HoT Management",
-            required = false
-        },
-        {
-            name = "Grove Guardians",
-            spellId = 102693,
-            description = "Charge pooling for cooldown coordination",
-            category = "Cooldown Management",
             required = false
         },
         {
@@ -667,13 +652,6 @@ end
 function Engine:EvaluateCooldownManagement(suggestions, tracker, strategy)
     -- Rule 5: Cooldown Management
 
-    -- Grove Guardians - pool charges for big cooldowns
-    if HealIQ.db.rules.groveGuardians and tracker:ShouldUseGroveGuardians() then
-        table.insert(suggestions, SPELLS.GROVE_GUARDIANS)
-        HealIQ:DebugLog("Rule triggered: Grove Guardians")
-        HealIQ:LogRuleTrigger("Grove Guardians")
-    end
-
     -- Flourish if available and multiple HoTs are expiring
     if HealIQ.db.rules.flourish and tracker:ShouldUseFlourish() then
         table.insert(suggestions, SPELLS.FLOURISH)
@@ -754,21 +732,23 @@ function Engine:EvaluateFillerManaRules(suggestions, tracker, strategy)
     end
 end
 
-function Engine:EvaluateRules()
+-- Build the full ordered suggestion list from every rule category.
+-- Single source of truth: both the primary suggestion and the queue derive
+-- from this, so they can never drift out of sync.
+function Engine:BuildSuggestions()
     local tracker = HealIQ.Tracker
     if not tracker then
-        return nil
+        return {}
     end
 
     if not HealIQ.db or not HealIQ.db.rules then
-        return nil
+        return {}
     end
 
     local suggestions = {}
     local strategy = HealIQ.db.strategy or {}
     HealIQ:DebugLog("Starting rule evaluation with enhanced strategy")
 
-    -- Evaluate all rule categories using helper methods
     self:EvaluateEmergencyCooldowns(suggestions, tracker, strategy)
     self:EvaluateCoreMaintenanceRules(suggestions, tracker, strategy)
     self:EvaluateSymbioticTankRules(suggestions, tracker, strategy)
@@ -780,170 +760,18 @@ function Engine:EvaluateRules()
     self:EvaluateFillerManaRules(suggestions, tracker, strategy)
 
     HealIQ:DebugLog("Rule evaluation completed, " .. #suggestions .. " suggestions found")
-
-    -- Return the top suggestion for backward compatibility, log if suggestion made
-    local topSuggestion = suggestions[1] or nil
-    if topSuggestion then
-        HealIQ:LogSuggestionMade()
-    end
-    return topSuggestion
+    return suggestions
 end
 
--- New function to get multiple suggestions for queue display
+-- Suggestion queue, capped to the configured queue size.
 function Engine:EvaluateRulesQueue()
-    local tracker = HealIQ.Tracker
-    if not tracker then
-        return {}
+    local suggestions = self:BuildSuggestions()
+    local queueSize = (HealIQ.db and HealIQ.db.ui and HealIQ.db.ui.queueSize) or 3
+    local queue = {}
+    for i = 1, math.min(queueSize, #suggestions) do
+        queue[i] = suggestions[i]
     end
-
-    if not HealIQ.db or not HealIQ.db.rules then
-        return {}
-    end
-
-    local suggestions = {}
-    local strategy = HealIQ.db.strategy or {}
-
-    -- Use the same rule evaluation logic as the main function for consistency
-    -- This ensures the queue shows the same priority order as the main suggestion
-
-    -- Rule 1: Emergency/Major Cooldowns
-    if HealIQ.db.rules.tranquility and tracker:ShouldUseTranquility() then
-        table.insert(suggestions, SPELLS.TRANQUILITY)
-    end
-
-    if HealIQ.db.rules.incarnationTree and tracker:ShouldUseIncarnation() then
-        table.insert(suggestions, SPELLS.INCARNATION_TREE)
-    end
-
-    if HealIQ.db.rules.naturesSwiftness and tracker:ShouldUseNaturesSwiftness() then
-        table.insert(suggestions, SPELLS.NATURES_SWIFTNESS)
-    end
-
-    -- Rule 2: Core Maintenance
-    if HealIQ.db.rules.efflorescence and strategy.prioritizeEfflorescence and tracker:ShouldUseEfflorescence() then
-        table.insert(suggestions, SPELLS.EFFLORESCENCE)
-    end
-
-    -- Lifebloom maintenance logic
-    if HealIQ.db.rules.lifebloom and strategy.maintainLifebloomOnTank then
-        local shouldSuggestLifebloom = false
-
-        if UnitExists("target") and UnitIsFriend("player", "target") then
-            local lifeboomInfo = tracker:GetTargetHotInfo("lifebloom")
-            local hasLifebloom = lifeboomInfo and lifeboomInfo.active
-            local refreshWindow = strategy.lifebloomRefreshWindow or 4.5
-            local isTank = UnitGroupRolesAssigned("target") == "TANK"
-            local isFocus = UnitIsUnit("target", "focus")
-
-            if (isTank or isFocus) and (not hasLifebloom or (hasLifebloom and lifeboomInfo.remaining < refreshWindow)) then
-                shouldSuggestLifebloom = true
-            end
-        elseif InCombatLockdown() or (IsInGroup() or IsInRaid()) then
-            shouldSuggestLifebloom = true
-        end
-
-        if shouldSuggestLifebloom then
-            table.insert(suggestions, SPELLS.LIFEBLOOM)
-        end
-    end
-
-    -- Rule 3: Proc-based spells
-    if HealIQ.db.rules.clearcasting and strategy.preferClearcastingRegrowth and tracker:HasClearcasting() then
-        table.insert(suggestions, SPELLS.REGROWTH)
-    end
-
-    -- Rule 4: AoE Healing Combo
-    if HealIQ.db.rules.swiftmend and tracker:CanSwiftmend() then
-        local recentDamageCount = tracker:GetRecentDamageCount()
-        local wildGrowthReady = tracker:IsSpellReady("wildGrowth")
-        local minTargets = strategy.wildGrowthMinTargets or 1
-
-        local comboCondition = strategy.swiftmendWildGrowthCombo and wildGrowthReady and recentDamageCount >= minTargets
-        local healingCondition = UnitExists("target") and UnitIsFriend("player", "target")
-        local emergencyCondition = recentDamageCount >= 1
-        local reminderCondition = not UnitExists("target") and (InCombatLockdown() or (IsInGroup() or IsInRaid()))
-
-        if comboCondition or healingCondition or emergencyCondition or reminderCondition then
-            table.insert(suggestions, SPELLS.SWIFTMEND)
-        end
-    end
-
-    if HealIQ.db.rules.wildGrowth and tracker:IsSpellReady("wildGrowth") then
-        local recentDamageCount = tracker:GetRecentDamageCount()
-        local minTargets = strategy.wildGrowthMinTargets or 1
-        if recentDamageCount >= minTargets then
-            table.insert(suggestions, SPELLS.WILD_GROWTH)
-        end
-    end
-
-    -- Rule 5: Cooldown Management
-    if HealIQ.db.rules.groveGuardians and tracker:ShouldUseGroveGuardians() then
-        table.insert(suggestions, SPELLS.GROVE_GUARDIANS)
-    end
-
-    if HealIQ.db.rules.flourish and tracker:ShouldUseFlourish() then
-        table.insert(suggestions, SPELLS.FLOURISH)
-    end
-
-    -- Rule 6: Defensive/Utility
-    if HealIQ.db.rules.ironbark and tracker:ShouldUseIronbark() then
-        table.insert(suggestions, SPELLS.IRONBARK)
-    end
-
-    if HealIQ.db.rules.barkskin and tracker:ShouldUseBarkskin() then
-        table.insert(suggestions, SPELLS.BARKSKIN)
-    end
-
-    -- Rule 7: Ramping HoTs
-    local shouldSuggestRejuvenation = false
-
-    if UnitExists("target") and UnitIsFriend("player", "target") then
-        local rejuvInfo = tracker:GetTargetHotInfo("rejuvenation")
-        local hasRejuv = rejuvInfo and rejuvInfo.active
-
-        if HealIQ.db.rules.rejuvenation and not hasRejuv then
-            local inCombat = InCombatLockdown()
-            local recentDamageCount = tracker:GetRecentDamageCount()
-
-            if inCombat or recentDamageCount > 0 or not strategy.avoidRandomRejuvenationDowntime then
-                shouldSuggestRejuvenation = true
-            end
-        end
-    elseif HealIQ.db.rules.rejuvenation then
-        local inCombat = InCombatLockdown()
-        local recentDamageCount = tracker:GetRecentDamageCount()
-        local inGroup = IsInGroup() or IsInRaid()
-
-        if (inCombat and inGroup) or recentDamageCount > 0 then
-            shouldSuggestRejuvenation = true
-        end
-    end
-
-    if shouldSuggestRejuvenation then
-        table.insert(suggestions, SPELLS.REJUVENATION)
-    end
-
-    -- Rule 8: Filler/Mana Management
-    if HealIQ.db.rules.wrath and strategy.useWrathForMana and tracker:ShouldUseWrath() then
-        table.insert(suggestions, SPELLS.WRATH)
-    end
-
-    -- Return up to the configured queue size suggestions
-    if HealIQ.db and HealIQ.db.ui then
-        local queueSize = HealIQ.db.ui.queueSize or 3
-        local queue = {}
-        for i = 1, math.min(queueSize, #suggestions) do
-            table.insert(queue, suggestions[i])
-        end
-        return queue
-    else
-        -- Fallback if UI config not available
-        local queue = {}
-        for i = 1, math.min(3, #suggestions) do
-            table.insert(queue, suggestions[i])
-        end
-        return queue
-    end
+    return queue
 end
 
 -- Targeting evaluation functions
@@ -1238,8 +1066,6 @@ function Engine:TestRule(ruleName, ...)
         return tracker:ShouldUseNaturesSwiftness()
     elseif ruleName == "barkskin" then
         return tracker:ShouldUseBarkskin()
-    elseif ruleName == "groveGuardians" then
-        return tracker:ShouldUseGroveGuardians()
     elseif ruleName == "wrath" then
         return tracker:ShouldUseWrath()
     end

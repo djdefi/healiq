@@ -18,13 +18,8 @@ local Rules = HealIQ.Rules
 -- Access BaseRule safely (might not be loaded yet)
 local BaseRule = Rules.BaseRule or {}
 
--- Spell IDs (shared from main Tracker)
-local SPELL_IDS = {
-    IRONBARK = 102342,
-    IRONBARK_BUFF = 102342,
-    BARKSKIN = 22812,
-    BARKSKIN_BUFF = 22812,
-}
+-- Canonical spell IDs live in SpellData.lua (single source of truth).
+local SPELL_IDS = HealIQ.SpellData
 
 Rules.DefensiveCooldowns = {}
 local DefensiveCooldowns = Rules.DefensiveCooldowns
@@ -38,7 +33,7 @@ function DefensiveCooldowns:ShouldUseIronbark(tracker)
     -- Check if target doesn't already have Ironbark
     local hasIronbark = false
     if targetExists then
-        local spellName = C_Spell.GetSpellName(SPELL_IDS.IRONBARK_BUFF)
+        local spellName = C_Spell.GetSpellName(SPELL_IDS.IRONBARK)
         local auraData = spellName and C_UnitAuras.GetAuraDataBySpellName("target", spellName, "HELPFUL")
         hasIronbark = auraData ~= nil
     end
